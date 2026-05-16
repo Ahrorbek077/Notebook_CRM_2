@@ -1,0 +1,585 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# NoteBook i18n, 2026.
+#
+
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-16 01:31+0500\n"
+"PO-Revision-Date: 2026-05-16 00:00+0500\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: uz-Cyrl\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "TIZIM"
+msgstr "ТИЗИМ"
+
+msgid "KATEGORIYALAR"
+msgstr "КАТЕГОРИЯЛАР"
+
+msgid "VILOYATLAR"
+msgstr "ВИЛОЯТЛАР"
+
+msgid "Saqlash"
+msgstr "Сақлаш"
+
+msgid "Tartib raqami"
+msgstr "Тартиб рақами"
+
+msgid "Sign In"
+msgstr "Кириш"
+
+msgid "Secure Access"
+msgstr "Хавфсиз кириш"
+
+msgid "Welcome back"
+msgstr "Хуш келибсиз"
+
+msgid "Sign in to continue to your account"
+msgstr "Аккаунтингизга киринг"
+
+msgid "Username"
+msgstr "Фойдаланувчи"
+
+msgid "Password"
+msgstr "Парол"
+
+msgid "Forgot password?"
+msgstr "Паролни унутдингизми?"
+
+msgid "Create account"
+msgstr "Аккаунт яратиш"
+
+msgid "Sozlamalar"
+msgstr "Созламалар"
+
+msgid "HISOB"
+msgstr "ҲИСОБ"
+
+msgid "Login (username)"
+msgstr "Логин (фойдаланувчи)"
+
+msgid "Telefon raqam"
+msgstr "Телефон рақам"
+
+msgid "Joriy parol"
+msgstr "Жорий парол"
+
+msgid "Yangi parol"
+msgstr "Янги парол"
+
+msgid "Yangi parolni tasdiqlang"
+msgstr "Янги паролни тасдиқланг"
+
+msgid "Xodimlar Boshqaruvi"
+msgstr "Ходимлар Бошқаруви"
+
+msgid "SUPER ADMIN PANEL"
+msgstr "СУПЕР АДМИН ПАНЕЛИ"
+
+msgid "Xodimlar"
+msgstr "Ходимлар"
+
+msgid "Faol"
+msgstr "Фаол"
+
+msgid "Haydalgan"
+msgstr "Ҳайдалган"
+
+msgid "Jami"
+msgstr "Жами"
+
+msgid "Login"
+msgstr "Кириш"
+
+msgid "Telefon"
+msgstr "Телефон"
+
+msgid "Lavozim"
+msgstr "Лавозим"
+
+msgid "Xodim"
+msgstr "Ходим"
+
+msgid "Admin"
+msgstr "Админ"
+
+msgid "Parol"
+msgstr "Парол"
+
+msgid "Bekor"
+msgstr "Бекор"
+
+msgid "Tasdiqlash"
+msgstr "Тасдиқлаш"
+
+msgid "BATCH MANAGEMENT"
+msgstr "БАТЧ БОШҚАРУВ"
+
+msgid "Umumiy qoldiq"
+msgstr "Умумий қолдиқ"
+
+msgid "Faol batchlar"
+msgstr "Фаол батчлар"
+
+msgid "Sotuv narxi"
+msgstr "Сотув нархи"
+
+msgid "Batchlar tarixi"
+msgstr "Батчлар тарихи"
+
+msgid "Qabul"
+msgstr "Қабул"
+
+msgid "Qoldiq"
+msgstr "Қолдиқ"
+
+msgid "Tan narxi"
+msgstr "Тан нархи"
+
+msgid "Sotuv"
+msgstr "Сотув"
+
+msgid "Tugagan"
+msgstr "Тугаган"
+
+msgid "Qisman"
+msgstr "Қисман"
+
+msgid "Filial sahifasidan sotib oling"
+msgstr "Филиал саҳифасидан сотиб олинг"
+
+msgid "KOMPANIYAGA QAYTARISH"
+msgstr "КОМПАНИЯГА ҚАЙТАРИШ"
+
+msgid "Qaytariladigan miqdor *"
+msgstr "Қайтариладиган миқдор *"
+
+msgid "Qaytariladigan summa:"
+msgstr "Қайтариладиган сумма:"
+
+msgid "Sabab (ixtiyoriy)"
+msgstr "Сабаб (ихтиёрий)"
+
+msgid "Mijozlar"
+msgstr "Мижозлар"
+
+msgid "MIJOZLAR"
+msgstr "МИЖОЗЛАР"
+
+msgid "Jami qarz"
+msgstr "Жами қарз"
+
+msgid "Avans"
+msgstr "Аванс"
+
+msgid "Tahrirlash"
+msgstr "Таҳрирлаш"
+
+msgid "Ism familiya"
+msgstr "Исм Фамилия"
+
+msgid "Viloyat"
+msgstr "Вилоят"
+
+msgid "— Tanlang —"
+msgstr "— Танланг —"
+
+msgid "Manzil (ixtiyoriy)"
+msgstr "Манзил (ихтиёрий)"
+
+msgid "Ortga"
+msgstr "Орқа"
+
+msgid "Mahsulot sotish"
+msgstr "Маҳсулот сотиш"
+
+msgid "Savatcha"
+msgstr "Саватча"
+
+msgid "To‘lov"
+msgstr "To‘lov"
+
+msgid "To‘lov va Sotuv tarixi"
+msgstr "To‘lov va Sotuv tarixi"
+
+msgid "Sana"
+msgstr "Сана"
+
+msgid "Turi"
+msgstr "Тури"
+
+msgid "Tavsif"
+msgstr "Тавсиф"
+
+msgid "Summa"
+msgstr "Сумма"
+
+msgid "Qaytarilgan"
+msgstr "Қайтарилган"
+
+msgid "Sotilgan mahsulotlar:"
+msgstr "Сотилган маҳсулотлар:"
+
+msgid "Qaytarilgan mahsulotlar:"
+msgstr "Қайтарилган маҳсулотлар:"
+
+msgid "Qoldi"
+msgstr "Қолди"
+
+msgid "Qaytarish tafsiloti:"
+msgstr "Қайтариш тафсилоти:"
+
+msgid "Qaytarilgan summa"
+msgstr "Қайтарилган сумма"
+
+msgid "Oldingi"
+msgstr "Олдинги"
+
+msgid "Keyingi"
+msgstr "Кейинги"
+
+msgid "Jami sotilgan"
+msgstr "Жами сотилган"
+
+msgid "Jami to‘langan"
+msgstr "Jami to‘langan"
+
+msgid "Qoldiq qarz"
+msgstr "Қолдиқ қарз"
+
+msgid "Mijozni tahrirlash"
+msgstr "Мижозни таҳрирлаш"
+
+msgid "Ism"
+msgstr "Исм"
+
+msgid "Manzil"
+msgstr "Манзил"
+
+msgid "Bekor qilish"
+msgstr "Бекор қилиш"
+
+msgid "Hozircha savatcha bo‘sh"
+msgstr "Hozircha savatcha bo‘sh"
+
+msgid "Mahsulot qo‘shish uchun yuqoridagi tugmalardan foydalaning"
+msgstr "Mahsulot qo‘shish uchun yuqoridagi tugmalardan foydalaning"
+
+msgid "0 ta"
+msgstr "0 та"
+
+msgid "0 so‘m"
+msgstr "0 so‘m"
+
+msgid "Barcha kategoriyalar"
+msgstr "Барча категориялар"
+
+msgid "Yopish"
+msgstr "Ёпиш"
+
+msgid "Mijoz:"
+msgstr "Мижоз:"
+
+msgid "To‘lov summasi"
+msgstr "To‘lov summasi"
+
+msgid "so‘m"
+msgstr "so‘m"
+
+msgid "Izoh (ixtiyoriy)"
+msgstr "Изоҳ (ихтиёрий)"
+
+msgid "Sotuvni qaytarish"
+msgstr "Сотувни қайтариш"
+
+msgid "To‘liq qaytarish"
+msgstr "To‘liq qaytarish"
+
+msgid "Qaytariladigan mahsulotlar:"
+msgstr "Қайтариладиган маҳсулотлар:"
+
+msgid "Qaytarish sababi (ixtiyoriy)"
+msgstr "Қайтариш сабаби (ихтиёрий)"
+
+msgid "Qaytarish mumkin:"
+msgstr "Қайтариш мумкин:"
+
+msgid "Qaytarish summasi"
+msgstr "Қайтариш суммаси"
+
+msgid "Mahsulotlar"
+msgstr "Маҳсулотлар"
+
+msgid "Umumiy stok"
+msgstr "Умумий сток"
+
+msgid "Bizning qarzimiz"
+msgstr "Бизнинг қарзимиз"
+
+msgid "Avansimiz"
+msgstr "Авансимиз"
+
+msgid "YANGI MAHSULOT"
+msgstr "ЯНГИ МАҲСУЛОТ"
+
+msgid "Mahsulot nomi *"
+msgstr "Маҳсулот номи *"
+
+msgid "Kategoriya *"
+msgstr "Категория *"
+
+msgid "— tanlang —"
+msgstr "— танланг —"
+
+msgid "Sotuv narxi *"
+msgstr "Сотув нархи *"
+
+msgid "Rasm (ixtiyoriy)"
+msgstr "Расм (ихтиёрий)"
+
+msgid "Bosing yoki torting"
+msgstr "Босинг ёки тортинг"
+
+msgid "MAHSULOTNI TAHRIRLASH"
+msgstr "МАҲСУЛОТНИ ТАҲРИРЛАШ"
+
+msgid "Nomi *"
+msgstr "Номи *"
+
+msgid "Kategoriya"
+msgstr "Категория"
+
+msgid "Yangi rasm (ixtiyoriy)"
+msgstr "Янги расм (ихтиёрий)"
+
+msgid "SOTIB OLISH"
+msgstr "СОТИБ ОЛИШ"
+
+msgid "Miqdor (dona) *"
+msgstr "Миқдор (дона) *"
+
+msgid "Jami xarajat:"
+msgstr "Жами харажат:"
+
+msgid "Kompaniyalar"
+msgstr "Компаниялар"
+
+msgid "Jami kompaniya"
+msgstr "Жами компания"
+
+msgid "Jami qarzimiz"
+msgstr "Жами қарзимиз"
+
+msgid "YANGI KOMPANIYA"
+msgstr "ЯНГИ КОМПАНИЯ"
+
+msgid "Izoh"
+msgstr "Изоҳ"
+
+msgid "YANGI FILIAL"
+msgstr "ЯНГИ ФИЛИАЛ"
+
+msgid "Filial nomi *"
+msgstr "Филиал номи *"
+
+msgid "Summa *"
+msgstr "Сумма *"
+
+msgid "Tur"
+msgstr "Тур"
+
+msgid "Naqd"
+msgstr "Нақд"
+
+msgid "Chegirma"
+msgstr "Чегирма"
+
+msgid "Dashboard — Savdo Tizimi"
+msgstr "Дашборд — Савдо Тизими"
+
+msgid "SAVDO"
+msgstr "САВДО"
+
+msgid "DASHBOARD"
+msgstr "ДАШБОРД"
+
+msgid "JONLI"
+msgstr "ЖОНЛИ"
+
+msgid "Yillik Foyda"
+msgstr "Йиллик Фойда"
+
+msgid "Yillik Sotuv"
+msgstr "Йиллик Сотув"
+
+msgid "Yillik Harajat"
+msgstr "Йиллик Харажат"
+
+msgid "SAVDO STATISTIKASI"
+msgstr "САВДО СТАТИСТИКАСИ"
+
+msgid "7 kun"
+msgstr "7 кун"
+
+msgid "Oylik"
+msgstr "Ойлик"
+
+msgid "Yillik"
+msgstr "Йиллик"
+
+msgid "TOP MAHSULOTLAR"
+msgstr "ТОП МАҲСУЛОТЛАР"
+
+msgid "BUGUNGI KUN"
+msgstr "БУГУНГИ КУН"
+
+msgid "Foyda"
+msgstr "Фойда"
+
+msgid "Harajat"
+msgstr "Харажат"
+
+msgid "Redis"
+msgstr "Redis"
+
+msgid "Faoliyat Tarixi"
+msgstr "Фаолият Тарихи"
+
+msgid "AUDIT LOG"
+msgstr "АУДИТ ЖУРНАЛИ"
+
+msgid "ta"
+msgstr "та"
+
+msgid "Dan"
+msgstr "Дан"
+
+msgid "Gacha"
+msgstr "Гача"
+
+msgid "Qaytarish"
+msgstr "Қайтариш"
+
+msgid "Kirim"
+msgstr "Кирим"
+
+msgid "Sotuv Tarixi"
+msgstr "Сотув Тарихи"
+
+msgid "Tarix"
+msgstr "Тарих"
+
+msgid "ta yozuv"
+msgstr "та ёзув"
+
+msgid "Barchasi"
+msgstr "Барчаси"
+
+msgid "Mijoz yangilandi"
+msgstr "Мижоз янгиланди"
+
+msgid "Batafsil"
+msgstr "Батафсил"
+
+msgid "Ombor Tarixi"
+msgstr "Омбор Тарихи"
+
+msgid "Stok kirdi"
+msgstr "Сток кирди"
+
+msgid "Stok qaytdi"
+msgstr "Сток қайтди"
+
+msgid "Tuzatish"
+msgstr "Тузатиш"
+
+msgid "Mahsulot yangilandi"
+msgstr "Маҳсулот янгиланди"
+
+msgid "Kompaniya yangilandi"
+msgstr "Компания янгиланди"
+
+msgid "Mahsulotlar — Inventar"
+msgstr "Маҳсулотлар — Инвентар"
+
+msgid "INVENTAR"
+msgstr "ИНВЕНТАР"
+
+msgid "Jami mahsulot"
+msgstr "Жами маҳсулот"
+
+msgid "Stockda bor"
+msgstr "Стокда бор"
+
+msgid "Tugayapti"
+msgstr "Тугаяпти"
+
+msgid "Mahsulotlar topilmadi"
+msgstr "Маҳсулотлар топилмади"
+
+msgid "Savdo Tizimi"
+msgstr "Савдо Тизими"
+
+msgid "Boshqaruv Tizimi"
+msgstr "Бошқарув Тизими"
+
+msgid "Yangi"
+msgstr "Янги"
+
+msgid "Mijoz"
+msgstr "Мижоз"
+
+msgid "Mahsulot"
+msgstr "Маҳсулот"
+
+msgid "ASOSIY MENYU"
+msgstr "АСОСИЙ МЕНЮ"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Statistika"
+msgstr "Статистика"
+
+msgid "Inventar & Batch"
+msgstr "Инвентар & Батч"
+
+msgid "Sotuv & Ombor"
+msgstr "Сотув & Омбор"
+
+msgid "Rollar & Ruxsat"
+msgstr "Роллар & Рухсат"
+
+msgid "Viloyatlar"
+msgstr "Вилоятлар"
+
+msgid "Hudud katalogi"
+msgstr "Ҳудуд каталоги"
+
+msgid "Profil"
+msgstr "Профил"
+
+msgid "Chiqish"
+msgstr "Чиқиш"
+
+msgid "Tizimdan"
+msgstr "Тизимдан"
+
+msgid "YANGI MIJOZ"
+msgstr "ЯНГИ МИЖОЗ"
+
+msgid "Ismi *"
+msgstr "Исми *"
+
+msgid "Telefon *"
+msgstr "Телефон *"
+
+msgid "Rasmni tanlash uchun bosing"
+msgstr "Расмни танлаш учун босинг"

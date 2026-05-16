@@ -1,0 +1,162 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Sozlamalar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{% static 'img/logo.png' %}">
+    <link rel="stylesheet" href="{% static 'css/staff.css' %}">
+</head>
+<body>
+
+<div class="page-shell">
+
+    <!-- HEADER -->
+    <header class="page-header">
+        <button onclick="history.back()" class="back-btn">
+            <i class="fa fa-arrow-left"></i>
+        </button>
+        <div class="header-center">
+            <div class="header-eyebrow">HISOB</div>
+            <h1 class="header-title">Sozlamalar</h1>
+        </div>
+        <div style="width:38px"></div>
+    </header>
+
+    <!-- PROFILE AVATAR -->
+    <div class="profile-hero">
+        <div class="profile-avatar">
+            {{ request.user.username|slice:":2"|upper }}
+        </div>
+        <div class="profile-name">{{ request.user.username }}</div>
+        <div class="profile-role">
+            <span class="role-badge {{ request.user.role }}">
+                {{ request.user.get_role_display }}
+            </span>
+        </div>
+        {% if request.user.phone %}
+        <div class="profile-phone">
+            <i class="fa fa-phone"></i> {{ request.user.phone }}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- SETTINGS SECTIONS -->
+    <div class="settings-list">
+
+        <!-- Profile section -->
+        <div class="settings-section">
+            <div class="section-label">PROFIL MA'LUMOTLARI</div>
+
+            <form id="profileForm" class="settings-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="profile">
+
+                <div class="field-group">
+                    <label>Login (username)</label>
+                    <input type="text" name="username" class="field-input"
+                           value="{{ request.user.username }}" required
+                           autocomplete="off">
+                </div>
+                <div class="field-group">
+                    <label>Telefon raqam</label>
+                    <input type="text" name="phone" class="field-input"
+                           value="{{ request.user.phone|default:'' }}"
+                           placeholder="+998 90 123 45 67">
+                </div>
+
+                <div class="form-feedback d-none" id="profileFeedback"></div>
+
+                <button type="submit" class="btn-submit full">
+                    <i class="fa fa-check"></i> Profilni saqlash
+                </button>
+            </form>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <!-- Password section -->
+        <div class="settings-section">
+            <div class="section-label">PAROLNI O'ZGARTIRISH</div>
+
+            <form id="passwordForm" class="settings-form">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="password">
+
+                <div class="field-group">
+                    <label>Joriy parol <span class="req">*</span></label>
+                    <div class="pass-wrap">
+                        <input type="password" name="old_password" id="oldPass"
+                               class="field-input" placeholder="Joriy parolingiz"
+                               required autocomplete="current-password">
+                        <button type="button" class="pass-toggle" data-target="oldPass">
+                            <i class="fa fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="field-group">
+                    <label>Yangi parol <span class="req">*</span></label>
+                    <div class="pass-wrap">
+                        <input type="password" name="new_password" id="newPass"
+                               class="field-input" placeholder="Kamida 6 ta belgi"
+                               required autocomplete="new-password" minlength="6">
+                        <button type="button" class="pass-toggle" data-target="newPass">
+                            <i class="fa fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="pass-strength" id="passStrength">
+                        <div class="ps-bar" id="psBar"></div>
+                    </div>
+                    <div class="ps-label" id="psLabel"></div>
+                </div>
+
+                <div class="field-group">
+                    <label>Yangi parolni tasdiqlang <span class="req">*</span></label>
+                    <div class="pass-wrap">
+                        <input type="password" name="confirm_password" id="confirmPass"
+                               class="field-input" placeholder="Qayta kiriting"
+                               required autocomplete="new-password">
+                        <button type="button" class="pass-toggle" data-target="confirmPass">
+                            <i class="fa fa-eye"></i>
+                        </button>
+                    </div>
+                    <div class="match-hint d-none" id="matchHint"></div>
+                </div>
+
+                <div class="form-feedback d-none" id="passwordFeedback"></div>
+
+                <button type="submit" class="btn-submit full warning" id="passSubmitBtn" disabled>
+                    <i class="fa fa-lock"></i> Parolni o'zgartirish
+                </button>
+            </form>
+        </div>
+
+        <div class="section-divider"></div>
+
+        <!-- Danger zone -->
+        <div class="settings-section">
+            <div class="section-label">TIZIM</div>
+            <a href="{% url 'accounts:logout' %}" class="logout-btn">
+                <i class="fa fa-right-from-bracket"></i>
+                Tizimdan chiqish
+            </a>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+window.SETTINGS_URL = "{% url 'accounts:settings' %}";
+</script>
+<script src="{% static 'script/settings.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard — Savdo Tizimi</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+
+<body>
+
+<!-- GRID NOISE OVERLAY -->
+<div class="grid-overlay"></div>
+
+<div class="dash-shell">
+
+    <!-- ── HEADER ── -->
+    <header class="dash-header">
+        <div class="header-left">
+            <div class="logo-mark">
+                <span class="lm-bar b1"></span>
+                <span class="lm-bar b2"></span>
+                <span class="lm-bar b3"></span>
+            </div>
+            <div>
+                <div class="header-title">SAVDO<span class="accent">DASHBOARD</span></div>
+                <div class="header-sub" id="currentDate">—</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="live-indicator">
+                <span class="live-dot"></span>
+                <span class="live-label">JONLI</span>
+            </div>
+            <div class="header-nav">
+      
+                <a href="{% url 'dashboard:launcher' %}" class="nav-chip">
+                    <i class="fa fa-arrow-left"></i> Ortga
+                </a>
+                <a href="{% url 'dashboard:history-stock' %}" class="nav-chip">
+                    <i class="fa fa-history"></i> Tarix
+                </a>
+                <a href="{% url 'clients:client_list' %}" class="nav-chip">
+                    <i class="fa fa-users"></i> Mijozlar
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ── KPI ROW ── -->
+    <section class="kpi-row" id="kpiRow">
+        <div class="kpi-card" id="kpi-profit">
+            <div class="kpi-label" style="display:flex;align-items:center;gap:6px">
+                {% trans "Yillik Foyda" %}
+                <span style="font-size:.6rem;background:rgba(0,230,118,.15);color:var(--green);
+                    padding:1px 5px;border-radius:4px;font-weight:700">NAQD</span>
+            </div>
+            <div class="kpi-value" id="profit-year">—</div>
+            <div style="font-size:.72rem;color:var(--t2);margin-top:2px">
+                Potensial: <span id="gross-profit-year" style="color:var(--cyan);font-family:var(--mono)">—</span>
+            </div>
+            <div class="kpi-bar"><div class="kpi-fill green"></div></div>
+            <i class="fa fa-coins kpi-icon green"></i>
+        </div>
+        <div class="kpi-card" id="kpi-sale">
+            <div class="kpi-label">Yillik Sotuv</div>
+            <div class="kpi-value" id="sale-year">—</div>
+            <div class="kpi-bar"><div class="kpi-fill cyan"></div></div>
+            <i class="fa fa-chart-line kpi-icon cyan"></i>
+        </div>
+        <div class="kpi-card" id="kpi-payment">
+            <div class="kpi-label">Yillik To'lov</div>
+            <div class="kpi-value" id="payment-year">—</div>
+            <div class="kpi-bar"><div class="kpi-fill blue"></div></div>
+            <i class="fa fa-credit-card kpi-icon blue"></i>
+        </div>
+        <div class="kpi-card" id="kpi-expense">
+            <div class="kpi-label">Yillik Harajat</div>
+            <div class="kpi-value" id="expense-year">—</div>
+            <div class="kpi-bar"><div class="kpi-fill red"></div></div>
+            <i class="fa fa-arrow-trend-down kpi-icon red"></i>
+        </div>
+    </section>
+
+    <!-- ── CHART SECTION ── -->
+    <section class="chart-section">
+        <div class="chart-header">
+            <div class="chart-title-group">
+                <span class="section-label">SAVDO STATISTIKASI</span>
+                <div class="chart-summaries" id="chartSummaries">
+                    <span class="cs-item green">
+                        <span class="cs-dot"></span>
+                        Foyda: <strong id="sum-profit">—</strong>
+                    </span>
+                    <span class="cs-item red">
+                        <span class="cs-dot"></span>
+                        Harajat: <strong id="sum-expense">—</strong>
+                    </span>
+                    <span class="cs-item blue">
+                        <span class="cs-dot"></span>
+                        To'lov: <strong id="sum-payment">—</strong>
+                    </span>
+                    <span class="cs-item cyan">
+                        <span class="cs-dot"></span>
+                        Sotuv: <strong id="sum-sale">—</strong>
+                    </span>
+                </div>
+            </div>
+            <div class="period-toggle">
+                <button class="pt-btn active" data-period="weekly">7 kun</button>
+                <button class="pt-btn" data-period="monthly">Oylik</button>
+                <button class="pt-btn" data-period="yearly">Yillik</button>
+            </div>
+        </div>
+
+        <div class="chart-wrap">
+            <canvas id="smartChart"></canvas>
+        </div>
+    </section>
+
+    <!-- ── BOTTOM GRID ── -->
+    <div class="bottom-grid">
+
+        <!-- Top Products -->
+        <section class="bottom-card products-card">
+            <div class="bc-header">
+                <span class="section-label">TOP MAHSULOTLAR</span>
+                <span class="bc-badge" id="topProductsBadge">—</span>
+            </div>
+            <div class="products-list" id="productsList">
+                <div class="skeleton-rows">
+                    <div class="sk-row"></div>
+                    <div class="sk-row"></div>
+                    <div class="sk-row"></div>
+                    <div class="sk-row"></div>
+                    <div class="sk-row"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Today snapshot -->
+        <section class="bottom-card today-card">
+            <div class="bc-header">
+                <span class="section-label">BUGUNGI KUN</span>
+                <span class="today-label" id="todayLabel">—</span>
+            </div>
+            <div class="today-stats" id="todayStats">
+                <div class="ts-item">
+                    <div class="ts-icon green"><i class="fa fa-coins"></i></div>
+                    <div class="ts-info">
+                        <span class="ts-label">Foyda</span>
+                        <span class="ts-val green" id="today-profit">—</span>
+                    </div>
+                </div>
+                <div class="ts-item">
+                    <div class="ts-icon cyan"><i class="fa fa-shopping-cart"></i></div>
+                    <div class="ts-info">
+                        <span class="ts-label">Sotuv</span>
+                        <span class="ts-val cyan" id="today-sale">—</span>
+                    </div>
+                </div>
+                <div class="ts-item">
+                    <div class="ts-icon blue"><i class="fa fa-credit-card"></i></div>
+                    <div class="ts-info">
+                        <span class="ts-label">To'lov</span>
+                        <span class="ts-val blue" id="today-payment">—</span>
+                    </div>
+                </div>
+                <div class="ts-item">
+                    <div class="ts-icon red"><i class="fa fa-boxes"></i></div>
+                    <div class="ts-info">
+                        <span class="ts-label">Harajat</span>
+                        <span class="ts-val red" id="today-expense">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cache info -->
+            <div class="cache-info">
+                <i class="fa fa-bolt"></i>
+                Cache: <span id="cacheStatus">Redis</span> ·
+                <span id="lastUpdate">—</span>
+            </div>
+        </section>
+
+    </div>
+
+</div>
+
+<!-- LOADING OVERLAY -->
+<div class="page-loader" id="pageLoader">
+    <div class="loader-inner">
+        <div class="loader-bars">
+            <span></span><span></span><span></span><span></span><span></span>
+        </div>
+        <div class="loader-text">Ma'lumotlar yuklanmoqda...</div>
+    </div>
+</div>
+
+<script>
+window.DASHBOARD_URLS = {
+    dashboardApi: "{% url 'dashboard:dashboard_api' %}",
+};
+</script>
+<script src="{% static 'script/dashboard.js' %}"></script>
+</body>
+</html>

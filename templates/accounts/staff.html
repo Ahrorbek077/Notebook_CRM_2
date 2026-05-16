@@ -1,0 +1,301 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Xodimlar Boshqaruvi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{% static 'img/logo.png' %}">
+    <link rel="stylesheet" href="{% static 'css/staff.css' %}">
+</head>
+<body>
+
+<div class="page-shell">
+
+    <!-- HEADER -->
+    <header class="page-header">
+        <button onclick="history.back()" class="back-btn">
+            <i class="fa fa-arrow-left"></i>
+        </button>
+        <div class="header-center">
+            <div class="header-eyebrow">SUPER ADMIN PANEL</div>
+            <h1 class="header-title">Xodimlar</h1>
+        </div>
+        <button class="add-btn" id="openAddStaff">
+            <i class="fa fa-plus"></i>
+            <span>Qo'shish</span>
+        </button>
+    </header>
+
+    <!-- STATS -->
+    <div class="staff-stats">
+        <div class="ss-item">
+            <span class="ss-num active-count">{{ active_users|length }}</span>
+            <span class="ss-label">Faol</span>
+        </div>
+        <div class="ss-div"></div>
+        <div class="ss-item">
+            <span class="ss-num fired-count">{{ fired_users|length }}</span>
+            <span class="ss-label">Haydalgan</span>
+        </div>
+        <div class="ss-div"></div>
+        <div class="ss-item">
+            <span class="ss-num total-count">{{ active_users|length|add:fired_users|length }}</span>
+            <span class="ss-label">Jami</span>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="tabs-bar">
+        <button class="tab-btn active" data-tab="active">
+            <i class="fa fa-circle-check"></i> Faol xodimlar
+            <span class="tab-count">{{ active_users|length }}</span>
+        </button>
+        <button class="tab-btn" data-tab="fired">
+            <i class="fa fa-user-slash"></i> Haydalganlar
+            <span class="tab-count fired">{{ fired_users|length }}</span>
+        </button>
+    </div>
+
+    <!-- ACTIVE STAFF -->
+    <div class="staff-section" id="tab-active">
+        <div class="staff-list">
+            {% for user in active_users %}
+            <div class="staff-card"
+                 id="staff-{{ user.id }}"
+                 data-id="{{ user.id }}"
+                 data-username="{{ user.username }}"
+                 data-phone="{{ user.phone|default:'' }}"
+                 data-role="{{ user.role }}">
+
+                <div class="sc-avatar {{ user.role }}">
+                    {{ user.username|slice:":2"|upper }}
+                </div>
+
+                <div class="sc-info">
+                    <div class="sc-name">{{ user.username }}</div>
+                    <div class="sc-meta">
+                        <span class="role-badge {{ user.role }}">{{ user.get_role_display }}</span>
+                        {% if user.phone %}
+                        <span class="sc-phone">
+                            <i class="fa fa-phone"></i> {{ user.phone }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="sc-date">
+                        <i class="fa fa-calendar"></i>
+                        {{ user.created_at|date:"d.m.Y" }} dan beri
+                    </div>
+                </div>
+
+                <div class="sc-actions">
+                    <button class="sca-btn edit" 
+                            data-id="{{ user.id }}"
+                            data-username="{{ user.username }}"
+                            data-phone="{{ user.phone|default:'' }}"
+                            data-role="{{ user.role }}"
+                            title="Tahrirlash">
+                        <i class="fa fa-pen"></i>
+                    </button>
+                    <button class="sca-btn fire"
+                            data-id="{{ user.id }}"
+                            data-username="{{ user.username }}"
+                            title="Ishdan haydash">
+                        <i class="fa fa-user-slash"></i>
+                    </button>
+                </div>
+
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <div class="es-icon"><i class="fa fa-users"></i></div>
+                <p>Faol xodimlar yo'q</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- FIRED STAFF -->
+    <div class="staff-section d-none" id="tab-fired">
+        <div class="staff-list">
+            {% for user in fired_users %}
+            <div class="staff-card fired"
+                 id="staff-{{ user.id }}"
+                 data-id="{{ user.id }}"
+                 data-username="{{ user.username }}">
+
+                <div class="sc-avatar fired">
+                    {{ user.username|slice:":2"|upper }}
+                </div>
+
+                <div class="sc-info">
+                    <div class="sc-name fired-name">{{ user.username }}</div>
+                    <div class="sc-meta">
+                        <span class="role-badge fired">Haydalgan</span>
+                        {% if user.fired_at %}
+                        <span class="fired-date">
+                            <i class="fa fa-calendar-xmark"></i>
+                            {{ user.fired_at|date:"d.m.Y" }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if user.fired_by %}
+                    <div class="sc-date">
+                        <i class="fa fa-user-shield"></i>
+                        {{ user.fired_by.username }} tomonidan
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="sc-actions">
+                    <button class="sca-btn restore"
+                            data-id="{{ user.id }}"
+                            data-username="{{ user.username }}"
+                            title="Qayta yollash">
+                        <i class="fa fa-rotate-left"></i>
+                    </button>
+                </div>
+
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <div class="es-icon"><i class="fa fa-check-circle"></i></div>
+                <p>Haydalgan xodimlar yo'q</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+
+<!-- ADD MODAL -->
+<div class="modal-overlay d-none" id="addModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <div class="modal-title">
+                <i class="fa fa-user-plus"></i> Yangi xodim
+            </div>
+            <button class="modal-close" data-close="addModal">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <form id="addStaffForm">
+            {% csrf_token %}
+            <div class="modal-body">
+                <div class="field-group">
+                    <label>Login <span class="req">*</span></label>
+                    <input type="text" name="username" class="field-input" 
+                           placeholder="sardor_admin" required autocomplete="off">
+                </div>
+                <div class="field-group">
+                    <label>Telefon</label>
+                    <input type="text" name="phone" class="field-input" 
+                           placeholder="+998 90 123 45 67">
+                </div>
+                <div class="field-group">
+                    <label>Lavozim <span class="req">*</span></label>
+                    <select name="role" class="field-select">
+                        <option value="staff">Xodim</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label>Parol <span class="req">*</span></label>
+                    <div class="pass-wrap">
+                        <input type="password" name="password" id="addPassword"
+                               class="field-input" placeholder="Kamida 6 ta belgi" required>
+                        <button type="button" class="pass-toggle" data-target="addPassword">
+                            <i class="fa fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-error d-none" id="addError"></div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn-cancel" data-close="addModal">Bekor</button>
+                <button type="submit" class="btn-submit">
+                    <i class="fa fa-check"></i> Yaratish
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay d-none" id="editModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <div class="modal-title">
+                <i class="fa fa-pen"></i> Tahrirlash
+            </div>
+            <button class="modal-close" data-close="editModal">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <form id="editStaffForm">
+            {% csrf_token %}
+            <input type="hidden" id="editUserId">
+            <div class="modal-body">
+                <div class="field-group">
+                    <label>Login <span class="req">*</span></label>
+                    <input type="text" name="username" id="editUsername"
+                           class="field-input" required>
+                </div>
+                <div class="field-group">
+                    <label>Telefon</label>
+                    <input type="text" name="phone" id="editPhone" class="field-input">
+                </div>
+                <div class="field-group">
+                    <label>Lavozim</label>
+                    <select name="role" id="editRole" class="field-select">
+                        <option value="staff">Xodim</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div class="form-error d-none" id="editError"></div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn-cancel" data-close="editModal">Bekor</button>
+                <button type="submit" class="btn-submit">
+                    <i class="fa fa-check"></i> Saqlash
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="modal-overlay d-none" id="confirmModal">
+    <div class="modal-box modal-sm">
+        <div class="modal-head">
+            <div class="modal-title danger" id="confirmTitle">Tasdiqlash</div>
+            <button class="modal-close" data-close="confirmModal">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p class="confirm-text" id="confirmText"></p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn-cancel" data-close="confirmModal">Bekor</button>
+            <button type="button" class="btn-danger" id="confirmOk">Tasdiqlash</button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+window.STAFF_URLS = {
+    create: "{% url 'accounts:staff-create' %}",
+    edit:   "{% url 'accounts:staff-edit' 0 %}",
+    fire:   "{% url 'accounts:staff-fire' 0 %}",
+};
+</script>
+<script src="{% static 'script/staff.js' %}"></script>
+</body>
+</html>

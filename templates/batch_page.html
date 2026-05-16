@@ -1,0 +1,399 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ product.name }} — Batchlar</title>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+<div class="page-shell">
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <button onclick="history.back()" class="back-btn"><i class="fa fa-arrow-left"></i></button>
+        <div class="header-center">
+            <span class="header-super">BATCH MANAGEMENT</span>
+            <h1 class="header-title">{{ product.name }}</h1>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fa fa-boxes"></i></div>
+            <div class="stat-label">Umumiy qoldiq</div>
+            <div class="stat-value" id="totalStock">{{ product.stock }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fa fa-layer-group"></i></div>
+            <div class="stat-label">Faol batchlar</div>
+            <div class="stat-value" id="activeBatchCount">{{ batches|length }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon amber"><i class="fa fa-tag"></i></div>
+            <div class="stat-label">Sotuv narxi</div>
+            <div class="stat-value text-mono" style="font-size:.9rem">
+                {{ product.price|floatformat:0 }} <small>so'm</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- BATCH LIST -->
+    <div class="section-hdr">
+        <span class="section-title">Batchlar tarixi</span>
+        <span class="section-badge">{{ batches|length }} ta</span>
+    </div>
+
+    <div class="card-list" id="batchList">
+        {% for batch in batches %}
+        <div class="batch-card {% if not batch.is_active %}inactive{% endif %}"
+             id="batch-{{ batch.id }}"
+             data-id="{{ batch.id }}"
+             data-remaining="{{ batch.remaining_quantity }}"
+             data-received="{{ batch.quantity_received }}"
+             data-cost="{{ batch.cost_price }}">
+
+            <!-- MAIN ROW -->
+            <div class="batch-main">
+                <div class="batch-num">#{{ forloop.counter }}</div>
+                <div class="batch-info">
+                    <div class="batch-date">
+                        <i class="fa fa-calendar-alt"></i>
+                        {{ batch.created_at|date:"d.m.Y  H:i" }}
+                        {% if batch.created_by %}
+                        <span style="color:var(--t3);margin-left:4px">· {{ batch.created_by.username }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="batch-nums">
+                        <div class="bnum">
+                            <span class="bnum-label">Qabul</span>
+                            <span class="bnum-val" id="received-{{ batch.id }}">{{ batch.quantity_received }}</span>
+                        </div>
+                        <div class="bnum">
+                            <span class="bnum-label">Qoldiq</span>
+                            <span class="bnum-val {% if batch.remaining_quantity == 0 %}zero{% elif batch.remaining_quantity < batch.quantity_received %}partial{% else %}full{% endif %}"
+                                  id="remaining-{{ batch.id }}">
+                                {{ batch.remaining_quantity }}
+                            </span>
+                        </div>
+                        <div class="bnum">
+                            <span class="bnum-label">Tan narxi</span>
+                            <span class="bnum-val">{{ batch.cost_price|floatformat:0 }} so'm</span>
+                        </div>
+                        <div class="bnum">
+                            <span class="bnum-label">Sotuv</span>
+                            <span class="bnum-val" style="color:var(--green)">{{ batch.selling_price|floatformat:0 }} so'm</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="batch-status">
+                    {% if not batch.is_active %}
+                    <span class="status-badge inactive">O'chirilgan</span>
+                    {% elif batch.remaining_quantity == 0 %}
+                    <span class="status-badge empty">Tugagan</span>
+                    {% elif batch.remaining_quantity < batch.quantity_received %}
+                    <span class="status-badge partial">Qisman</span>
+                    {% else %}
+                    <span class="status-badge active">Faol</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- PROGRESS BAR -->
+            {% if batch.quantity_received > 0 %}
+            <div class="batch-progress" id="progress-wrap-{{ batch.id }}">
+                <div class="progress-track">
+                    <div class="progress-fill {% if batch.remaining_quantity == 0 %}empty{% endif %}"
+                         id="progress-{{ batch.id }}"
+                         style="width:{% widthratio batch.remaining_quantity batch.quantity_received 100 %}%"></div>
+                </div>
+                <div class="progress-pct" id="pct-{{ batch.id }}">
+                    {% widthratio batch.remaining_quantity batch.quantity_received 100 %}% qolgan
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- ACTIONS: faqat qaytarish tugmasi (qoldiq bor bo'lsa) -->
+            {% if batch.is_active %}
+            <div class="batch-actions" id="actions-{{ batch.id }}">
+                {% if batch.remaining_quantity > 0 %}
+                <button class="ba-btn ba-btn-return return-btn"
+                        data-id="{{ batch.id }}"
+                        data-name="{{ product.name|escapejs }}"
+                        data-remaining="{{ batch.remaining_quantity }}"
+                        data-cost="{{ batch.cost_price }}">
+                    <i class="fa fa-undo"></i> Kompaniyaga qaytarish
+                </button>
+                {% endif %}
+                {% if batch.remaining_quantity == 0 %}
+                <button class="ba-btn ba-btn-delete del-btn" data-id="{{ batch.id }}">
+                    <i class="fa fa-trash"></i> O'chirish
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fa fa-layer-group"></i></div>
+            <div class="empty-title">Hech qanday batch yo'q</div>
+            <div class="empty-sub">Filial sahifasidan sotib oling</div>
+        </div>
+        {% endfor %}
+    </div>
+
+</div>
+
+<div id="toast"><span class="toast-dot"></span><span id="toastMsg"></span></div>
+
+<!-- ── MODAL: Kompaniyaga qaytarish ── -->
+<div class="modal-veil d-none" id="returnModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">KOMPANIYAGA QAYTARISH</div>
+            <button class="sheet-close" data-close="returnModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <input type="hidden" id="retBatchId">
+            <input type="hidden" id="retCostPrice">
+
+            <!-- Batch ma'lumoti -->
+            <div style="background:var(--orange-d);border:1px solid rgba(251,146,60,.25);border-radius:var(--r);padding:10px 14px" id="retInfo"></div>
+
+            <div class="form-group">
+                <label class="form-label">Qaytariladigan miqdor *</label>
+                <input type="number" class="form-control" id="retQty" placeholder="0" min="1"
+                       oninput="this.value = Math.min(Math.max(1, parseInt(this.value)||1), parseInt(this.max)||999999)">
+                <small style="color:var(--t3);font-size:.7rem" id="retMaxLabel"></small>
+            </div>
+
+            <!-- Hisoblanadigan summa -->
+            <div style="background:var(--bg-el);border:1px solid var(--b);border-radius:var(--r);padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+                <span style="font-size:.8rem;color:var(--t2)">Qaytariladigan summa:</span>
+                <span style="font-family:var(--mono);font-size:1rem;color:var(--green);font-weight:700" id="retTotal">0 so'm</span>
+            </div>
+
+            <div style="background:var(--cyan-d);border:1px solid rgba(0,188,212,.2);border-radius:var(--r);padding:8px 12px;font-size:.78rem;color:var(--cyan)">
+                <i class="fa fa-info-circle"></i>
+                Qaytarilganda stok kamayadi va filial qarzi ayni shu summa kamayadigan bo'ladi.
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Sabab (ixtiyoriy)</label>
+                <textarea class="form-control" id="retReason" rows="2" placeholder="Qaytarish sababi..."></textarea>
+            </div>
+            <div id="retMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="returnModal">Bekor</button>
+            <button class="btn btn-amber" id="retSubmit">
+                <i class="fa fa-undo"></i> Qaytarish
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const CSRF = "{{ csrf_token }}";
+
+/* Modal helpers */
+document.querySelectorAll('[data-close]').forEach(b =>
+    b.addEventListener('click', () => closeModal(b.dataset.close)));
+document.querySelectorAll('.modal-veil').forEach(v =>
+    v.addEventListener('click', e => { if (e.target === v) closeModal(v.id); }));
+function openModal(id)  { document.getElementById(id).classList.remove('d-none'); }
+function closeModal(id) { document.getElementById(id).classList.add('d-none'); }
+
+function toast(msg, type = 'info') {
+    const t = document.getElementById('toast');
+    t.className = 'show ' + type;
+    document.getElementById('toastMsg').textContent = msg;
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove('show'), 3500);
+}
+function showMsg(el, text, type) {
+    el.textContent = text;
+    el.className = 'form-msg ' + type;
+    el.classList.remove('d-none');
+    setTimeout(() => el.classList.add('d-none'), 4000);
+}
+
+/* ── Return buttons ── */
+document.querySelectorAll('.return-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        const id        = btn.dataset.id;
+        const name      = btn.dataset.name;
+        const remaining = parseInt(btn.dataset.remaining);
+        const cost      = parseFloat(btn.dataset.cost);
+
+        document.getElementById('retBatchId').value  = id;
+        document.getElementById('retCostPrice').value = cost;
+        document.getElementById('retQty').value = '';
+        document.getElementById('retQty').max   = remaining;
+        document.getElementById('retMaxLabel').textContent = `Maksimum: ${remaining} ta`;
+        document.getElementById('retReason').value = '';
+        document.getElementById('retTotal').textContent = '0 so\'m';
+        document.getElementById('retInfo').innerHTML =
+            `<div style="font-weight:700;color:var(--t);margin-bottom:4px">
+                <i class="fa fa-box" style="color:var(--orange)"></i> ${name}
+            </div>
+            <div style="font-size:.78rem;color:var(--t2);display:flex;gap:16px;flex-wrap:wrap">
+                <span>Qoldiq: <b style="color:var(--amber)">${remaining} ta</b></span>
+                <span>Tan narxi: <b style="font-family:var(--mono)">${cost.toLocaleString()} so'm</b></span>
+            </div>`;
+
+        openModal('returnModal');
+    });
+});
+
+/* Live hisoblash */
+document.getElementById('retQty').addEventListener('input', function () {
+    const qty  = parseInt(this.value) || 0;
+    const cost = parseFloat(document.getElementById('retCostPrice').value) || 0;
+    document.getElementById('retTotal').textContent = (qty * cost).toLocaleString() + ' so\'m';
+});
+
+/* ── Return submit ── */
+document.getElementById('retSubmit').addEventListener('click', async () => {
+    const btn      = document.getElementById('retSubmit');
+    const msg      = document.getElementById('retMsg');
+    const batchId  = document.getElementById('retBatchId').value;
+    const qty      = parseInt(document.getElementById('retQty').value);
+    const maxQty   = parseInt(document.getElementById('retQty').max);
+    const reason   = document.getElementById('retReason').value.trim();
+
+    if (!qty || qty < 1) {
+        showMsg(msg, 'Miqdorni kiriting!', 'error'); return;
+    }
+    if (qty > maxQty) {
+        showMsg(msg, `Maksimum ${maxQty} ta qaytarish mumkin!`, 'error'); return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+    try {
+        const res = await fetch(`/company/api/batch/${batchId}/return/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ quantity: qty, reason })
+        });
+        const d = await res.json();
+
+        if (d.status === 'success') {
+            const amount = parseFloat(d.returned_amount).toLocaleString();
+            const debtInfo = d.new_debt !== null
+                ? ` | Qarz: ${parseFloat(d.new_debt).toLocaleString()} so'm`
+                : '';
+            const advInfo = d.new_advance && parseFloat(d.new_advance) > 0
+                ? ` | Avans: ${parseFloat(d.new_advance).toLocaleString()} so'm`
+                : '';
+            toast(`Qaytarildi ✓  ${qty} ta · ${amount} so'm${debtInfo}${advInfo}`, 'success');
+            closeModal('returnModal');
+
+            /* DOM yangilaymiz — sahifani reload qilmasdan */
+            const card = document.getElementById('batch-' + batchId);
+            if (card) {
+                /* Qoldiq / qabul raqamlarini yangilaymiz */
+                const remEl = document.getElementById('remaining-' + batchId);
+                const recEl = document.getElementById('received-' + batchId);
+                if (remEl) {
+                    remEl.textContent = d.new_remaining;
+                    remEl.className = 'bnum-val ' + (
+                        d.new_remaining === 0 ? 'zero' :
+                        d.new_remaining < d.new_received ? 'partial' : 'full'
+                    );
+                }
+                if (recEl) recEl.textContent = d.new_received;
+
+                /* Progress bar */
+                const pFill = document.getElementById('progress-' + batchId);
+                const pPct  = document.getElementById('pct-' + batchId);
+                if (pFill && d.new_received > 0) {
+                    const pct = Math.round(d.new_remaining / d.new_received * 100);
+                    pFill.style.width = pct + '%';
+                    if (d.new_remaining === 0) pFill.classList.add('empty');
+                    if (pPct) pPct.textContent = pct + '% qolgan';
+                }
+
+                /* Status badge */
+                const statusEl = card.querySelector('.status-badge');
+                if (statusEl) {
+                    if (d.new_remaining === 0) {
+                        statusEl.className = 'status-badge empty';
+                        statusEl.textContent = 'Tugagan';
+                    } else {
+                        statusEl.className = 'status-badge partial';
+                        statusEl.textContent = 'Qisman';
+                    }
+                }
+
+                /* Return tugmasi data-remaining yangilaymiz */
+                const retBtn = card.querySelector('.return-btn');
+                if (retBtn) {
+                    if (d.new_remaining === 0) {
+                        retBtn.remove();  /* qoldiq qolmadi */
+                    } else {
+                        retBtn.dataset.remaining = d.new_remaining;
+                    }
+                }
+
+                /* Agar qoldiq 0 bo'lsa — O'chirish tugmasini ko'rsatamiz */
+                if (d.new_remaining === 0) {
+                    const actionsEl = document.getElementById('actions-' + batchId);
+                    if (actionsEl) {
+                        actionsEl.innerHTML +=
+                            `<button class="ba-btn ba-btn-delete del-btn" data-id="${batchId}">
+                                <i class="fa fa-trash"></i> O'chirish
+                             </button>`;
+                        /* Yangi del-btn ga listener bog'laymiz */
+                        actionsEl.querySelector('.del-btn')
+                            .addEventListener('click', handleDelete);
+                    }
+                }
+            }
+
+            /* Umumiy stok */
+            const tsEl = document.getElementById('totalStock');
+            if (tsEl) tsEl.textContent = d.new_stock;
+
+        } else {
+            showMsg(msg, d.message || 'Xato yuz berdi!', 'error');
+        }
+    } catch (e) {
+        showMsg(msg, 'Tarmoq xatosi', 'error');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-undo"></i> Qaytarish';
+});
+
+/* ── Delete batch ── */
+function handleDelete(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!confirm("Bu batchni o'chirishni tasdiqlaysizmi?")) return;
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', CSRF);
+    fetch(`/products/batch/${id}/delete/`, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(d => {
+            if (d.status === 'success') {
+                toast("Batch o'chirildi", 'success');
+                document.getElementById('batch-' + id)?.remove();
+            } else {
+                toast(d.message || 'Xato!', 'error');
+            }
+        })
+        .catch(() => toast('Tarmoq xatosi', 'error'));
+}
+document.querySelectorAll('.del-btn').forEach(b =>
+    b.addEventListener('click', handleDelete));
+</script>
+</body>
+</html>

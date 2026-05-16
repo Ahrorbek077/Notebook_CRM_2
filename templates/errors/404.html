@@ -1,0 +1,29 @@
+<!-- errors/403.html -->
+{% load static %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 — Ma'lumot Topilmadi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'css/staff.css' %}">
+    <link rel="icon" href="{% static 'img/logo.png' %}">
+</head>
+<body>
+<div class="error-page">
+    <div class="error-code">404</div>
+    <div class="error-icon">🔒</div>
+    <h1 class="error-title">Ma'lumot Topilmadi</h1>
+    <p class="error-desc">Bu sahifaga no'malum<strong>boshqa sahiga qayting</strong>.</p>
+    <div class="error-actions">
+        <button onclick="history.back()" class="err-btn primary">
+            ← Ortga qaytish
+        </button>
+        <a href="{% url 'dashboard:dashboard' %}" class="err-btn secondary">
+            Dashboard
+        </a>
+    </div>
+</div>
+</body>
+</html>

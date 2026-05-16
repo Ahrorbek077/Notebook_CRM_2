@@ -1,0 +1,313 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Kompaniyalar</title>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+<div class="page-shell">
+
+    <div class="page-header">
+        <a href="{% url 'dashboard:launcher' %}" class="back-btn"><i class="fa fa-arrow-left"></i></a>
+        <div class="header-center">
+            <span class="header-super">TA'MINOTCHILAR</span>
+            <h1 class="header-title">Kompaniyalar</h1>
+        </div>
+        <button class="header-action-btn" id="openAddCompany"><i class="fa fa-plus"></i></button>
+    </div>
+
+    <div class="toolbar">
+        <div class="search-wrap">
+            <i class="fa fa-search search-icon"></i>
+            <input type="text" class="search-input" id="searchInput" placeholder="Kompaniya qidirish...">
+            <button class="search-clear" id="searchClear"><i class="fa fa-times"></i></button>
+        </div>
+    </div>
+
+    <div class="stats-row" style="grid-template-columns:repeat(2,1fr)">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:var(--teal-d);color:var(--teal)"><i class="fa fa-building"></i></div>
+            <div class="stat-label">Jami kompaniya</div>
+            <div class="stat-value">{{ companies|length }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red"><i class="fa fa-money-bill-wave"></i></div>
+            <div class="stat-label">Jami qarzimiz</div>
+            <div class="stat-value text-mono" style="font-size:.85rem" id="totalDebt">—</div>
+        </div>
+    </div>
+
+    <div class="section-hdr">
+        <span class="section-title">Ro'yxat</span>
+        <span class="section-badge">{{ companies|length }} ta</span>
+    </div>
+
+    <div style="padding:0 12px" id="companyList">
+        {% for company in companies %}
+        <div class="company-card" id="company-{{ company.id }}">
+            <div class="company-header" onclick="toggleCompany({{ company.id }})">
+                <div class="company-icon"><i class="fa fa-building"></i></div>
+                <div class="company-info">
+                    <div class="company-name">{{ company.name }}</div>
+                    {% if company.phone %}<div class="company-phone"><i class="fa fa-phone fa-xs"></i> {{ company.phone }}</div>{% endif %}
+                </div>
+                <span class="debt-tag {% if company.total_debt == 0 %}green{% else %}red{% endif %}">
+                    {{ company.total_debt|floatformat:0 }} so'm
+                </span>
+                <div class="company-actions" onclick="event.stopPropagation()">
+                    <button class="icon-btn edit" onclick="openEditCompany({{ company.id }},'{{ company.name|escapejs }}','{{ company.phone|escapejs }}','{{ company.address|escapejs }}','{{ company.note|escapejs }}')"><i class="fa fa-edit"></i></button>
+                    <button class="icon-btn del" onclick="deleteCompany({{ company.id }},'{{ company.name|escapejs }}')"><i class="fa fa-trash"></i></button>
+                    <div class="card-chevron" id="chev-{{ company.id }}"><i class="fa fa-chevron-down"></i></div>
+                </div>
+            </div>
+
+            <div class="branch-list" id="branches-{{ company.id }}" style="display:none">
+                {% for branch in company.branches.all %}{% if branch.is_active %}
+                <div class="branch-item" id="branch-{{ branch.id }}">
+                    <!-- Filial nomiga bosilsa → filial sahifasiga o'tadi -->
+                    <a href="{% url 'company:branch-detail' branch.id %}" class="branch-info" style="text-decoration:none;flex:1">
+                        <div class="branch-name">{{ branch.name }}</div>
+                        {% if branch.phone %}<div class="branch-phone"><i class="fa fa-phone fa-xs"></i> {{ branch.phone }}</div>{% endif %}
+                        <div style="font-size:.7rem;color:var(--cyan);margin-top:2px">
+                            <i class="fa fa-boxes fa-xs"></i>
+                            {{ branch.products.count }} mahsulot
+                        </div>
+                    </a>
+                    <span class="branch-debt {% if branch.total_debt == 0 %}ok{% else %}bad{% endif %}">{{ branch.total_debt|floatformat:0 }} so'm</span>
+                    <div class="branch-actions" onclick="event.stopPropagation()">
+                        <button class="icon-btn" title="To'lov" onclick="openPayBranch({{ branch.id }},'{{ branch.name|escapejs }}',{{ branch.total_debt }})">
+                            <i class="fa fa-money-bill-wave" style="color:var(--green)"></i>
+                        </button>
+                        <button class="icon-btn edit" onclick="openEditBranch({{ branch.id }},{{ company.id }},'{{ branch.name|escapejs }}','{{ branch.phone|escapejs }}','{{ branch.address|escapejs }}','{{ branch.note|escapejs }}')"><i class="fa fa-edit"></i></button>
+                        <button class="icon-btn del" onclick="deleteBranch({{ branch.id }},'{{ branch.name|escapejs }}')"><i class="fa fa-trash"></i></button>
+                    </div>
+                </div>
+                {% endif %}{% endfor %}
+                <button class="add-branch-btn" onclick="openAddBranch({{ company.id }},'{{ company.name|escapejs }}')">
+                    <i class="fa fa-plus"></i> Filial qo'shish
+                </button>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fa fa-building"></i></div>
+            <div class="empty-title">Kompaniyalar yo'q</div>
+            <div class="empty-sub">Birinchi kompaniyani qo'shing</div>
+        </div>
+        {% endfor %}
+    </div>
+    <div style="height:40px"></div>
+</div>
+
+<div id="toast"><span class="toast-dot"></span><span id="toastMsg"></span></div>
+
+<!-- MODAL: Kompaniya -->
+<div class="modal-veil d-none" id="companyModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title" id="companyModalTitle">YANGI KOMPANIYA</div>
+            <button class="sheet-close" data-close="companyModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <input type="hidden" id="companyId">
+            <div class="form-group"><label class="form-label">Nomi *</label><input type="text" class="form-control" id="companyName" placeholder="Nomi..."></div>
+            <div class="form-group"><label class="form-label">Telefon</label><input type="tel" class="form-control" id="companyPhone" placeholder="+998..."></div>
+            <div class="form-group"><label class="form-label">Manzil</label><input type="text" class="form-control" id="companyAddress" placeholder="..."></div>
+            <div class="form-group"><label class="form-label">Izoh</label><textarea class="form-control" id="companyNote" rows="2"></textarea></div>
+            <div id="companyMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="companyModal">Bekor</button>
+            <button class="btn btn-primary" id="companySubmit"><i class="fa fa-check"></i> Saqlash</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: Filial -->
+<div class="modal-veil d-none" id="branchModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title" id="branchModalTitle">YANGI FILIAL</div>
+            <button class="sheet-close" data-close="branchModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <input type="hidden" id="branchId">
+            <input type="hidden" id="branchCompanyId">
+            <div style="background:var(--bg-el);border:1px solid var(--b);border-radius:var(--r);padding:8px 12px;font-size:.8rem;color:var(--t2);margin-bottom:2px" id="branchCompanyLabel"></div>
+            <div class="form-group"><label class="form-label">Filial nomi *</label><input type="text" class="form-control" id="branchName" placeholder="Nomi..."></div>
+            <div class="form-group"><label class="form-label">Telefon</label><input type="tel" class="form-control" id="branchPhone" placeholder="+998..."></div>
+            <div class="form-group"><label class="form-label">Manzil</label><input type="text" class="form-control" id="branchAddress" placeholder="..."></div>
+            <div class="form-group"><label class="form-label">Izoh</label><textarea class="form-control" id="branchNote" rows="2"></textarea></div>
+            <div id="branchMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="branchModal">Bekor</button>
+            <button class="btn btn-primary" id="branchSubmit"><i class="fa fa-check"></i> Saqlash</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL: To'lov -->
+<div class="modal-veil d-none" id="payModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">TO'LOV QILISH</div>
+            <button class="sheet-close" data-close="payModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <input type="hidden" id="payBranchId">
+            <div style="background:var(--green-d);border:1px solid var(--green-b);border-radius:var(--r);padding:10px 14px;font-size:.85rem;color:var(--green)" id="payBranchInfo"></div>
+            <div class="form-row" style="margin-top:8px">
+                <div class="form-group"><label class="form-label">Summa *</label><input type="number" class="form-control" id="payAmount" placeholder="0" min="1"></div>
+                <div class="form-group"><label class="form-label">Tur</label>
+                    <select class="form-control" id="payType">
+                        <option value="cash">Naqd</option>
+                        <option value="transfer">O'tkazma</option>
+                        <option value="discount">Chegirma</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group"><label class="form-label">Sana</label><input type="date" class="form-control" id="payDue"></div>
+            <div class="form-group"><label class="form-label">Izoh</label><input type="text" class="form-control" id="payNote" placeholder="..."></div>
+            <div id="payMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="payModal">Bekor</button>
+            <button class="btn btn-primary" id="paySubmit"><i class="fa fa-check"></i> To'lash</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const CSRF = "{{ csrf_token }}";
+
+function toggleCompany(id) {
+    const b=document.getElementById('branches-'+id), c=document.getElementById('chev-'+id);
+    const open=b.style.display!=='none';
+    b.style.display=open?'none':'flex';
+    c.style.transform=open?'':'rotate(180deg)';
+    c.style.color=open?'':'var(--cyan)';
+}
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
+document.querySelectorAll('.modal-veil').forEach(v=>v.addEventListener('click',e=>{if(e.target===v)closeModal(v.id);}));
+function openModal(id){document.getElementById(id).classList.remove('d-none');}
+function closeModal(id){document.getElementById(id).classList.add('d-none');}
+function toast(msg,type='info'){const t=document.getElementById('toast');t.className='show '+type;document.getElementById('toastMsg').textContent=msg;clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3200);}
+function showMsg(el,t,tp){el.textContent=t;el.className='form-msg '+tp;el.classList.remove('d-none');setTimeout(()=>el.classList.add('d-none'),4000);}
+async function apiPost(url,data){const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},body:JSON.stringify(data)});return r.json();}
+
+/* Company */
+document.getElementById('openAddCompany').addEventListener('click',()=>{
+    document.getElementById('companyModalTitle').textContent='YANGI KOMPANIYA';
+    document.getElementById('companyId').value='';
+    ['companyName','companyPhone','companyAddress'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('companyNote').value='';
+    openModal('companyModal');
+});
+function openEditCompany(id,name,phone,addr,note){
+    document.getElementById('companyModalTitle').textContent='TAHRIRLASH';
+    document.getElementById('companyId').value=id;
+    document.getElementById('companyName').value=name;
+    document.getElementById('companyPhone').value=phone;
+    document.getElementById('companyAddress').value=addr;
+    document.getElementById('companyNote').value=note;
+    openModal('companyModal');
+}
+document.getElementById('companySubmit').addEventListener('click',async()=>{
+    const btn=document.getElementById('companySubmit'),msg=document.getElementById('companyMsg');
+    const id=document.getElementById('companyId').value,name=document.getElementById('companyName').value.trim();
+    if(!name){showMsg(msg,'Nomi majburiy!','error');return;}
+    btn.disabled=true;btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
+    const url=id?`/company/api/${id}/edit/`:'/company/api/create/';
+    const d=await apiPost(url,{name,phone:document.getElementById('companyPhone').value,address:document.getElementById('companyAddress').value,note:document.getElementById('companyNote').value});
+    if(d.status==='success'){toast(id?'Yangilandi':"Qo'shildi",'success');closeModal('companyModal');setTimeout(()=>location.reload(),600);}
+    else showMsg(msg,d.message||'Xato!','error');
+    btn.disabled=false;btn.innerHTML='<i class="fa fa-check"></i> Saqlash';
+});
+async function deleteCompany(id,name){
+    if(!confirm(`"${name}" kompaniyasini o'chirish?`))return;
+    const d=await apiPost(`/company/api/${id}/delete/`,{});
+    if(d.status==='success'){toast("O'chirildi",'success');document.getElementById('company-'+id).remove();}
+    else toast(d.message||'Xato!','error');
+}
+
+/* Branch */
+function openAddBranch(companyId,companyName){
+    document.getElementById('branchModalTitle').textContent='YANGI FILIAL';
+    document.getElementById('branchId').value='';
+    document.getElementById('branchCompanyId').value=companyId;
+    document.getElementById('branchCompanyLabel').textContent='Kompaniya: '+companyName;
+    ['branchName','branchPhone','branchAddress'].forEach(i=>document.getElementById(i).value='');
+    document.getElementById('branchNote').value='';
+    openModal('branchModal');
+}
+function openEditBranch(id,cId,name,phone,addr,note){
+    document.getElementById('branchModalTitle').textContent='FILIALNI TAHRIRLASH';
+    document.getElementById('branchId').value=id;
+    document.getElementById('branchCompanyId').value=cId;
+    document.getElementById('branchName').value=name;
+    document.getElementById('branchPhone').value=phone;
+    document.getElementById('branchAddress').value=addr;
+    document.getElementById('branchNote').value=note;
+    openModal('branchModal');
+}
+document.getElementById('branchSubmit').addEventListener('click',async()=>{
+    const btn=document.getElementById('branchSubmit'),msg=document.getElementById('branchMsg');
+    const id=document.getElementById('branchId').value,cId=document.getElementById('branchCompanyId').value;
+    const name=document.getElementById('branchName').value.trim();
+    if(!name){showMsg(msg,'Nomi majburiy!','error');return;}
+    btn.disabled=true;btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
+    const url=id?`/company/api/branch/${id}/edit/`:'/company/api/branch/create/';
+    const d=await apiPost(url,{company_id:parseInt(cId),name,phone:document.getElementById('branchPhone').value,address:document.getElementById('branchAddress').value,note:document.getElementById('branchNote').value});
+    if(d.status==='success'){toast(id?'Yangilandi':'Filial qo\'shildi','success');closeModal('branchModal');setTimeout(()=>location.reload(),600);}
+    else showMsg(msg,d.message||'Xato!','error');
+    btn.disabled=false;btn.innerHTML='<i class="fa fa-check"></i> Saqlash';
+});
+async function deleteBranch(id,name){
+    if(!confirm(`"${name}" filialni o'chirish?`))return;
+    const d=await apiPost(`/company/api/branch/${id}/delete/`,{});
+    if(d.status==='success'){toast("O'chirildi",'success');document.getElementById('branch-'+id).remove();}
+    else toast(d.message||'Xato!','error');
+}
+
+/* Pay */
+function openPayBranch(id,name,debt){
+    document.getElementById('payBranchId').value=id;
+    document.getElementById('payBranchInfo').innerHTML=`<i class="fa fa-building"></i> <b>${name}</b> &nbsp;·&nbsp; Qarz: <b>${Number(debt).toLocaleString()} so'm</b>`;
+    document.getElementById('payAmount').value='';
+    document.getElementById('payNote').value='';
+    openModal('payModal');
+}
+document.getElementById('paySubmit').addEventListener('click',async()=>{
+    const btn=document.getElementById('paySubmit'),msg=document.getElementById('payMsg');
+    const id=document.getElementById('payBranchId').value,amount=document.getElementById('payAmount').value;
+    if(!amount||amount<=0){showMsg(msg,'Summa kiriting!','error');return;}
+    btn.disabled=true;btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
+    const d=await apiPost(`/company/api/branch/${id}/pay/`,{amount:parseFloat(amount),payment_type:document.getElementById('payType').value,due_date:document.getElementById('payDue').value,note:document.getElementById('payNote').value});
+    if(d.status==='success'){toast("To'lov amalga oshirildi",'success');closeModal('payModal');setTimeout(()=>location.reload(),600);}
+    else showMsg(msg,d.message||'Xato!','error');
+    btn.disabled=false;btn.innerHTML='<i class="fa fa-check"></i> To\'lash';
+});
+
+/* Search */
+document.getElementById('searchInput').addEventListener('input',function(){
+    const q=this.value.toLowerCase();
+    document.querySelectorAll('.company-card').forEach(c=>{c.style.display=c.querySelector('.company-name').textContent.toLowerCase().includes(q)?'':'none';});
+});
+document.getElementById('searchClear').addEventListener('click',()=>{document.getElementById('searchInput').value='';document.querySelectorAll('.company-card').forEach(c=>c.style.display='');});
+
+/* Total debt */
+let tot=0;
+document.querySelectorAll('.company-card .debt-tag.red').forEach(b=>{tot+=parseFloat(b.textContent.replace(/[^0-9.]/g,''))||0;});
+document.getElementById('totalDebt').textContent=tot.toLocaleString()+" so'm";
+</script>
+</body>
+</html>

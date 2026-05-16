@@ -1,0 +1,211 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ombor Tarixi</title>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+<div class="page-shell">
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <button onclick="history.back()" class="back-btn"><i class="fa fa-arrow-left"></i></button>
+        <div class="header-center">
+            <span class="header-super">AUDIT LOG</span>
+            <h1 class="header-title">Tarix</h1>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0">
+            <span id="totalNum" style="font-family:var(--mono);font-size:1.2rem;font-weight:700;color:var(--t)">—</span>
+            <span style="font-size:.65rem;color:var(--t3);text-transform:uppercase;letter-spacing:.06em">ta yozuv</span>
+        </div>
+    </div>
+
+    <!-- TABS -->
+    <div class="history-tabs">
+        <a href="{% url 'dashboard:history-sales' %}" class="h-tab">
+            <i class="fa fa-shopping-cart"></i> Sotuv & To'lov
+        </a>
+        <a href="{% url 'dashboard:history-stock' %}" class="h-tab active">
+            <i class="fa fa-boxes"></i> Ombor & Kompaniya
+        </a>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="toolbar">
+        <div class="search-wrap">
+            <i class="fa fa-search search-icon"></i>
+            <input type="text" class="search-input" id="searchInput" placeholder="Mahsulot, foydalanuvchi...">
+            <button class="search-clear" id="searchClear"><i class="fa fa-times"></i></button>
+        </div>
+    </div>
+
+    <!-- TYPE CHIPS -->
+    <div class="chips-row" id="typeChips">
+        <button class="chip active" data-type=""><i class="fa fa-border-all"></i> Barchasi</button>
+        <button class="chip" data-type="stock_add"><i class="fa fa-arrow-down"></i> Stok kirdi</button>
+        <button class="chip" data-type="stock_return"><i class="fa fa-undo"></i> Stok qaytdi</button>
+        <button class="chip" data-type="stock_adjust"><i class="fa fa-sliders-h"></i> Tuzatish</button>
+        <button class="chip" data-type="stock_delete"><i class="fa fa-trash"></i> Batch o'chirildi</button>
+        <button class="chip" data-type="product_create"><i class="fa fa-plus-circle"></i> Mahsulot qo'shildi</button>
+        <button class="chip" data-type="product_update"><i class="fa fa-edit"></i> Mahsulot yangilandi</button>
+        <button class="chip" data-type="product_delete"><i class="fa fa-trash"></i> Mahsulot o'chirildi</button>
+        <button class="chip" data-type="company_create"><i class="fa fa-building"></i> Kompaniya qo'shildi</button>
+        <button class="chip" data-type="company_update"><i class="fa fa-building"></i> Kompaniya yangilandi</button>
+        <button class="chip" data-type="branch_create"><i class="fa fa-store"></i> Filial qo'shildi</button>
+        <button class="chip" data-type="branch_payment"><i class="fa fa-money-bill"></i> Filialga to'lov</button>
+    </div>
+
+    <!-- DATE FILTER -->
+    <div class="date-filter">
+        <div class="date-field">
+            <label>Dan</label>
+            <input type="date" class="date-input" id="dateFrom">
+        </div>
+        <div class="date-field">
+            <label>Gacha</label>
+            <input type="date" class="date-input" id="dateTo">
+        </div>
+        <button class="btn-reset-date" id="resetDate"><i class="fa fa-times"></i></button>
+    </div>
+
+    <!-- LOG LIST -->
+    <div class="card-list" id="logList" style="padding-top:8px">
+        <div class="loading-wrap" id="logLoading"><div class="spinner"></div></div>
+    </div>
+
+    <div class="pagination-wrap" id="paginationWrap"></div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-veil d-none" id="detailModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title" id="detailTitle">Batafsil</div>
+            <button class="sheet-close" data-close="detailModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body" id="detailBody"></div>
+    </div>
+</div>
+
+<script>
+const HISTORY_URL = "{% url 'dashboard:history-stock' %}";
+let currentPage=1, currentType='', currentSearch='', currentFrom='', currentTo='', debounceT;
+
+const typeColors = {
+    stock_add:      { bg:'var(--stock-d)',   color:'var(--stock)',   icon:'fa-arrow-down' },
+    stock_return:   { bg:'var(--orange-d)',  color:'var(--orange)',  icon:'fa-undo' },
+    stock_adjust:   { bg:'var(--amber-d)',   color:'var(--amber)',   icon:'fa-sliders-h' },
+    stock_delete:   { bg:'var(--red-d)',     color:'var(--red)',     icon:'fa-trash' },
+    product_create: { bg:'var(--green-d)',   color:'var(--green)',   icon:'fa-plus-circle' },
+    product_update: { bg:'var(--cyan-d)',    color:'var(--cyan)',    icon:'fa-edit' },
+    product_delete: { bg:'var(--red-d)',     color:'var(--red)',     icon:'fa-trash' },
+    company_create: { bg:'var(--teal-d)',    color:'var(--teal)',    icon:'fa-building' },
+    company_update: { bg:'var(--cyan-d)',    color:'var(--cyan)',    icon:'fa-building' },
+    company_delete: { bg:'var(--red-d)',     color:'var(--red)',     icon:'fa-building' },
+    branch_create:  { bg:'var(--green-d)',   color:'var(--green)',   icon:'fa-store' },
+    branch_update:  { bg:'var(--cyan-d)',    color:'var(--cyan)',    icon:'fa-store' },
+    branch_delete:  { bg:'var(--red-d)',     color:'var(--red)',     icon:'fa-store' },
+    branch_payment: { bg:'var(--payment-d)', color:'var(--payment)', icon:'fa-money-bill' },
+};
+
+async function loadHistory() {
+    document.getElementById('logList').innerHTML='<div class="loading-wrap"><div class="spinner"></div></div>';
+    const params=new URLSearchParams({page:currentPage});
+    if(currentType)   params.append('action_type',currentType);
+    if(currentSearch) params.append('search',currentSearch);
+    if(currentFrom)   params.append('date_from',currentFrom);
+    if(currentTo)     params.append('date_to',currentTo);
+    try {
+        const res=await fetch(HISTORY_URL+'?'+params,{headers:{'X-Requested-With':'XMLHttpRequest'}});
+        const d=await res.json();
+        renderLogs(d);
+    } catch {
+        document.getElementById('logList').innerHTML='<div class="empty-state"><div class="empty-icon"><i class="fa fa-wifi"></i></div><div class="empty-title">Ma\'lumot yuklanmadi</div></div>';
+    }
+}
+
+function renderLogs(d) {
+    document.getElementById('totalNum').textContent=d.total_count??d.count??'—';
+    const list=document.getElementById('logList');
+    if(!d.logs||!d.logs.length){
+        list.innerHTML='<div class="empty-state"><div class="empty-icon"><i class="fa fa-history"></i></div><div class="empty-title">Yozuvlar topilmadi</div></div>';
+        document.getElementById('paginationWrap').innerHTML=''; return;
+    }
+    let html='';
+    d.logs.forEach(item=>{
+        const c=typeColors[item.action_type]||{bg:'var(--bg-el)',color:'var(--t2)',icon:'fa-circle'};
+        const amtHtml=item.amount?`<div class="log-amount ${parseFloat(item.amount)>=0?'plus':'minus'}">${parseFloat(item.amount)>=0?'+':''}${Number(item.amount).toLocaleString()}</div>`:'';
+        html+=`<div class="log-item" onclick="showDetail(${JSON.stringify(item).replace(/"/g,'&quot;')})">
+            <div class="log-dot" style="background:${c.bg};color:${c.color}">
+                    <i class="fa ${item.action_icon || c.icon}"></i>
+                </div>
+                <div class="log-body">
+                    <div class="log-title">${item.action_label}</div>
+                    <div class="log-sub">${item.description || ''}</div>
+                </div>
+                <div class="log-right">
+                    <div class="log-time">${item.created_at || ''}</div>
+                    <div style="font-size:.7rem;color:var(--t3)">${item.user || ''}</div>
+                </div>
+        </div>`;
+    });
+    list.innerHTML=html;
+    renderPagination(d);
+}
+
+function renderPagination(d){
+    const wrap=document.getElementById('paginationWrap');
+    if(!d.total_pages||d.total_pages<=1){wrap.innerHTML='';return;}
+    let html='';
+    if(d.page>1) html+=`<button class="page-btn" onclick="goPage(${d.page-1})"><i class="fa fa-chevron-left"></i></button>`;
+    for(let i=Math.max(1,d.page-2);i<=Math.min(d.total_pages,d.page+2);i++)
+        html+=`<button class="page-btn ${i===d.page?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    if(d.page<d.total_pages) html+=`<button class="page-btn" onclick="goPage(${d.page+1})"><i class="fa fa-chevron-right"></i></button>`;
+    wrap.innerHTML=html;
+}
+
+function goPage(p){currentPage=p;loadHistory();window.scrollTo(0,0);}
+
+function showDetail(item){
+    document.getElementById('detailTitle').textContent=item.action_label||item.type;
+    let html='';
+    if(item.extra_data&&typeof item.extra_data==='object'){
+        Object.entries(item.extra_data).forEach(([k,v])=>{
+            html+=`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--b);font-size:.85rem"><span style="color:var(--t2)">${k}</span><span style="font-family:var(--mono);color:var(--t)">${v}</span></div>`;
+        });
+    } else { html=`<div style="color:var(--t2);font-size:.85rem;white-space:pre-wrap">${JSON.stringify(item.extra_data||{},null,2)}</div>`; }
+    document.getElementById('detailBody').innerHTML=html;
+    document.getElementById('detailModal').classList.remove('d-none');
+}
+
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>document.getElementById(b.dataset.close).classList.add('d-none')));
+document.querySelectorAll('.modal-veil').forEach(v=>v.addEventListener('click',e=>{if(e.target===v)v.classList.add('d-none');}));
+
+document.getElementById('searchInput').addEventListener('input',function(){
+    clearTimeout(debounceT);
+    debounceT=setTimeout(()=>{currentSearch=this.value.trim();currentPage=1;loadHistory();},350);
+});
+document.getElementById('searchClear').addEventListener('click',()=>{document.getElementById('searchInput').value='';currentSearch='';currentPage=1;loadHistory();});
+document.getElementById('dateFrom').addEventListener('change',function(){currentFrom=this.value;currentPage=1;loadHistory();});
+document.getElementById('dateTo').addEventListener('change',function(){currentTo=this.value;currentPage=1;loadHistory();});
+document.getElementById('resetDate').addEventListener('click',()=>{
+    document.getElementById('dateFrom').value='';document.getElementById('dateTo').value='';
+    currentFrom='';currentTo='';currentPage=1;loadHistory();
+});
+document.querySelectorAll('[data-type]').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        document.querySelectorAll('[data-type]').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');currentType=btn.dataset.type;currentPage=1;loadHistory();
+    });
+});
+loadHistory();
+</script>
+</body>
+</html>

@@ -1,0 +1,371 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Mijozlar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{% static 'img/logo.png' %}">
+    <link rel="stylesheet" href="{% static 'css/client.css' %}">
+    <!-- Leaflet CSS (location picker uchun) -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+</head>
+<body>
+
+<div class="mobile-app">
+
+    <!-- HEADER -->
+    <div class="clients-header">
+        <button onclick="history.back()" class="back-btn">
+            <i class="fa fa-arrow-left"></i>
+        </button>
+        <div class="header-center">
+            <span class="header-label">MIJOZLAR</span>
+            <span class="header-count" id="totalCount">{{ page_obj.paginator.count }} ta</span>
+        </div>
+        <button class="add-client-btn" data-bs-toggle="modal" data-bs-target="#addClientModal">
+            <i class="fa fa-plus"></i>
+        </button>
+    </div>
+
+    <!-- SEARCH + FILTER -->
+    <div class="search-filter-area">
+        <div class="search-box">
+            <i class="fa fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Ism yoki telefon..."
+                   value="{{ request.GET.search|default:'' }}">
+            <button class="search-clear" id="searchClear" style="display:none">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+
+        <div class="region-filter" id="regionFilter">
+            <button class="region-chip active" data-region="">Barchasi</button>
+            {% for region in regions %}
+            <button class="region-chip {% if selected_region == region.id|stringformat:'s' %}active{% endif %}"
+                    data-region="{{ region.id }}">
+                {{ region.name }}
+            </button>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- STATS BAR -->
+    <div class="stats-bar" id="statsBar">
+        <div class="stat-item">
+            <span class="stat-label">Jami qarz</span>
+            <span class="stat-value danger" id="statTotalDebt">—</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            <span class="stat-label">Avans</span>
+            <span class="stat-value success" id="statTotalAdvance">—</span>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+            <span class="stat-label">Mijozlar</span>
+            <span class="stat-value" id="statCount">{{ page_obj.paginator.count }}</span>
+        </div>
+    </div>
+
+    <!-- CLIENT LIST -->
+    <div id="clientList" class="client-list">
+        {% for client in clients %}
+        <div class="client-card"
+             data-id="{{ client.id }}"
+             data-name="{{ client.name }}"
+             data-phone="{{ client.phone }}"
+             data-address="{{ client.address|default:'' }}"
+             data-region-id="{{ client.region_id|default:'' }}"
+             data-debt="{{ client.total_debt }}"
+             data-advance="{{ client.advance_balance }}"
+             data-lat="{{ client.latitude|default:'' }}"
+             data-lng="{{ client.longitude|default:'' }}">
+
+            <div class="card-main" onclick="window.location.href='/clients/client/{{ client.id }}/'">
+                <div class="client-avatar">{{ client.name|slice:":1"|upper }}</div>
+                <div class="client-info">
+                    <div class="client-name">{{ client.name }}</div>
+                    <div class="client-meta">
+                        <span><i class="fa fa-phone"></i> {{ client.phone }}</span>
+                        {% if client.region %}
+                        <span class="region-tag">
+                            <i class="fa fa-map-marker-alt"></i> {{ client.region.name }}
+                        </span>
+                        {% endif %}
+                        {% if client.has_location %}
+                        <span class="region-tag" style="color: var(--success-color, #28a745);">
+                            <i class="fa fa-map-pin"></i> Xaritada
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="client-balance">
+                    {% if client.total_debt > 0 %}
+                        <span class="balance-badge debt">-{{ client.total_debt|floatformat:0 }}</span>
+                    {% elif client.advance_balance > 0 %}
+                        <span class="balance-badge advance">+{{ client.advance_balance|floatformat:0 }}</span>
+                    {% else %}
+                        <span class="balance-badge zero">0</span>
+                    {% endif %}
+                    <div class="balance-label">
+                        {% if client.total_debt > 0 %}qarz{% elif client.advance_balance > 0 %}avans{% else %}toza{% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-actions">
+                <button class="ca-btn view-btn" data-id="{{ client.id }}">
+                    <i class="fa fa-eye"></i><span>Ko'rish</span>
+                </button>
+                <button class="ca-btn edit-btn"
+                        data-id="{{ client.id }}"
+                        data-name="{{ client.name }}"
+                        data-phone="{{ client.phone }}"
+                        data-address="{{ client.address|default:'' }}"
+                        data-region-id="{{ client.region_id|default:'' }}"
+                        data-lat="{{ client.latitude|default:'' }}"
+                        data-lng="{{ client.longitude|default:'' }}">
+                    <i class="fa fa-edit"></i><span>Tahrirlash</span>
+                </button>
+                {% if request.user.is_admin %}
+                <button class="ca-btn delete-btn"
+                        data-id="{{ client.id }}"
+                        data-name="{{ client.name }}">
+                    <i class="fa fa-trash"></i><span>O'chirish</span>
+                </button>
+                {% endif %}
+            </div>
+
+        </div>
+        {% empty %}
+        <div class="empty-state" id="emptyState">
+            <div class="empty-icon"><i class="fa fa-users"></i></div>
+            <h3>Mijozlar yo'q</h3>
+            <p>Yangi mijoz qo'shish uchun + tugmasini bosing</p>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- PAGINATION -->
+    {% if page_obj.paginator.num_pages > 1 %}
+    <div class="pagination-box" id="paginationBox">
+        <div class="pagination-info">
+            {{ page_obj.number }} / {{ page_obj.paginator.num_pages }} sahifa
+        </div>
+        <div class="pagination-btns">
+            {% if page_obj.has_previous %}
+            <a class="pag-btn" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if selected_region %}&region={{ selected_region }}{% endif %}">
+                <i class="fa fa-chevron-left"></i>
+            </a>
+            {% endif %}
+            {% for i in page_obj.paginator.page_range %}
+                {% if i == page_obj.number %}
+                <span class="pag-btn active">{{ i }}</span>
+                {% elif i >= page_obj.number|add:"-2" and i <= page_obj.number|add:"2" %}
+                <a class="pag-btn" href="?page={{ i }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if selected_region %}&region={{ selected_region }}{% endif %}">{{ i }}</a>
+                {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <a class="pag-btn" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if selected_region %}&region={{ selected_region }}{% endif %}">
+                <i class="fa fa-chevron-right"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+
+<!-- ====================== ADD MODAL ====================== -->
+<div class="modal fade" id="addClientModal">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'clients:client_create' %}" id="addClientForm">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fa fa-user-plus me-2"></i>Yangi mijoz
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="field-group">
+                        <label>Ism familiya</label>
+                        <input type="text" class="form-control" name="name"
+                               placeholder="Sardor Aliyev" required>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Telefon raqam</label>
+                        <input type="text" class="form-control" name="phone"
+                               placeholder="+998 90 123 45 67" required>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Viloyat</label>
+                        <select class="form-select" name="region">
+                            <option value="">— Tanlang —</option>
+                            {% for region in regions %}
+                            <option value="{{ region.id }}">{{ region.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Manzil + Xarita tugmasi -->
+                    <div class="field-group">
+                        <label>Manzil (ixtiyoriy)</label>
+                        <div class="input-group">
+                            <textarea class="form-control" name="address" id="addAddress"
+                                      rows="2" placeholder="Tuman, ko'cha..."></textarea>
+                            <button type="button" class="btn btn-outline-secondary"
+                                    id="addMapBtn"
+                                    title="Xaritada belgilash"
+                                    style="align-self: stretch;">
+                                <i class="fa fa-map-marker-alt"></i>
+                            </button>
+                        </div>
+                        <!-- Yashirin koordinata maydonlari -->
+                        <input type="hidden" name="latitude"  id="addLatInput">
+                        <input type="hidden" name="longitude" id="addLngInput">
+                        <!-- Tanlangan manzil ko'rsatkichi -->
+                        <div id="addLocationPreview" class="mt-1" style="font-size:0.8rem; display:none;">
+                            <span class="text-success">
+                                <i class="fa fa-check-circle me-1"></i>
+                                <span id="addLocationPreviewText"></span>
+                            </span>
+                            <a href="#" class="text-danger ms-2" id="addLocationClear">
+                                <i class="fa fa-times-circle"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor</button>
+                    <button type="submit" class="btn btn-primary" id="addSubmitBtn">
+                        <i class="fa fa-check me-1"></i>Saqlash
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- ====================== EDIT MODAL ====================== -->
+<div class="modal fade" id="editClientModal">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="{% url 'clients:client_update' %}" id="editClientForm">
+                {% csrf_token %}
+                <input type="hidden" name="client_id" id="editClientId">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fa fa-edit me-2"></i>Tahrirlash
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+
+                    <div class="field-group">
+                        <label>Ism familiya</label>
+                        <input type="text" class="form-control" id="editName" name="name" required>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Telefon raqam</label>
+                        <input type="text" class="form-control" id="editPhone" name="phone" required>
+                    </div>
+
+                    <div class="field-group">
+                        <label>Viloyat</label>
+                        <select class="form-select" name="region_id" id="editRegion">
+                            <option value="">— Tanlang —</option>
+                            {% for region in regions %}
+                            <option value="{{ region.id }}">{{ region.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Manzil + Xarita tugmasi -->
+                    <div class="field-group">
+                        <label>Manzil (ixtiyoriy)</label>
+                        <div class="input-group">
+                            <textarea class="form-control" id="editAddress" name="address"
+                                      rows="2"></textarea>
+                            <button type="button" class="btn btn-outline-secondary"
+                                    id="editMapBtn"
+                                    title="Xaritada belgilash"
+                                    style="align-self: stretch;">
+                                <i class="fa fa-map-marker-alt"></i>
+                            </button>
+                        </div>
+                        <!-- Yashirin koordinata maydonlari -->
+                        <input type="hidden" name="latitude"  id="editLatInput">
+                        <input type="hidden" name="longitude" id="editLngInput">
+                        <!-- Tanlangan manzil ko'rsatkichi -->
+                        <div id="editLocationPreview" class="mt-1" style="font-size:0.8rem; display:none;">
+                            <span class="text-success">
+                                <i class="fa fa-check-circle me-1"></i>
+                                <span id="editLocationPreviewText"></span>
+                            </span>
+                            <a href="#" class="text-danger ms-2" id="editLocationClear">
+                                <i class="fa fa-times-circle"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor</button>
+                    <button type="submit" class="btn btn-primary" id="editSubmitBtn">
+                        <i class="fa fa-check me-1"></i>Saqlash
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<!-- ====================== DELETE MODAL ====================== -->
+<div class="modal fade" id="deleteClientModal">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <form method="post" action="{% url 'clients:client_delete' %}" id="deleteClientForm">
+                {% csrf_token %}
+                <input type="hidden" name="client_id" id="deleteClientId">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">
+                        <i class="fa fa-exclamation-triangle me-2"></i>O'chirish
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <p class="mb-1" style="color: var(--text-secondary)">Bu mijozni o'chirmoqchimisiz?</p>
+                    <strong id="deleteClientName" style="color: var(--text-primary); font-size: 1rem;"></strong>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor</button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fa fa-trash me-1"></i>O'chirish
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Leaflet JS (location picker uchun) -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'script/location_picker.js' %}"></script>
+<script src="{% static 'script/client.js' %}"></script>
+</body>
+</html>

@@ -1,0 +1,618 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ branch.name }} — Mahsulotlar</title>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<style>
+/* accordion product card */
+.bp-card {
+    background: var(--bg-card);
+    border: 1px solid var(--b);
+    border-radius: var(--rl);
+    overflow: hidden;
+    transition: border-color .18s;
+}
+.bp-card:hover { border-color: var(--bl); }
+.bp-card.open  { border-color: var(--cyan); }
+
+.bp-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px;
+    cursor: pointer;
+    user-select: none;
+}
+.bp-thumb {
+    width: 50px; height: 50px;
+    border-radius: var(--r);
+    object-fit: cover;
+    flex-shrink: 0;
+    border: 1px solid var(--b);
+    background: var(--bg-el);
+}
+.bp-thumb-ph {
+    width: 50px; height: 50px;
+    border-radius: var(--r);
+    background: var(--bg-el);
+    border: 1px solid var(--b);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+.bp-info { flex: 1; min-width: 0; }
+.bp-name { font-weight: 700; font-size: .95rem; color: var(--t); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bp-meta { display: flex; gap: 8px; margin-top: 4px; flex-wrap: wrap; }
+.bp-meta-item { font-size: .75rem; color: var(--t2); }
+.bp-meta-item .v { font-family: var(--mono); }
+.bp-meta-item .v.green { color: var(--green); font-weight: 700; }
+.bp-meta-item .v.red   { color: var(--red);   font-weight: 700; }
+.bp-meta-item .v.amber { color: var(--amber);  font-weight: 700; }
+
+.bp-actions {
+    display: none;
+    padding: 10px 14px 14px;
+    border-top: 1px solid var(--b);
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.bp-card.open .bp-actions { display: flex; }
+
+/* purchase button special */
+.btn-purchase {
+    background: linear-gradient(135deg,rgba(0,230,118,.15),rgba(0,188,212,.1));
+    border: 1px solid rgba(0,230,118,.3);
+    color: var(--green);
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 9px;
+    font-size: .82rem;
+    font-weight: 800;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+    transition: all .16s;
+    white-space: nowrap;
+}
+.btn-purchase:hover { background: rgba(0,230,118,.2); box-shadow: 0 0 12px rgba(0,230,118,.2); }
+
+/* stock pill */
+.stock-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--bg-el); border: 1px solid var(--b);
+    border-radius: 999px; padding: 3px 10px;
+    font-family: var(--mono); font-size: .78rem;
+    margin-left: auto;
+}
+</style>
+</head>
+<body>
+<div class="page-shell">
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <a href="{% url 'company:list' %}" class="back-btn"><i class="fa fa-arrow-left"></i></a>
+        <div class="header-center">
+            <span class="header-super" style="color:var(--teal)">{{ company.name }}</span>
+            <h1 class="header-title">{{ branch.name }}</h1>
+        </div>
+        <button class="header-action-btn" id="openAddProduct" title="Mahsulot qo'shish">
+            <i class="fa fa-plus"></i>
+        </button>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row" style="grid-template-columns:repeat(2,1fr)">
+        <div class="stat-card">
+            <div class="stat-icon" style="background:var(--teal-d);color:var(--teal)"><i class="fa fa-boxes"></i></div>
+            <div class="stat-label">Mahsulotlar</div>
+            <div class="stat-value">{{ page_obj.paginator.count }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fa fa-layer-group"></i></div>
+            <div class="stat-label">Umumiy stok</div>
+            <div class="stat-value" id="totalStock">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon red"><i class="fa fa-money-bill-wave"></i></div>
+            <div class="stat-label">Bizning qarzimiz</div>
+            <div class="stat-value text-mono" style="font-size:.8rem" id="branchDebt">{{ branch.total_debt|floatformat:0 }} <small>so'm</small></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon amber"><i class="fa fa-coins"></i></div>
+            <div class="stat-label">Avansimiz</div>
+            <div class="stat-value text-mono" style="font-size:.8rem;color:var(--green)" id="branchAdvance">{{ branch.advance_balance|floatformat:0 }} <small>so'm</small></div>
+        </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="toolbar">
+        <form method="get" style="flex:1;display:flex;gap:8px">
+            <div class="search-wrap" style="flex:1">
+                <i class="fa fa-search search-icon"></i>
+                <input type="text" name="search" class="search-input" id="searchInput"
+                    value="{{ search }}" placeholder="Mahsulot qidirish...">
+                {% if search %}
+                <a href="?" class="search-clear" style="opacity:1"><i class="fa fa-times"></i></a>
+                {% endif %}
+            </div>
+            <button type="submit" class="filter-btn"><i class="fa fa-search"></i></button>
+        </form>
+    </div>
+
+    <!-- SECTION HEADER -->
+    <div class="section-hdr">
+        <span class="section-title">Mahsulotlar ro'yxati</span>
+        <span class="section-badge">{{ page_obj.paginator.count }} ta</span>
+    </div>
+
+    <!-- PRODUCT LIST -->
+    <div class="card-list" id="productList">
+        {% for product in products %}
+        <div class="bp-card" id="bpc-{{ product.id }}"
+             data-id="{{ product.id }}"
+             data-name="{{ product.name|escapejs }}"
+             data-price="{{ product.price }}"
+             data-category="{{ product.category_id }}"
+             data-stock="{{ product.stock }}">
+
+            <div class="bp-main" onclick="toggleBP({{ product.id }})">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" class="bp-thumb" alt="{{ product.name }}">
+                {% else %}
+                    <div class="bp-thumb-ph">📦</div>
+                {% endif %}
+                <div class="bp-info">
+                    <div class="bp-name">{{ product.name }}</div>
+                    <div class="bp-meta">
+                        <div class="bp-meta-item">{{ product.category.name }}</div>
+                        <div class="bp-meta-item">
+                            Narx: <span class="v green">{{ product.price|floatformat:0 }} so'm</span>
+                        </div>
+                        <div class="bp-meta-item">
+                            Stok: <span class="v {% if product.stock == 0 %}red{% elif product.stock < 5 %}amber{% else %}green{% endif %}">
+                                {{ product.stock }} ta
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-chevron" id="chev-{{ product.id }}">
+                    <i class="fa fa-chevron-down"></i>
+                </div>
+            </div>
+
+            <!-- ACCORDION ACTIONS -->
+            <div class="bp-actions">
+                <!-- Sotib olish -->
+                <button class="btn-purchase purchase-btn"
+                    data-id="{{ product.id }}"
+                    data-name="{{ product.name|escapejs }}"
+                    data-price="{{ product.price }}">
+                    <i class="fa fa-shopping-cart"></i> Sotib olish
+                </button>
+
+                <!-- Tahrirlash -->
+                <button class="act-btn act-btn-edit edit-btn"
+                    data-id="{{ product.id }}"
+                    data-name="{{ product.name|escapejs }}"
+                    data-price="{{ product.price }}"
+                    data-category="{{ product.category_id }}">
+                    <i class="fa fa-edit"></i> Tahrirlash
+                </button>
+
+                <!-- O'chirish -->
+                <button class="act-btn act-btn-delete delete-btn"
+                    data-id="{{ product.id }}"
+                    data-name="{{ product.name|escapejs }}">
+                    <i class="fa fa-trash"></i> O'chirish
+                </button>
+
+                <!-- Stock pill -->
+                <div class="stock-pill">
+                    <i class="fa fa-layer-group" style="color:var(--t3);font-size:.7rem"></i>
+                    <span id="stock-{{ product.id }}">{{ product.stock }}</span> ta
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fa fa-box-open"></i></div>
+            <div class="empty-title">Mahsulotlar yo'q</div>
+            <div class="empty-sub">+ tugmasi orqali qo'shing</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- PAGINATION -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-wrap">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}" class="page-btn"><i class="fa fa-chevron-left"></i></a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span class="page-btn active">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if search %}&search={{ search }}{% endif %}" class="page-btn">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}" class="page-btn"><i class="fa fa-chevron-right"></i></a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div style="height:40px"></div>
+</div>
+
+<div id="toast"><span class="toast-dot"></span><span id="toastMsg"></span></div>
+
+<!-- ── MODAL: Yangi mahsulot qo'shish ── -->
+<div class="modal-veil d-none" id="addProductModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">YANGI MAHSULOT</div>
+            <button class="sheet-close" data-close="addProductModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <div style="background:var(--teal-d);border:1px solid rgba(77,182,172,.2);border-radius:var(--r);padding:8px 12px;font-size:.8rem;color:var(--teal)">
+                <i class="fa fa-building"></i> {{ branch.name }} — {{ company.name }}
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mahsulot nomi *</label>
+                <input type="text" class="form-control" id="apName" placeholder="Nomi...">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Kategoriya *</label>
+                    <select class="form-control" id="apCategory">
+                        <option value="">— tanlang —</option>
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Sotuv narxi *</label>
+                    <input type="number" class="form-control" id="apPrice" placeholder="0" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Rasm (ixtiyoriy)</label>
+                <div class="img-upload-wrap" id="apImgWrap">
+                    <div class="img-upload-icon"><i class="fa fa-image"></i></div>
+                    <div class="img-upload-text">Bosing yoki torting</div>
+                    <input type="file" id="apImage" accept="image/*" style="display:none">
+                </div>
+            </div>
+            <div id="apMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="addProductModal">Bekor</button>
+            <button class="btn btn-primary" id="apSubmit"><i class="fa fa-check"></i> Qo'shish</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL: Mahsulotni tahrirlash ── -->
+<div class="modal-veil d-none" id="editProductModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">MAHSULOTNI TAHRIRLASH</div>
+            <button class="sheet-close" data-close="editProductModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <input type="hidden" id="epId">
+            <div class="form-group">
+                <label class="form-label">Nomi *</label>
+                <input type="text" class="form-control" id="epName" placeholder="Nomi...">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Kategoriya</label>
+                    <select class="form-control" id="epCategory">
+                        {% for cat in categories %}
+                        <option value="{{ cat.id }}">{{ cat.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Sotuv narxi</label>
+                    <input type="number" class="form-control" id="epPrice" placeholder="0" min="0" step="0.01">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Yangi rasm (ixtiyoriy)</label>
+                <div class="img-upload-wrap" id="epImgWrap">
+                    <div class="img-upload-icon"><i class="fa fa-image"></i></div>
+                    <div class="img-upload-text">O'zgartirish uchun bosing</div>
+                    <input type="file" id="epImage" accept="image/*" style="display:none">
+                </div>
+            </div>
+            <div id="epMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="editProductModal">Bekor</button>
+            <button class="btn btn-primary" id="epSubmit"><i class="fa fa-check"></i>Saqlash</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL: Sotib olish ── -->
+<div class="modal-veil d-none" id="purchaseModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">SOTIB OLISH</div>
+            <button class="sheet-close" data-close="purchaseModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <input type="hidden" id="pmProductId">
+            <!-- mahsulot info -->
+            <div style="background:var(--green-d);border:1px solid var(--green-b);border-radius:var(--r);padding:10px 14px" id="pmProductInfo"></div>
+
+            <div class="form-row" style="margin-top:8px">
+                <div class="form-group">
+                    <label class="form-label">Miqdor (dona) *</label>
+                    <input type="number" class="form-control" id="pmQty" placeholder="0" min="1" value="1">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" style="display:flex;align-items:center;gap:6px">
+                        Tan narxi *
+                        <span style="font-size:.65rem;background:var(--amber-d);color:var(--amber);padding:1px 6px;border-radius:4px;font-weight:700">XARID NARXI</span>
+                    </label>
+                    <input type="number" class="form-control" id="pmCost" placeholder="Siz to'laydigan narx..." min="0.01" step="0.01">
+                    <small style="color:var(--t3);font-size:.7rem">Sotuv narxidan farqli — bu kompaniyaga to'laydigan narx</small>
+                </div>
+            </div>
+
+            <!-- Narxlar taqqoslash -->
+            <div style="background:var(--bg-el);border:1px solid var(--b);border-radius:var(--r);padding:10px 14px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span style="font-size:.78rem;color:var(--t2)">Jami xarajat (tan narx × miqdor):</span>
+                    <span style="font-family:var(--mono);font-size:.95rem;color:var(--amber);font-weight:700" id="pmTotal">0 so'm</span>
+                </div>
+                <div style="display:flex;justify-content:space-between">
+                    <span style="font-size:.78rem;color:var(--t2)">Kutilgan foyda (1 dona):</span>
+                    <span style="font-family:var(--mono);font-size:.88rem;font-weight:700" id="pmProfit" style="color:var(--green)">0 so'm</span>
+                </div>
+            </div>
+
+            <div style="background:var(--cyan-d);border:1px solid rgba(0,188,212,.2);border-radius:var(--r);padding:8px 12px;font-size:.78rem;color:var(--cyan)">
+                <i class="fa fa-info-circle"></i>
+                Tan narxi ≠ Sotuv narxi. Tan narxi — siz kompaniyaga to'laydigan narx.
+            </div>
+            <div id="pmMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="purchaseModal">Bekor</button>
+            <button class="btn btn-primary" id="pmSubmit">
+                <i class="fa fa-shopping-cart"></i> Sotib olish
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+const CSRF = "{{ csrf_token }}";
+const BRANCH_ID = {{ branch.id }};
+
+/* Toggle accordion */
+function toggleBP(id) {
+    const card=document.getElementById('bpc-'+id);
+    const chev=document.getElementById('chev-'+id);
+    const open=card.classList.toggle('open');
+    chev.style.transform=open?'rotate(180deg)':'';
+    chev.style.color=open?'var(--cyan)':'';
+}
+
+/* Modal helpers */
+document.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',()=>closeModal(b.dataset.close)));
+document.querySelectorAll('.modal-veil').forEach(v=>v.addEventListener('click',e=>{if(e.target===v)closeModal(v.id);}));
+function openModal(id){document.getElementById(id).classList.remove('d-none');}
+function closeModal(id){document.getElementById(id).classList.add('d-none');}
+
+function toast(msg,type='info'){
+    const t=document.getElementById('toast');
+    t.className='show '+type;
+    document.getElementById('toastMsg').textContent=msg;
+    clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),3200);
+}
+function showMsg(el,text,type){
+    el.textContent=text;el.className='form-msg '+type;el.classList.remove('d-none');
+    setTimeout(()=>el.classList.add('d-none'),4000);
+}
+
+/* ── Add Product ── */
+document.getElementById('openAddProduct').addEventListener('click',()=>openModal('addProductModal'));
+document.getElementById('apImgWrap').addEventListener('click',()=>document.getElementById('apImage').click());
+document.getElementById('apImage').addEventListener('change',function(){
+    if(!this.files[0])return;
+    const r=new FileReader();r.onload=e=>{document.getElementById('apImgWrap').innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:100px;border-radius:10px">`;};r.readAsDataURL(this.files[0]);
+});
+
+document.getElementById('apSubmit').addEventListener('click',async()=>{
+    const btn=document.getElementById('apSubmit'),msg=document.getElementById('apMsg');
+    const name=document.getElementById('apName').value.trim();
+    const cat=document.getElementById('apCategory').value;
+    const price=document.getElementById('apPrice').value;
+    if(!name||!cat||!price){showMsg(msg,'Nomi, kategoriya va narx majburiy!','error');return;}
+    btn.disabled=true;btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
+    const fd=new FormData();
+    fd.append('csrfmiddlewaretoken',CSRF);
+    fd.append('name',name);fd.append('category',cat);fd.append('price',price);
+    const img=document.getElementById('apImage');
+    if(img&&img.files[0])fd.append('image',img.files[0]);
+    try{
+        const res=await fetch(`/company/api/branch/${BRANCH_ID}/product/add/`,{method:'POST',body:fd});
+        const d=await res.json();
+        if(d.status==='success'){
+            toast("Mahsulot qo'shildi",'success');
+            closeModal('addProductModal');
+            setTimeout(()=>location.reload(),700);
+        } else {
+            const e=d.errors?Object.values(d.errors).flat().join(', '):(d.message||'Xato!');
+            showMsg(msg,e,'error');
+        }
+    } catch{showMsg(msg,'Tarmoq xatosi','error');}
+    btn.disabled=false;btn.innerHTML='<i class="fa fa-check"></i> Qo\'shish';
+});
+
+/* ── Edit Product ── */
+document.querySelectorAll('.edit-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        document.getElementById('epId').value=btn.dataset.id;
+        document.getElementById('epName').value=btn.dataset.name;
+        document.getElementById('epPrice').value=btn.dataset.price;
+        document.getElementById('epCategory').value=btn.dataset.category;
+        document.getElementById('epImgWrap').innerHTML='<div class="img-upload-icon"><i class="fa fa-image"></i></div><div class="img-upload-text">O\'zgartirish uchun bosing</div><input type="file" id="epImage" accept="image/*" style="display:none">';
+        document.getElementById('epImgWrap').addEventListener('click',()=>document.getElementById('epImage').click());
+        document.getElementById('epImage').addEventListener('change',function(){
+            if(!this.files[0])return;
+            const r=new FileReader();r.onload=e=>{document.getElementById('epImgWrap').innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:100px;border-radius:10px">`;};r.readAsDataURL(this.files[0]);
+        });
+        openModal('editProductModal');
+    });
+});
+document.getElementById('epImgWrap').addEventListener('click',()=>document.getElementById('epImage').click());
+
+document.getElementById('epSubmit').addEventListener('click',async()=>{
+    const btn=document.getElementById('epSubmit'),msg=document.getElementById('epMsg');
+    const id=document.getElementById('epId').value;
+    const name=document.getElementById('epName').value.trim();
+    if(!name){showMsg(msg,'Nomi majburiy!','error');return;}
+    btn.disabled=true;btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
+    const fd=new FormData();
+    fd.append('csrfmiddlewaretoken',CSRF);
+    fd.append('name',name);
+    fd.append('price',document.getElementById('epPrice').value);
+    fd.append('category',document.getElementById('epCategory').value);
+    const img=document.getElementById('epImage');
+    if(img&&img.files[0])fd.append('image',img.files[0]);
+    try{
+        const res=await fetch(`/company/api/product/${id}/update/`,{method:'POST',body:fd});
+        const d=await res.json();
+        if(d.status==='success'){
+            toast('Mahsulot yangilandi','success');
+            closeModal('editProductModal');
+            // DOM update
+            const card=document.getElementById('bpc-'+id);
+            if(card){
+                card.querySelector('.bp-name').textContent=d.product.name;
+                card.dataset.name=d.product.name;
+                card.dataset.price=d.product.price;
+                card.querySelector('.bp-meta .v.green').textContent=parseFloat(d.product.price).toLocaleString()+' so\'m';
+            }
+        } else showMsg(msg,d.message||'Xato!','error');
+    } catch{showMsg(msg,'Tarmoq xatosi','error');}
+    btn.disabled=false;btn.innerHTML='<i class="fa fa-check"></i> Saqlash';
+});
+
+/* ── Delete Product ── */
+document.querySelectorAll('.delete-btn').forEach(btn=>{
+    btn.addEventListener('click',async()=>{
+        if(!confirm(`"${btn.dataset.name}" mahsulotini o'chirishni tasdiqlaysizmi?`))return;
+        const fd=new FormData();fd.append('csrfmiddlewaretoken',CSRF);
+        try{
+            const res=await fetch(`/company/api/product/${btn.dataset.id}/delete/`,{method:'POST',body:fd});
+            const d=await res.json();
+            if(d.status==='success'){toast("O'chirildi",'success');document.getElementById('bpc-'+btn.dataset.id).remove();}
+            else toast(d.message||'Xato!','error');
+        }catch{toast('Tarmoq xatosi','error');}
+    });
+});
+
+/* ── Purchase Modal ── */
+document.querySelectorAll('.purchase-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+        const id=btn.dataset.id, name=btn.dataset.name, price=btn.dataset.price;
+        document.getElementById('pmProductId').value=id;
+        document.getElementById('pmProductInfo').innerHTML=
+            `<div style="font-weight:700;color:var(--t);margin-bottom:4px"><i class="fa fa-box" style="color:var(--green)"></i> ${name}</div>`+
+            `<div style="font-size:.78rem;color:var(--t2)">Joriy sotuv narxi: <span style="font-family:var(--mono);color:var(--green)">${parseFloat(price).toLocaleString()} so'm</span></div>`;
+        document.getElementById('pmQty').value='1';
+        document.getElementById('pmCost').value='';
+        document.getElementById('pmTotal').textContent='0 so\'m';
+        openModal('purchaseModal');
+    });
+});
+
+/* Jami hisob - live */
+function updateTotal(){
+    const qty=parseFloat(document.getElementById('pmQty').value)||0;
+    const cost=parseFloat(document.getElementById('pmCost').value)||0;
+    const sellPrice=parseFloat(document.querySelector('.purchase-btn[data-id="'+document.getElementById('pmProductId').value+'"]')?.dataset?.price||0);
+    document.getElementById('pmTotal').textContent=(qty*cost).toLocaleString()+' so\'m';
+    const profitEl=document.getElementById('pmProfit');
+    if(profitEl && cost > 0){
+        const profit = sellPrice - cost;
+        profitEl.textContent = profit.toLocaleString()+' so\'m';
+        profitEl.style.color = profit > 0 ? 'var(--green)' : profit < 0 ? 'var(--red)' : 'var(--t2)';
+    }
+}
+document.getElementById('pmQty').addEventListener('input',updateTotal);
+document.getElementById('pmCost').addEventListener('input',updateTotal);
+
+document.getElementById('pmSubmit').addEventListener('click',async()=>{
+    const btn=document.getElementById('pmSubmit'),msg=document.getElementById('pmMsg');
+    const id=document.getElementById('pmProductId').value;
+    const qty=parseInt(document.getElementById('pmQty').value);
+    const cost=parseFloat(document.getElementById('pmCost').value);
+    if(!qty||qty<1){showMsg(msg,'Miqdorni kiriting!','error');return;}
+    if(!cost||cost<=0){showMsg(msg,'Tan narxini kiriting!','error');return;}
+    btn.disabled=true;btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
+    try{
+        const res=await fetch(`/company/api/product/${id}/purchase/`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
+            body:JSON.stringify({quantity:qty,cost_price:cost})
+        });
+        const d=await res.json();
+        if(d.status==='success'){
+            toast(`Sotib olindi! Stok: ${d.new_stock} ta | Jami: ${parseFloat(d.total_cost).toLocaleString()} so'm`,'success');
+            closeModal('purchaseModal');
+            // Qarz va avans yangilaymiz
+            if(d.new_debt !== null){
+                const debtEl=document.getElementById('branchDebt');
+                if(debtEl) debtEl.innerHTML=parseFloat(d.new_debt).toLocaleString()+' <small>so\'m</small>';
+            }
+            if(d.new_advance !== null && d.new_advance !== undefined){
+                const advEl=document.getElementById('branchAdvance');
+                if(advEl) advEl.innerHTML=parseFloat(d.new_advance).toLocaleString()+' <small>so\'m</small>';
+            }
+            // DOM update - stock raqamini yangilaymiz
+            const stockEl=document.getElementById('stock-'+id);
+            if(stockEl) stockEl.textContent=d.new_stock;
+            const card=document.getElementById('bpc-'+id);
+            if(card){
+                card.dataset.stock=d.new_stock;
+                const stockMeta=card.querySelectorAll('.bp-meta-item');
+                stockMeta.forEach(m=>{
+                    if(m.textContent.includes('Stok:')){
+                        const v=m.querySelector('.v');
+                        if(v){
+                            v.textContent=d.new_stock+' ta';
+                            v.className='v '+(d.new_stock===0?'red':d.new_stock<5?'amber':'green');
+                        }
+                    }
+                });
+            }
+        } else showMsg(msg,d.message||'Xato!','error');
+    }catch{showMsg(msg,'Tarmoq xatosi','error');}
+    btn.disabled=false;btn.innerHTML='<i class="fa fa-shopping-cart"></i> Sotib olish';
+});
+
+/* Jami stok */
+let ts=0;
+document.querySelectorAll('.bp-card').forEach(c=>ts+=parseInt(c.dataset.stock)||0);
+document.getElementById('totalStock').textContent=ts;
+</script>
+</body>
+</html>

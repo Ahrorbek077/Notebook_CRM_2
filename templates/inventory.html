@@ -1,0 +1,184 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'uz' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Mahsulotlar — Inventar</title>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+</head>
+<body>
+<div class="page-shell">
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <a href="{% url 'dashboard:launcher' %}" class="back-btn"><i class="fa fa-arrow-left"></i></a>
+        <div class="header-center">
+            <span class="header-super">INVENTAR</span>
+            <h1 class="header-title">Mahsulotlar</h1>
+        </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="toolbar">
+        <div class="search-wrap">
+            <i class="fa fa-search search-icon"></i>
+            <input type="text" class="search-input" id="searchInput" placeholder="Mahsulot qidirish...">
+            <button class="search-clear" id="searchClear"><i class="fa fa-times"></i></button>
+        </div>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row" id="statsRow">
+        <div class="stat-card">
+            <div class="stat-icon"><i class="fa fa-boxes"></i></div>
+            <div class="stat-label">Jami mahsulot</div>
+            <div class="stat-value" id="totalProducts">{{ page_obj.paginator.count }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fa fa-check-circle"></i></div>
+            <div class="stat-label">Stockda bor</div>
+            <div class="stat-value" id="inStock">—</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon amber"><i class="fa fa-exclamation-triangle"></i></div>
+            <div class="stat-label">Tugayapti</div>
+            <div class="stat-value" id="lowStock">—</div>
+        </div>
+    </div>
+
+    <!-- SECTION HEADER -->
+    <div class="section-hdr">
+        <span class="section-title">Mahsulotlar ro'yxati</span>
+        <span class="section-badge" id="countBadge">{{ page_obj.paginator.count }} ta</span>
+    </div>
+
+    <!-- PRODUCT LIST -->
+    <div class="card-list" id="productList">
+        {% for product in products %}
+        <div class="product-card" id="pc-{{ product.id }}"
+             data-id="{{ product.id }}"
+             data-name="{{ product.name }}"
+             data-price="{{ product.price }}"
+             data-stock="{{ product.stock }}">
+            <div class="product-card-main" onclick="toggleCard({{ product.id }})">
+                {% if product.image %}
+                    <img src="{{ product.image.url }}" class="product-thumb" alt="{{ product.name }}">
+                {% else %}
+                    <div class="product-thumb-placeholder">📦</div>
+                {% endif %}
+                <div class="product-info">
+                    <div class="product-name">{{ product.name }}</div>
+                    <div class="product-meta">
+                        <div class="product-meta-item">
+                            <i class="fa fa-layer-group" style="font-size:.7rem"></i>
+                            <span>{{ product.category.name }}</span>
+                        </div>
+                        <div class="product-meta-item">
+                            Stock: <span class="val stock-num {% if product.stock == 0 %}zero{% elif product.stock < 5 %}low{% endif %}">{{ product.stock }}</span> ta
+                        </div>
+                        <div class="product-meta-item">
+                            <span class="val" style="font-family:var(--mono);color:var(--green)">{{ product.price|floatformat:0 }} so'm</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-chevron"><i class="fa fa-chevron-down"></i></div>
+            </div>
+            <!-- ACTIONS - faqat batch ko'rish -->
+            <div class="product-actions">
+                <button class="act-btn act-btn-batch"
+                    onclick="window.location.href='/products/product/{{ product.id }}/batches/'">
+                    <i class="fa fa-layer-group"></i> Batchlar
+                </button>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fa fa-box-open"></i></div>
+            <div class="empty-title">Mahsulotlar topilmadi</div>
+            <div class="empty-sub">Yangi mahsulot qo'shing</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- PAGINATION -->
+    {% if page_obj.has_other_pages %}
+    <div class="pagination-wrap">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="page-btn">
+            <i class="fa fa-chevron-left"></i>
+        </a>
+        {% endif %}
+        {% for num in page_obj.paginator.page_range %}
+            {% if page_obj.number == num %}
+                <span class="page-btn active">{{ num }}</span>
+            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="page-btn">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="page-btn">
+            <i class="fa fa-chevron-right"></i>
+        </a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div><!-- /page-shell -->
+
+<div id="toast"><span class="toast-dot"></span><span id="toastMsg"></span></div>
+
+<script>
+const CSRF = "{{ csrf_token }}";
+
+/* Card toggle */
+function toggleCard(id) {
+    const card = document.getElementById('pc-' + id);
+    card.classList.toggle('open');
+}
+
+/* Search */
+const searchInput = document.getElementById('searchInput');
+const searchClear = document.getElementById('searchClear');
+let searchTimer;
+searchInput.addEventListener('input', () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+        const q = searchInput.value.trim();
+        window.location.href = q ? `?search=${encodeURIComponent(q)}` : '?';
+    }, 400);
+});
+searchClear.addEventListener('click', () => { searchInput.value=''; window.location.href='?'; });
+{% if request.GET.search %}
+searchInput.value = "{{ request.GET.search }}";
+{% endif %}
+
+/* Stats calculation */
+const cards = document.querySelectorAll('.product-card');
+let inStock=0, low=0;
+cards.forEach(c => {
+    const s = parseInt(c.dataset.stock) || 0;
+    if(s > 0) inStock++;
+    if(s > 0 && s < 5) low++;
+});
+document.getElementById('inStock').textContent = inStock;
+document.getElementById('lowStock').textContent = low;
+
+/* Toast */
+function toast(msg, type='info') {
+    const t = document.getElementById('toast');
+    t.className='show '+type;
+    document.getElementById('toastMsg').textContent=msg;
+    clearTimeout(t._t);
+    t._t=setTimeout(()=>t.classList.remove('show'), 3200);
+}
+
+function showMsg(el,text,type){
+    el.textContent=text; el.className='form-msg '+type; el.classList.remove('d-none');
+    setTimeout(()=>el.classList.add('d-none'),4000);
+}
+</script>
+</body>
+</html>

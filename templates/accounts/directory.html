@@ -1,0 +1,294 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Ma'lumotnoma</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{% static 'img/logo.png' %}">
+    <link rel="stylesheet" href="{% static 'css/directory.css' %}">
+</head>
+<body>
+
+<div class="page-shell">
+
+    <!-- HEADER -->
+    <header class="page-header">
+        <button onclick="history.back()" class="back-btn">
+            <i class="fa fa-arrow-left"></i>
+        </button>
+        <div class="header-center">
+            <span class="header-eyebrow">TIZIM</span>
+            <h1 class="header-title">Ma'lumotnoma</h1>
+        </div>
+        <div style="width:38px"></div>
+    </header>
+
+    <!-- TWO COLUMNS -->
+    <div class="dir-grid">
+
+        <!-- ═══ CATEGORIES ═══ -->
+        <section class="dir-section">
+            <div class="ds-head">
+                <div class="ds-title-group">
+                    <span class="ds-icon cat-icon">
+                        <i class="fa fa-tag"></i>
+                    </span>
+                    <div>
+                        <div class="ds-eyebrow">KATEGORIYALAR</div>
+                        <div class="ds-count" id="catCount">
+                            {{ categories|length }} ta
+                        </div>
+                    </div>
+                </div>
+                <button class="ds-add-btn" id="openAddCat">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
+
+            <div class="dir-list" id="catList">
+                {% for cat in categories %}
+                <div class="dir-item {% if not cat.is_active %}item-inactive{% endif %}"
+                     id="cat-{{ cat.id }}"
+                     data-id="{{ cat.id }}"
+                     data-name="{{ cat.name }}">
+
+                    <div class="di-bullet cat-bullet"></div>
+
+                    <div class="di-body">
+                        <span class="di-name">{{ cat.name }}</span>
+                        {% if not cat.is_active %}
+                        <span class="di-tag inactive">O'chirilgan</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="di-actions">
+                        <button class="dia-btn edit-cat"
+                                data-id="{{ cat.id }}"
+                                data-name="{{ cat.name }}"
+                                title="Tahrirlash">
+                            <i class="fa fa-pen"></i>
+                        </button>
+                        {% if cat.is_active %}
+                        <button class="dia-btn delete-cat"
+                                data-id="{{ cat.id }}"
+                                data-name="{{ cat.name }}"
+                                title="O'chirish">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="dir-empty" id="catEmpty">
+                    <i class="fa fa-tag"></i>
+                    <span>Kategoriyalar yo'q</span>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <!-- ═══ REGIONS ═══ -->
+        <section class="dir-section">
+            <div class="ds-head">
+                <div class="ds-title-group">
+                    <span class="ds-icon reg-icon">
+                        <i class="fa fa-map-marker-alt"></i>
+                    </span>
+                    <div>
+                        <div class="ds-eyebrow">VILOYATLAR</div>
+                        <div class="ds-count" id="regCount">
+                            {{ regions|length }} ta
+                        </div>
+                    </div>
+                </div>
+                <button class="ds-add-btn reg-add-btn" id="openAddReg">
+                    <i class="fa fa-plus"></i>
+                </button>
+            </div>
+
+            <div class="dir-list" id="regList">
+                {% for reg in regions %}
+                <div class="dir-item {% if not reg.is_active %}item-inactive{% endif %}"
+                     id="reg-{{ reg.id }}"
+                     data-id="{{ reg.id }}"
+                     data-name="{{ reg.name }}"
+                     data-order="{{ reg.order }}">
+
+                    <div class="di-bullet reg-bullet"></div>
+
+                    <div class="di-body">
+                        <span class="di-name">{{ reg.name }}</span>
+                        {% if reg.order %}
+                        <span class="di-order">
+                            <i class="fa fa-sort"></i> {{ reg.order }}
+                        </span>
+                        {% endif %}
+                        {% if not reg.is_active %}
+                        <span class="di-tag inactive">O'chirilgan</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="di-actions">
+                        <button class="dia-btn edit-reg"
+                                data-id="{{ reg.id }}"
+                                data-name="{{ reg.name }}"
+                                data-order="{{ reg.order }}"
+                                title="Tahrirlash">
+                            <i class="fa fa-pen"></i>
+                        </button>
+                        {% if reg.is_active %}
+                        <button class="dia-btn delete-reg"
+                                data-id="{{ reg.id }}"
+                                data-name="{{ reg.name }}"
+                                title="O'chirish">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="dir-empty" id="regEmpty">
+                    <i class="fa fa-map-marker-alt"></i>
+                    <span>Viloyatlar yo'q</span>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+    </div>
+
+</div>
+
+<!-- ══════ CATEGORY MODAL ══════ -->
+<div class="modal-veil d-none" id="catModal">
+    <div class="modal-card">
+        <div class="modal-strip cat-strip"></div>
+        <div class="modal-head">
+            <div class="modal-title">
+                <i class="fa fa-tag"></i>
+                <span id="catModalTitle">Kategoriya qo'shish</span>
+            </div>
+            <button class="modal-x" data-close="catModal">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <form id="catForm">
+            {% csrf_token %}
+            <input type="hidden" name="id" id="catId">
+            <div class="modal-body">
+                <div class="field-wrap">
+                    <label class="field-label">
+                        Nomi <span class="req">*</span>
+                    </label>
+                    <input type="text" name="name" id="catName"
+                           class="field-in" placeholder="Masalan: Ichimliklar"
+                           required autocomplete="off">
+                </div>
+                <div class="form-err d-none" id="catErr"></div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn-ghost" data-close="catModal">
+                    Bekor
+                </button>
+                <button type="submit" class="btn-solid cat-solid" id="catSubmit">
+                    <i class="fa fa-check"></i>
+                    <span>Saqlash</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══════ REGION MODAL ══════ -->
+<div class="modal-veil d-none" id="regModal">
+    <div class="modal-card">
+        <div class="modal-strip reg-strip"></div>
+        <div class="modal-head">
+            <div class="modal-title">
+                <i class="fa fa-map-marker-alt"></i>
+                <span id="regModalTitle">Viloyat qo'shish</span>
+            </div>
+            <button class="modal-x" data-close="regModal">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <form id="regForm">
+            {% csrf_token %}
+            <input type="hidden" name="id" id="regId">
+            <div class="modal-body">
+                <div class="field-wrap">
+                    <label class="field-label">
+                        Nomi <span class="req">*</span>
+                    </label>
+                    <input type="text" name="name" id="regName"
+                           class="field-in" placeholder="Masalan: Toshkent viloyati"
+                           required autocomplete="off">
+                </div>
+                <div class="field-wrap">
+                    <label class="field-label">Tartib raqami</label>
+                    <input type="number" name="order" id="regOrder"
+                           class="field-in" placeholder="0" min="0">
+                    <div class="field-hint">
+                        Kichik raqam — ro'yxatda yuqorida
+                    </div>
+                </div>
+                <div class="form-err d-none" id="regErr"></div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn-ghost" data-close="regModal">
+                    Bekor
+                </button>
+                <button type="submit" class="btn-solid reg-solid" id="regSubmit">
+                    <i class="fa fa-check"></i>
+                    <span>Saqlash</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ══════ CONFIRM MODAL ══════ -->
+<div class="modal-veil d-none" id="confirmModal">
+    <div class="modal-card modal-narrow">
+        <div class="modal-strip danger-strip"></div>
+        <div class="modal-head">
+            <div class="modal-title danger-title">
+                <i class="fa fa-triangle-exclamation"></i>
+                <span>O'chirishni tasdiqlang</span>
+            </div>
+            <button class="modal-x" data-close="confirmModal">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <p class="confirm-msg" id="confirmMsg"></p>
+        </div>
+        <div class="modal-foot">
+            <button type="button" class="btn-ghost" data-close="confirmModal">
+                Bekor
+            </button>
+            <button type="button" class="btn-danger" id="confirmOk">
+                <i class="fa fa-trash"></i> O'chirish
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast-el" id="toast"></div>
+
+<script>
+window.DIR_URLS = {
+    catSave:   "{% url 'catalog:category-save' %}",
+    catDelete: "{% url 'catalog:category-delete' 0 %}",
+    regSave:   "{% url 'clients:region-save' %}",
+    regDelete: "{% url 'clients:region-delete' 0 %}",
+};
+</script>
+<script src="{% static 'script/directory.js' %}"></script>
+</body>
+</html>

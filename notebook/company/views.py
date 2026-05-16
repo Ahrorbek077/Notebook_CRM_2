@@ -1,0 +1,379 @@
+"""
+Company views — Kompaniya, Filial va Filial mahsulotlari boshqaruvi.
+"""
+import json
+from decimal import Decimal, InvalidOperation
+
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+from django.db.models import Q
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, render
+from django.views import View
+
+from .models import Company, Branch
+from .services import CompanyService
+from notebook.catalog.models import Product, Category
+from notebook.catalog.forms import ProductForm
+from notebook.inventory.models import StockBatch
+from notebook.inventory.services import StockService
+from notebook.activity.models import ActivityLog
+
+
+# ─── Web sahifalar ────────────────────────────────────────────────────────────
+
+class CompanyListView(LoginRequiredMixin, View):
+    def get(self, request):
+        companies = Company.objects.prefetch_related('branches').order_by('name')
+        return render(request, 'company/company_list.html', {'companies': companies})
+
+
+class BranchDetailView(LoginRequiredMixin, View):
+    """Filial sahifasi — filial mahsulotlari, sotib olish, CRUD."""
+    def get(self, request, pk):
+        branch   = get_object_or_404(Branch, pk=pk, is_active=True)
+        search   = request.GET.get('search', '').strip()
+        page_num = request.GET.get('page', 1)
+
+        qs = Product.objects.filter(
+            branch=branch, is_active=True
+        ).select_related('category').order_by('-created_at')
+
+        if search:
+            qs = qs.filter(Q(name__icontains=search))
+
+        paginator = Paginator(qs, 20)
+        try:
+            page_obj = paginator.page(page_num)
+        except (EmptyPage, PageNotAnInteger):
+            page_obj = paginator.page(1)
+
+        categories = Category.objects.filter(is_active=True)
+
+        return render(request, 'company/branch_detail.html', {
+            'branch':     branch,
+            'company':    branch.company,
+            'page_obj':   page_obj,
+            'products':   page_obj.object_list,
+            'categories': categories,
+            'search':     search,
+        })
+
+
+# ─── Company AJAX ─────────────────────────────────────────────────────────────
+
+class CompanyCreateView(LoginRequiredMixin, View):
+    def post(self, request):
+        try:
+            data = json.loads(request.body)
+            name = data.get('name', '').strip()
+            if not name:
+                return JsonResponse({'status': 'error', 'message': 'Nomi kiritilmagan'}, status=400)
+            company = CompanyService.create_company(
+                name=name, phone=data.get('phone', ''),
+                address=data.get('address', ''), note=data.get('note', ''),
+                user=request.user,
+            )
+            return JsonResponse({'status': 'success', 'company': {'id': company.id, 'name': company.name}})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+class CompanyEditView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        try:
+            company = get_object_or_404(Company, pk=pk, is_active=True)
+            data    = json.loads(request.body)
+            fields  = {k: v for k, v in data.items() if k in ('name', 'phone', 'address', 'note')}
+            CompanyService.update_company(company, fields, user=request.user)
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+class CompanyDeleteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        try:
+            company = get_object_or_404(Company, pk=pk, is_active=True)
+            CompanyService.delete_company(company, user=request.user)
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+# ─── Branch AJAX ──────────────────────────────────────────────────────────────
+
+class BranchCreateView(LoginRequiredMixin, View):
+    def post(self, request):
+        try:
+            data       = json.loads(request.body)
+            company_id = data.get('company_id')
+            name       = data.get('name', '').strip()
+            if not company_id or not name:
+                return JsonResponse({'status': 'error', 'message': "company_id va name kerak"}, status=400)
+            company = get_object_or_404(Company, pk=company_id, is_active=True)
+            branch  = CompanyService.create_branch(
+                company=company, name=name,
+                phone=data.get('phone', ''), address=data.get('address', ''),
+                note=data.get('note', ''), user=request.user,
+            )
+            return JsonResponse({'status': 'success', 'branch': {
+                'id': branch.id, 'name': branch.name,
+                'company_id': company.id, 'company_name': company.name,
+                'url': f'/company/branch/{branch.id}/',
+            }})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+class BranchEditView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        try:
+            branch = get_object_or_404(Branch, pk=pk, is_active=True)
+            data   = json.loads(request.body)
+            fields = {k: v for k, v in data.items() if k in ('name', 'phone', 'address', 'note')}
+            CompanyService.update_branch(branch, fields, user=request.user)
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+class BranchDeleteView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        try:
+            branch = get_object_or_404(Branch, pk=pk, is_active=True)
+            CompanyService.delete_branch(branch, user=request.user)
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+class BranchPayView(LoginRequiredMixin, View):
+    """Biz filialga to'laymiz."""
+    def post(self, request, pk):
+        try:
+            branch = get_object_or_404(Branch, pk=pk, is_active=True)
+            data   = json.loads(request.body)
+            amount = Decimal(str(data.get('amount', 0)))
+            CompanyService.pay_to_branch(
+                branch=branch, amount=amount,
+                payment_type=data.get('payment_type', 'cash'),
+                discount_percent=Decimal(str(data.get('discount_percent', 0))),
+                due_date=data.get('due_date') or None,
+                note=data.get('note', ''), user=request.user,
+            )
+            return JsonResponse({
+                'status': 'success',
+                'new_debt': str(Branch.objects.get(pk=pk).total_debt),
+            })
+        except (InvalidOperation, ValueError) as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+# ─── Branch Product CRUD ──────────────────────────────────────────────────────
+
+class BranchProductCreateView(LoginRequiredMixin, View):
+    """Filialga yangi mahsulot qo'shish."""
+    def post(self, request, branch_pk):
+        try:
+            branch = get_object_or_404(Branch, pk=branch_pk, is_active=True)
+            form   = ProductForm(request.POST, request.FILES)
+            if form.is_valid():
+                product = form.save(commit=False)
+                product.branch     = branch
+                product.created_by = request.user
+                product.save()
+                ActivityLog.objects.create(
+                    user=request.user, action_type='product_create',
+                    description=f"Mahsulot qo'shildi: {product.name} (filial: {branch.name})",
+                    extra_data={'product_id': product.id, 'branch_id': branch.id}
+                )
+                return JsonResponse({
+                    'status': 'success',
+                    'product': {
+                        'id': product.id, 'name': product.name,
+                        'price': str(product.price), 'stock': product.stock,
+                        'category': product.category.name,
+                        'image': product.image.url if product.image else None,
+                    }
+                })
+            errors = {k: v[0] for k, v in form.errors.items()}
+            return JsonResponse({'status': 'error', 'errors': errors}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+class BranchProductUpdateView(LoginRequiredMixin, View):
+    """Filial mahsulotini yangilash."""
+    def post(self, request, pk):
+        import os
+        from decimal import InvalidOperation as DIE
+        try:
+            product = get_object_or_404(Product, pk=pk, is_active=True)
+            name  = request.POST.get('name', '').strip()
+            price = request.POST.get('price', '')
+            cat   = request.POST.get('category', '')
+
+            if name:  product.name = name
+            if price:
+                product.price = Decimal(price)
+            if cat:
+                product.category_id = int(cat)
+            if 'image' in request.FILES:
+                if product.image and os.path.isfile(product.image.path):
+                    os.remove(product.image.path)
+                product.image = request.FILES['image']
+            product.save()
+            ActivityLog.objects.create(
+                user=request.user, action_type='product_update',
+                description=f"Mahsulot yangilandi: {product.name}",
+                extra_data={'product_id': product.id}
+            )
+            return JsonResponse({
+                'status': 'success',
+                'product': {
+                    'id': product.id, 'name': product.name,
+                    'price': str(product.price),
+                    'category': product.category.name,
+                    'image': product.image.url if product.image else None,
+                }
+            })
+        except (DIE, ValueError) as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+class BranchProductDeleteView(LoginRequiredMixin, View):
+    """Mahsulotni soft-delete qilish."""
+    def post(self, request, pk):
+        try:
+            product = get_object_or_404(Product, pk=pk, is_active=True)
+            product.is_active = False
+            product.save(update_fields=['is_active'])
+            ActivityLog.objects.create(
+                user=request.user, action_type='product_delete',
+                description=f"Mahsulot o'chirildi: {product.name}",
+                extra_data={'product_id': product.id}
+            )
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+# ─── Batch Return (xarid qaytarish) ──────────────────────────────────────────
+
+class BatchReturnView(LoginRequiredMixin, View):
+    """
+    Xarid qaytarish — batch ichidagi qolgan mahsulotni kompaniyaga qaytarish.
+      - stock kamayadi
+      - qarz kamayadi (avvalo qarzdan, ortiqcha avansga)
+    """
+    def post(self, request, batch_id):
+        try:
+            batch    = get_object_or_404(StockBatch, pk=batch_id, is_active=True)
+            data     = json.loads(request.body)
+            quantity = int(data.get('quantity', 0))
+            reason   = data.get('reason', '').strip()
+
+            if quantity <= 0:
+                return JsonResponse({'status': 'error',
+                                     'message': "Miqdor 0 dan katta bo'lishi kerak"}, status=400)
+
+            returned_amount = StockService.return_purchase(
+                batch=batch, quantity=quantity, user=request.user, reason=reason
+            )
+
+            new_debt    = None
+            new_advance = None
+            branch = batch.branch
+            if branch:
+                CompanyService.record_return(
+                    branch=branch, amount=returned_amount, user=request.user,
+                )
+                branch.refresh_from_db()
+                new_debt    = str(branch.total_debt)
+                new_advance = str(branch.advance_balance)
+
+            batch.refresh_from_db()
+            batch.product.refresh_from_db()
+
+            return JsonResponse({
+                'status':          'success',
+                'returned_amount': str(returned_amount),
+                'new_remaining':   batch.remaining_quantity,
+                'new_received':    batch.quantity_received,
+                'new_stock':       batch.product.stock,
+                'new_debt':        new_debt,
+                'new_advance':     new_advance,
+            })
+
+        except ValueError as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+class BranchProductPurchaseView(LoginRequiredMixin, View):
+    """Mahsulotni sotib olish — tan narxi + miqdor → yangi StockBatch (FIFO)."""
+    def post(self, request, pk):
+        try:
+            product    = get_object_or_404(Product, pk=pk, is_active=True)
+            data       = json.loads(request.body)
+            quantity   = int(data.get('quantity', 0))
+            cost_price = Decimal(str(data.get('cost_price', '0')))
+
+            if quantity <= 0:
+                return JsonResponse({'status': 'error', 'message': "Miqdor 0 dan katta bo'lishi kerak"}, status=400)
+            if cost_price <= 0:
+                return JsonResponse({'status': 'error', 'message': "Tan narxi 0 dan katta bo'lishi kerak"}, status=400)
+
+            total_cost = quantity * cost_price
+
+            batch = StockService.add_stock(
+                product=product,
+                quantity=quantity,
+                cost_price=cost_price,
+                branch=product.branch,
+                user=request.user,
+            )
+            product.refresh_from_db()
+
+            # ← Qarzni oshiramiz: biz filialga shu summani qarzdormiz
+            if product.branch:
+                CompanyService.record_purchase(
+                    branch=product.branch,
+                    amount=total_cost,
+                    user=request.user,
+                )
+                product.branch.refresh_from_db()
+                product.branch.refresh_from_db()
+                new_debt    = str(product.branch.total_debt)
+                new_advance = str(product.branch.advance_balance)
+            else:
+                new_debt    = '0'
+                new_advance = '0'
+
+            ActivityLog.objects.create(
+                user=request.user, action_type='stock_add',
+                description=f"Sotib olindi: {product.name} × {quantity} dona, tan narx: {cost_price:,.0f} so'm",
+                extra_data={
+                    'product_id': product.id, 'batch_id': batch.id,
+                    'quantity': quantity, 'cost_price': str(cost_price),
+                    'total_cost': str(total_cost),
+                    'branch_id': product.branch_id,
+                }
+            )
+
+            return JsonResponse({
+                'status':     'success',
+                'new_stock':  product.stock,
+                'batch_id':   batch.id,
+                'new_debt':   new_debt,
+                'new_advance':new_advance,
+                'total_cost': str(total_cost),
+            })
+        except (InvalidOperation, ValueError) as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

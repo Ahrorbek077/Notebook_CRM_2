@@ -1,0 +1,213 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'uz' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Savdo Tizimi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<style>
+.bg-glow {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background:
+        radial-gradient(ellipse at 15% 0%, rgba(0,230,118,0.07) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 100%, rgba(0,188,212,0.06) 0%, transparent 55%);
+}
+</style>
+</head>
+<body>
+<div class="bg-glow"></div>
+
+<div class="launcher">
+
+    <!-- HEADER -->
+    <div class="launcher-header">
+        <div class="brand-wrap">
+            <div class="brand-mark">S</div>
+            <div>
+                <div class="brand-name">SAVDO</div>
+                <div class="brand-sub">Boshqaruv Tizimi</div>
+            </div>
+        </div>
+        <div class="lh-right">
+            <form action="{% url 'set_language' %}" method="post" id="langForm" style="display:contents">
+                {% csrf_token %}
+                <input name="next" type="hidden" value="{{ request.path }}">
+                <button class="lang-btn" type="submit" name="language"
+                    value="{% if LANGUAGE_CODE == 'uz' %}ru{% elif LANGUAGE_CODE == 'ru' %}uz-Cyrl{% else %}uz{% endif %}">
+                    <span class="lang-dot"></span>
+                    {% if LANGUAGE_CODE == 'uz' %}UZ{% elif LANGUAGE_CODE == 'ru' %}RU{% else %}ЎЗ{% endif %}
+                </button>
+            </form>
+            <div class="user-pill">
+                <div class="user-ava">{{ request.user.username|slice:":2"|upper }}</div>
+                <div>
+                    <div class="user-name">{{ request.user.username }}</div>
+                    <div class="user-role" style="font-size:0.62rem;color:var(--t2)">{{ request.user.get_role_display }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QUICK CREATE -->
+    <div class="quick-row">
+        <button class="quick-btn client-quick" id="openClientModal">
+            <div class="qb-icon"><i class="fa fa-user-plus"></i></div>
+            <div class="qb-text"><span class="qb-label">Yangi</span><span class="qb-name">Mijoz</span></div>
+            <i class="fa fa-plus qb-plus"></i>
+        </button>
+    </div>
+
+    <!-- MENU GRID -->
+    <div class="menu-section">
+        <div class="ms-label">ASOSIY MENYU</div>
+        <div class="menu-grid">
+            {% if request.user.is_admin %}
+            <a href="{% url 'dashboard:dashboard' %}" class="menu-tile">
+                <div class="tile-icon dashboard-icon"><i class="fa fa-chart-line"></i></div>
+                <div><div class="tile-label">Dashboard</div><div class="tile-sub">Statistika</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>
+            {% endif %}
+            <a href="{% url 'clients:client_list' %}" class="menu-tile">
+                <div class="tile-icon clients-icon"><i class="fa fa-users"></i></div>
+                <div><div class="tile-label">Mijozlar</div><div class="tile-sub">Sotuv & To'lov</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>
+            <a href="{% url 'catalog:product_list' %}" class="menu-tile">
+                <div class="tile-icon products-icon"><i class="fa fa-boxes"></i></div>
+                <div><div class="tile-label">Mahsulotlar</div><div class="tile-sub">Inventar & Batch</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>
+            <a href="{% url 'company:list' %}" class="menu-tile">
+                <div class="tile-icon company-icon-t"><i class="fa fa-building"></i></div>
+                <div><div class="tile-label">Kompaniyalar</div><div class="tile-sub">Ta'minotchi & Filial</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>
+            {% if request.user.is_admin %}
+            <a href="{% url 'dashboard:history-sales' %}" class="menu-tile">
+                <div class="tile-icon history-icon"><i class="fa fa-history"></i></div>
+                <div><div class="tile-label">Tarix</div><div class="tile-sub">Sotuv & Ombor</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>
+            <a href="{% url 'accounts:staff-list' %}" class="menu-tile">
+                <div class="tile-icon staff-icon"><i class="fa fa-user-shield"></i></div>
+                <div><div class="tile-label">Xodimlar</div><div class="tile-sub">Rollar & Ruxsat</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>
+            <a href="{% url 'accounts:directory' %}" class="menu-tile">
+                <div class="tile-icon" style="background:var(--blue-d);color:var(--blue)"><i class="fa fa-map-marker-alt"></i></div>
+                <div><div class="tile-label">Viloyatlar</div><div class="tile-sub">Hudud katalogi</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>
+            {% endif %}
+            <a href="{% url 'accounts:settings' %}" class="menu-tile">
+                <div class="tile-icon settings-icon"><i class="fa fa-cog"></i></div>
+                <div><div class="tile-label">Sozlamalar</div><div class="tile-sub">Profil</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>
+            <a href="{% url 'accounts:logout' %}" class="menu-tile">
+                <div class="tile-icon" style="background:var(--red-d);color:var(--red)"><i class="fa fa-sign-out-alt"></i></div>
+                <div><div class="tile-label">Chiqish</div><div class="tile-sub">Tizimdan</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>
+        </div>
+    </div>
+</div>
+
+<div id="toast"><span class="toast-dot"></span><span id="toastMsg"></span></div>
+
+<!-- MODAL: Yangi Mijoz -->
+<div class="modal-veil d-none" id="clientModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">YANGI MIJOZ</div>
+            <button class="sheet-close" data-close="clientModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <div class="form-group">
+                <label class="form-label">Ismi *</label>
+                <input type="text" class="form-control" id="clientName" placeholder="To'liq ism...">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Telefon *</label>
+                <input type="tel" class="form-control" id="clientPhone" placeholder="+998...">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Viloyat</label>
+                    <select class="form-control" id="clientRegion">
+                        <option value="">— tanlang —</option>
+                        {% for region in regions %}
+                        <option value="{{ region.id }}">{{ region.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Manzil</label>
+                    <input type="text" class="form-control" id="clientAddress" placeholder="Ko'cha...">
+                </div>
+            </div>
+            <div id="clientMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="clientModal">Bekor</button>
+            <button class="btn btn-primary" id="clientSubmit"><i class="fa fa-check"></i> Saqlash</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const CSRF = "{{ csrf_token }}";
+const CLIENT_URL  = "{% url 'clients:client_create' %}";
+
+/* Modal */
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
+document.querySelectorAll('.modal-veil').forEach(v => v.addEventListener('click', e => { if(e.target===v) closeModal(v.id); }));
+document.getElementById('openClientModal').addEventListener('click', () => openModal('clientModal'));
+
+function openModal(id) { document.getElementById(id).classList.remove('d-none'); }
+function closeModal(id) { document.getElementById(id).classList.add('d-none'); }
+
+/* Toast */
+function toast(msg, type='info') {
+    const t = document.getElementById('toast');
+    t.className = 'show ' + type;
+    document.getElementById('toastMsg').textContent = msg;
+    clearTimeout(t._t);
+    t._t = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+/* Client */
+document.getElementById('clientSubmit').addEventListener('click', async () => {
+    const btn = document.getElementById('clientSubmit');
+    const msg = document.getElementById('clientMsg');
+    const name = document.getElementById('clientName').value.trim();
+    const phone = document.getElementById('clientPhone').value.trim();
+    if (!name || !phone) { showMsg(msg,'Ism va telefon majburiy!','error'); return; }
+    btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', CSRF);
+    fd.append('name', name); fd.append('phone', phone);
+    fd.append('region', document.getElementById('clientRegion').value);
+    fd.append('address', document.getElementById('clientAddress').value);
+    try {
+        const res = await fetch(CLIENT_URL, {method:'POST', body:fd});
+        const d = await res.json();
+        if (d.status==='created') { toast("Mijoz qo'shildi: "+d.name,'success'); closeModal('clientModal'); }
+        else showMsg(msg, d.message||'Xato!','error');
+    } catch { showMsg(msg,'Tarmoq xatosi','error'); }
+    btn.disabled=false; btn.innerHTML='<i class="fa fa-check"></i> Saqlash';
+});
+
+function showMsg(el,text,type) {
+    el.textContent=text; el.className='form-msg '+type; el.classList.remove('d-none');
+    setTimeout(()=>el.classList.add('d-none'),4000);
+}
+</script>
+</body>
+</html>

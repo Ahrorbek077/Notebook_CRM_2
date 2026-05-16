@@ -1,0 +1,980 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE|default:'uz' }}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>{{ client.name }}</title>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+/* ── Client Detail specific ── */
+.cd-hero {
+    margin: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--b);
+    border-radius: var(--rl);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.cd-ava {
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--cyan-d), var(--purple-d));
+    border: 2px solid rgba(0,188,212,.25);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--disp);
+    font-size: 1.3rem;
+    color: var(--cyan);
+    flex-shrink: 0;
+}
+.cd-name  { font-weight: 800; font-size: 1.05rem; color: var(--t); }
+.cd-phone { font-size: .78rem; color: var(--t2); font-family: var(--mono); margin-top: 2px; }
+.cd-addr  { font-size: .72rem; color: var(--t3); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+
+/* Manzil map tugmasi */
+.cd-map-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: .7rem;
+    color: var(--cyan);
+    background: rgba(0,188,212,.12);
+    border: 1px solid rgba(0,188,212,.25);
+    border-radius: 20px;
+    padding: 2px 8px;
+    cursor: pointer;
+    transition: all .15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+.cd-map-btn:hover { background: rgba(0,188,212,.22); }
+
+/* Inline xarita (address ostida) */
+.cd-map-inline {
+    margin: 0 12px 12px;
+    border-radius: var(--r);
+    overflow: hidden;
+    border: 1px solid var(--b);
+    display: none;
+}
+.cd-map-inline.open { display: block; }
+#inlineMap { height: 200px; width: 100%; }
+
+/* Balans kartalar */
+.balance-grid {
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 8px;
+    padding: 0 12px 12px;
+}
+.bal-card {
+    background: var(--bg-card);
+    border: 1px solid var(--b);
+    border-radius: var(--r);
+    padding: 12px;
+}
+.bal-label { font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--t2); margin-bottom: 4px; }
+.bal-val   { font-family: var(--mono); font-size: 1rem; font-weight: 700; }
+.bal-val.red    { color: var(--red); }
+.bal-val.green  { color: var(--green); }
+.bal-val.cyan   { color: var(--cyan); }
+.bal-val.amber  { color: var(--amber); }
+
+/* Action tugmalari */
+.action-row {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 8px;
+    padding: 0 12px 12px;
+}
+.act-tile {
+    background: var(--bg-card);
+    border: 1px solid var(--b);
+    border-radius: var(--r);
+    padding: 12px 8px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    cursor: pointer;
+    transition: all .18s;
+    font-size: .72rem; font-weight: 700; color: var(--t2);
+    text-align: center;
+}
+.act-tile:hover { background: var(--bg-el); border-color: var(--bl); color: var(--t); }
+.act-tile .ti { font-size: 1.1rem; }
+.act-tile.sell  { border-color: rgba(0,188,212,.2); }
+.act-tile.sell  .ti { color: var(--cyan); }
+.act-tile.cart  { border-color: rgba(0,230,118,.2); }
+.act-tile.cart  .ti { color: var(--green); }
+.act-tile.pay   { border-color: rgba(74,222,128,.2); }
+.act-tile.pay   .ti { color: var(--green); }
+
+/* Log item */
+.log-type-sale     { background:var(--sale-d);    color:var(--sale);    }
+.log-type-return   { background:var(--return-d);  color:var(--return);  }
+.log-type-payment  { background:var(--payment-d); color:var(--payment); }
+.log-type-refund   { background:var(--red-d);     color:var(--red);     }
+
+/* Accordion detail */
+.log-detail {
+    display: none;
+    border-top: 1px solid var(--b);
+    padding: 10px 14px 12px;
+    background: var(--bg-el);
+}
+.log-detail.open { display: block; }
+.detail-row {
+    display: flex; justify-content: space-between;
+    padding: 5px 0; border-bottom: 1px solid var(--b);
+    font-size: .8rem;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-row .dk { color: var(--t2); }
+.detail-row .dv { font-family: var(--mono); color: var(--t); }
+
+/* Cart badge */
+.cart-badge {
+    position: absolute; top: -6px; right: -6px;
+    background: var(--green);
+    color: #000;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    font-size: .65rem;
+    font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+}
+
+/* FAB */
+.cd-fab {
+    position: fixed;
+    bottom: calc(20px + var(--safe-b));
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 200;
+}
+.cd-fab-btn {
+    width: 50px; height: 50px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,.4);
+    transition: all .2s;
+    position: relative;
+}
+.cd-fab-btn:hover { transform: scale(1.08); }
+.fab-sell { background: linear-gradient(135deg, var(--cyan), var(--blue)); color: #fff; }
+.fab-cart { background: linear-gradient(135deg, var(--green), var(--cyan)); color: #000; }
+.fab-pay  { background: linear-gradient(135deg, var(--green), #00b050); color: #000; }
+</style>
+</head>
+<body>
+<div class="page-shell">
+
+    <!-- HEADER -->
+    <div class="page-header">
+        <button onclick="history.back()" class="back-btn"><i class="fa fa-arrow-left"></i></button>
+        <div class="header-center">
+            <span class="header-super">MIJOZ</span>
+            <h1 class="header-title">{{ client.name }}</h1>
+        </div>
+        <div class="header-right">
+            <button class="icon-btn edit" id="editClientBtn"><i class="fa fa-edit"></i></button>
+        </div>
+    </div>
+
+    <!-- CLIENT HERO -->
+    <div class="cd-hero">
+        <div class="cd-ava">{{ client.name|slice:":2"|upper }}</div>
+        <div style="flex:1;min-width:0">
+            <div class="cd-name">{{ client.name }}</div>
+            <div class="cd-phone"><i class="fa fa-phone fa-xs"></i> {{ client.phone }}</div>
+            {% if client.address or client.has_location %}
+            <div class="cd-addr">
+                {% if client.address %}
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    <i class="fa fa-map-marker-alt fa-xs"></i>
+                    {{ client.region|default:"" }}{% if client.region %} · {% endif %}{{ client.address }}
+                </span>
+                {% endif %}
+                {% if client.has_location %}
+                <!-- Xaritada ko'rish tugmasi -->
+                <button class="cd-map-btn" id="toggleMapBtn" onclick="toggleInlineMap()">
+                    <i class="fa fa-map fa-xs"></i> Xarita
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- INLINE XARITA (address ostida, bosish bilan ochiladi/yopiladi) -->
+    {% if client.has_location %}
+    <div class="cd-map-inline" id="cdMapInline">
+        <div id="inlineMap"></div>
+    </div>
+    {% endif %}
+
+    <!-- BALANS -->
+    <div class="balance-grid">
+        <div class="bal-card">
+            <div class="bal-label">{% trans "Jami sotilgan" %}</div>
+            <div class="bal-val cyan" id="balSold">{{ total_sold|floatformat:0 }} <small style="font-size:.65rem;color:var(--t2)">so'm</small></div>
+        </div>
+        <div class="bal-card">
+            <div class="bal-label">{% trans "Jami to'langan" %}</div>
+            <div class="bal-val green" id="balPaid">{{ total_paid|floatformat:0 }} <small style="font-size:.65rem;color:var(--t2)">so'm</small></div>
+        </div>
+        <div class="bal-card">
+            <div class="bal-label">{% trans "Qoldiq qarz" %}</div>
+            <div class="bal-val {% if calculated_debt > 0 %}red{% else %}green{% endif %}" id="balDebt">
+                {{ calculated_debt|floatformat:0 }} <small style="font-size:.65rem;color:var(--t2)">so'm</small>
+            </div>
+        </div>
+        <div class="bal-card">
+            <div class="bal-label">{% trans "Avans" %}</div>
+            <div class="bal-val {% if client.advance_balance > 0 %}green{% else %}amber{% endif %}" id="balAdv">
+                {{ client.advance_balance|floatformat:0 }} <small style="font-size:.65rem;color:var(--t2)">so'm</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- ACTION ROW -->
+    <div class="action-row">
+        <button class="act-tile sell" id="btnSell">
+            <span class="ti"><i class="fa fa-box"></i></span>
+            {% trans "Mahsulot sotish" %}
+        </button>
+        <button class="act-tile cart" id="btnCart" style="position:relative">
+            <span class="ti"><i class="fa fa-shopping-cart"></i></span>
+            {% trans "Savatcha" %}
+            <span class="cart-badge" id="cartBadge" style="display:none">0</span>
+        </button>
+        <button class="act-tile pay" id="btnPay">
+            <span class="ti"><i class="fa fa-credit-card"></i></span>
+            {% trans "To'lov" %}
+        </button>
+    </div>
+
+    <!-- HISTORY SECTION -->
+    <div class="section-hdr">
+        <span class="section-title">{% trans "To'lov va Sotuv tarixi" %}</span>
+        <span class="section-badge" id="histBadge">{{ history_page_obj.paginator.count }} ta</span>
+    </div>
+
+    <div class="card-list" id="historyList">
+        {% for item in history %}
+        <div class="log-item" style="flex-direction:column;align-items:stretch;padding:0;overflow:hidden;cursor:default">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;cursor:pointer"
+                 onclick="toggleDetail({{ forloop.counter }})">
+                <div class="log-dot log-type-{{ item.type }}">
+                    {% if item.type == 'sale' %}<i class="fa fa-shopping-cart"></i>
+                    {% elif item.type == 'sale_return' %}<i class="fa fa-undo"></i>
+                    {% elif item.type == 'payment' %}<i class="fa fa-credit-card"></i>
+                    {% else %}<i class="fa fa-undo-alt"></i>{% endif %}
+                </div>
+                <div class="log-body">
+                    <div class="log-title">{{ item.display_type }}</div>
+                    <div class="log-sub">{{ item.details }} · {{ item.date|date:"d.m.Y H:i" }}</div>
+                </div>
+                <div class="log-right">
+                    <div class="log-amount {% if item.is_positive %}plus{% else %}minus{% endif %}">
+                        {% if item.is_positive %}+{% endif %}{{ item.amount|floatformat:0 }} so'm
+                    </div>
+                    <div style="display:flex;gap:4px;margin-top:4px">
+                        {% if item.type == 'sale' %}
+                            {{ item.serialized_items|json_script:item.sale_id }}
+                            <button class="ba-btn ba-btn-return" style="height:26px;padding:0 8px;font-size:.7rem"
+                                onclick="event.stopPropagation();openReturn({{ item.sale_id }})">
+                                <i class="fa fa-undo"></i>
+                            </button>
+                        {% elif item.type == 'payment' and not item.is_fully_refunded %}
+                            <button class="ba-btn" style="height:26px;padding:0 8px;font-size:.7rem;background:var(--amber-d);border-color:rgba(255,171,0,.25);color:var(--amber)"
+                                onclick="event.stopPropagation();openPayRefund({{ item.payment_id }},{{ item.remaining_amount }},{{ item.amount }})">
+                                <i class="fa fa-undo-alt"></i>
+                            </button>
+                        {% elif item.type == 'payment' and item.is_fully_refunded %}
+                            <span class="status-badge inactive" style="font-size:.62rem">{% trans "Qaytarilgan" %}</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="log-detail" id="detail-{{ forloop.counter }}">
+                {% if item.type == 'sale' %}
+                    {% for si in item.items %}
+                    <div class="detail-row">
+                        <span class="dk">
+                            {{ si.product.name }}
+                            {% if si.returned_quantity > 0 %}
+                            <span style="font-size:.65rem;background:var(--amber-d);color:var(--amber);padding:1px 5px;border-radius:4px;margin-left:4px">
+                                -{{ si.returned_quantity }} qaytarildi
+                            </span>
+                            {% endif %}
+                        </span>
+                        <span class="dv {% if si.returned_quantity >= si.quantity %}text-muted{% endif %}" style="{% if si.returned_quantity >= si.quantity %}opacity:.4;text-decoration:line-through{% endif %}">
+                            {{ si.quantity }} × {{ si.price_at_sale|floatformat:0 }} so'm
+                        </span>
+                    </div>
+                    {% endfor %}
+                    <!-- Chek tugmasi -->
+                    <div style="padding:8px 0 2px;text-align:right">
+                        <button class="ba-btn"
+                                style="height:28px;padding:0 10px;font-size:.72rem;background:var(--bg-el);border-color:var(--b);color:var(--t2)"
+                                onclick="ReceiptManager.print({{ item.sale_id }})">
+                            <i class="fa fa-receipt me-1"></i>Chek
+                        </button>
+                    </div>
+
+                {% elif item.type == 'sale_return' %}
+                    {% for ri in item.items %}
+                    <div class="detail-row">
+                        <span class="dk">{{ ri.product_name }}</span>
+                        <span class="dv" style="color:var(--orange)">-{{ ri.quantity }} × {{ ri.price|floatformat:0 }} = {{ ri.subtotal|floatformat:0 }} so'm</span>
+                    </div>
+                    {% endfor %}
+
+                {% elif item.type == 'payment' %}
+                    <div class="detail-row">
+                        <span class="dk">{% trans "Jami to'lov" %}</span>
+                        <span class="dv" style="color:var(--green)">+{{ item.amount|floatformat:0 }} so'm</span>
+                    </div>
+                    {% if item.refunded_amount > 0 %}
+                    <div class="detail-row">
+                        <span class="dk">{% trans "Qaytarilgan" %}</span>
+                        <span class="dv" style="color:var(--amber)">-{{ item.refunded_amount|floatformat:0 }} so'm</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="dk">{% trans "Qoldi" %}</span>
+                        <span class="dv" style="color:{% if item.remaining_amount > 0 %}var(--green){% else %}var(--t3){% endif %}">{{ item.remaining_amount|floatformat:0 }} so'm</span>
+                    </div>
+                    {% endif %}
+                    {% if item.note %}
+                    <div class="detail-row"><span class="dk">{% trans "Izoh" %}</span><span class="dv">{{ item.note }}</span></div>
+                    {% endif %}
+
+                {% elif item.type == 'payment_refund' %}
+                    <div class="detail-row">
+                        <span class="dk">{% trans "Qaytarilgan summa" %}</span>
+                        <span class="dv" style="color:var(--red)">-{{ item.amount|floatformat:0 }} so'm</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="dk">{% trans "Asl to'lov" %}</span>
+                        <span class="dv">To'lov #{{ item.payment_id }}</span>
+                    </div>
+                    {% if item.reason %}
+                    <div class="detail-row"><span class="dk">{% trans "Sabab" %}</span><span class="dv">{{ item.reason }}</span></div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-state">
+            <div class="empty-icon"><i class="fa fa-history"></i></div>
+            <div class="empty-title">Hali hech qanday operatsiya yo'q</div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- PAGINATION -->
+    {% if history_page_obj.has_other_pages %}
+    <div class="pagination-wrap" id="histPagination">
+        {% if history_page_obj.has_previous %}
+        <button class="page-btn" onclick="loadHistory({{ history_page_obj.previous_page_number }})">
+            <i class="fa fa-chevron-left"></i>
+        </button>
+        {% endif %}
+        {% for num in history_page_obj.paginator.page_range %}
+            {% if history_page_obj.number == num %}
+                <span class="page-btn active">{{ num }}</span>
+            {% elif num > history_page_obj.number|add:'-3' and num < history_page_obj.number|add:'3' %}
+                <button class="page-btn" onclick="loadHistory({{ num }})">{{ num }}</button>
+            {% endif %}
+        {% endfor %}
+        {% if history_page_obj.has_next %}
+        <button class="page-btn" onclick="loadHistory({{ history_page_obj.next_page_number }})">
+            <i class="fa fa-chevron-right"></i>
+        </button>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <div style="height:80px"></div>
+</div>
+
+<div id="toast"><span class="toast-dot"></span><span id="toastMsg"></span></div>
+
+<!-- ── MODAL: Mijoz tahrirlash ── -->
+<div class="modal-veil d-none" id="editModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">{% trans "Mijozni tahrirlash" %}</div>
+            <button class="sheet-close" data-close="editModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <div class="form-group">
+                <label class="form-label">{% trans "Ismi" %} *</label>
+                <input type="text" class="form-control" id="editName" value="{{ client.name }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">{% trans "Telefon" %}</label>
+                <input type="tel" class="form-control" id="editPhone" value="{{ client.phone }}">
+            </div>
+            <div class="form-group">
+                <label class="form-label">{% trans "Manzil" %}</label>
+                <div style="display:flex;gap:8px;align-items:flex-start">
+                    <textarea class="form-control" id="editAddress" rows="2" style="flex:1">{{ client.address }}</textarea>
+                    <button type="button" id="editMapBtn"
+                            style="height:38px;padding:0 12px;background:var(--bg-el);border:1px solid var(--b);border-radius:var(--r);color:var(--cyan);cursor:pointer;flex-shrink:0;margin-top:0"
+                            title="Xaritada belgilash">
+                        <i class="fa fa-map-marker-alt"></i>
+                    </button>
+                </div>
+                <!-- Yashirin koordinata maydonlari -->
+                <input type="hidden" id="editLat" value="{{ client.latitude|default:'' }}">
+                <input type="hidden" id="editLng" value="{{ client.longitude|default:'' }}">
+                <!-- Preview -->
+                <div id="editLocPreview" style="font-size:.75rem;margin-top:6px;{% if not client.has_location %}display:none{% endif %}">
+                    <span style="color:var(--cyan)">
+                        <i class="fa fa-map-pin me-1"></i>
+                        <span id="editLocPreviewText">
+                            {% if client.has_location %}{{ client.latitude|floatformat:5 }}, {{ client.longitude|floatformat:5 }}{% endif %}
+                        </span>
+                    </span>
+                    <a href="#" id="editLocClear" style="color:var(--red);margin-left:8px;font-size:.72rem">
+                        <i class="fa fa-times"></i> O'chirish
+                    </a>
+                </div>
+            </div>
+            <div id="editMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="editModal">{% trans "Bekor" %}</button>
+            <button class="btn btn-primary" id="editSave"><i class="fa fa-check"></i> {% trans "Saqlash" %}</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL: Mahsulot tanlash ── -->
+<div class="modal-veil d-none" id="productModal">
+    <div class="modal-sheet" style="max-height:96dvh">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">{% trans "Mahsulot tanlash" %}</div>
+            <button class="sheet-close" data-close="productModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div style="padding:10px 16px;display:flex;gap:8px">
+            <div class="search-wrap" style="flex:1">
+                <i class="fa fa-search search-icon"></i>
+                <input type="text" class="search-input" id="prodSearch" placeholder="Mahsulot qidirish...">
+            </div>
+            <select class="filter-btn" id="catFilter" style="min-width:110px">
+                <option value="">{% trans "Barchasi" %}</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div style="overflow-y:auto;flex:1;max-height:60dvh" id="prodList">
+            <div class="loading-wrap"><div class="spinner"></div></div>
+        </div>
+        <div style="padding:10px 16px;border-top:1px solid var(--b);display:flex;justify-content:space-between;align-items:center">
+            <div id="prodPagination" style="display:flex;gap:6px"></div>
+            <button class="btn btn-primary" data-close="productModal" style="height:38px;padding:0 16px">
+                <i class="fa fa-check"></i> {% trans "Yopish" %}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL: Savatcha ── -->
+<div class="modal-veil d-none" id="cartModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">{% trans "Savatcha" %}</div>
+            <button class="sheet-close" data-close="cartModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body" id="cartBody">
+            <div class="empty-state" id="cartEmpty">
+                <div class="empty-icon"><i class="fa fa-shopping-cart"></i></div>
+                <div class="empty-title">{% trans "Hozircha savatcha bo'sh" %}</div>
+            </div>
+            <div id="cartItems" class="d-none card-list" style="padding:0"></div>
+        </div>
+        <div style="padding:10px 16px 16px;border-top:1px solid var(--b);display:flex;justify-content:space-between;align-items:center;gap:10px">
+            <button class="btn btn-danger" id="clearCartBtn" style="height:38px;padding:0 14px">
+                <i class="fa fa-trash"></i>
+            </button>
+            <div style="font-size:.82rem;color:var(--t2)">
+                Jami: <span id="cartTotal" style="font-family:var(--mono);color:var(--green);font-weight:700">0 so'm</span>
+            </div>
+            <button class="btn btn-primary" id="sellBtn" style="height:38px;padding:0 18px">
+                <i class="fa fa-check"></i> {% trans "Sotish" %}
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL: To'lov ── -->
+<div class="modal-veil d-none" id="payModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">{% trans "To'lov qabul qilish" %}</div>
+            <button class="sheet-close" data-close="payModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <div style="background:var(--green-d);border:1px solid var(--green-b);border-radius:var(--r);padding:10px 14px;font-size:.85rem;color:var(--green)">
+                <i class="fa fa-user"></i> <strong>{{ client.name }}</strong>
+                &nbsp;·&nbsp; Qarz: <strong id="payDebtInfo">{{ calculated_debt|floatformat:0 }} so'm</strong>
+            </div>
+            <div class="form-group">
+                <label class="form-label">{% trans "Summa" %} *</label>
+                <input type="number" class="form-control" id="payAmount" placeholder="0" min="1">
+            </div>
+            <div class="form-group">
+                <label class="form-label">{% trans "Izoh" %} (ixtiyoriy)</label>
+                <input type="text" class="form-control" id="payNote" placeholder="Naqd, karta...">
+            </div>
+            <div id="payMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="payModal">{% trans "Bekor" %}</button>
+            <button class="btn btn-primary" id="paySave"><i class="fa fa-check"></i> {% trans "To'lash" %}</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL: Sotuv qaytarish ── -->
+<div class="modal-veil d-none" id="returnModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">{% trans "Sotuvni qaytarish" %}</div>
+            <button class="sheet-close" data-close="returnModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <div style="display:flex;gap:8px">
+                <button class="act-btn act-btn-batch active" id="retTypeFull" onclick="setReturnType('full')" style="flex:1">
+                    <i class="fa fa-list"></i> {% trans "To'liq qaytarish" %}
+                </button>
+                <button class="act-btn act-btn-edit" id="retTypePartial" onclick="setReturnType('partial')" style="flex:1">
+                    <i class="fa fa-sliders-h"></i> {% trans "Qisman" %}
+                </button>
+            </div>
+            <div id="retItemsWrap" class="d-none">
+                <div class="form-label" style="margin-bottom:8px">{% trans "Qaytariladigan mahsulotlar:" %}</div>
+                <div id="retItemsList"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">{% trans "Sabab" %} (ixtiyoriy)</label>
+                <textarea class="form-control" id="retReason" rows="2" placeholder="..."></textarea>
+            </div>
+            <div id="retMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="returnModal">{% trans "Bekor" %}</button>
+            <button class="btn btn-danger" id="retConfirm"><i class="fa fa-undo"></i> {% trans "Qaytarish" %}</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── MODAL: To'lov qaytarish ── -->
+<div class="modal-veil d-none" id="refundModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">{% trans "To'lovni qaytarish" %}</div>
+            <button class="sheet-close" data-close="refundModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <div style="background:var(--amber-d);border:1px solid var(--amber-b);border-radius:var(--r);padding:10px 14px;font-size:.82rem;color:var(--amber)" id="refundInfo"></div>
+            <div class="form-group">
+                <label class="form-label">{% trans "Qaytarish summasi" %} *</label>
+                <input type="number" class="form-control" id="refundAmount" placeholder="0" min="1">
+                <small style="color:var(--t3);font-size:.7rem" id="refundMaxLabel"></small>
+            </div>
+            <button class="btn btn-secondary" id="refundFullBtn" style="height:32px;padding:0 12px;font-size:.78rem;margin-top:-4px">
+                {% trans "To'liq qaytarish" %}
+            </button>
+            <div class="form-group">
+                <label class="form-label">{% trans "Sabab" %} (ixtiyoriy)</label>
+                <textarea class="form-control" id="refundReason" rows="2" placeholder="..."></textarea>
+            </div>
+            <div id="refundMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="refundModal">{% trans "Bekor" %}</button>
+            <button class="btn btn-amber" id="refundConfirm"><i class="fa fa-undo-alt"></i> {% trans "Qaytarish" %}</button>
+        </div>
+    </div>
+</div>
+
+<!-- FABs -->
+<div class="cd-fab">
+    <button class="cd-fab-btn fab-pay" id="fabPay" title="To'lov"><i class="fa fa-credit-card"></i></button>
+    <button class="cd-fab-btn fab-cart" id="fabCart" title="Savatcha" style="position:relative">
+        <i class="fa fa-shopping-cart"></i>
+        <span class="cart-badge" id="fabCartBadge" style="display:none">0</span>
+    </button>
+    <button class="cd-fab-btn fab-sell" id="fabSell" title="Mahsulot"><i class="fa fa-box"></i></button>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="{% static 'script/location_picker.js' %}"></script>
+<script src="{% static 'script/receipt.js' %}"></script>
+
+<script>
+const CSRF      = "{{ csrf_token }}";
+const CLIENT_ID = {{ client.id }};
+const URLS = {
+    getFiltered:  "{% url 'catalog:products-filtered' %}",
+    addToCart:    "{% url 'catalog:cart-add' 0 %}",
+    getCart:      "{% url 'catalog:cart-get' 0 %}",
+    clearCart:    "{% url 'catalog:cart-clear' 0 %}",
+    createSale:   "{% url 'catalog:sale-create' 0 %}",
+    saleReturn:   "{% url 'catalog:sale-return' 0 %}",
+    createPay:    "{% url 'catalog:payment-create' 0 %}",
+    payRefund:    "{% url 'catalog:payment-refund' 0 %}",
+    clientUpdate: "{% url 'clients:client_update' %}",
+};
+
+/* ── Helpers ── */
+function url(tpl, id) { return tpl.replace('/0/', `/${id}/`); }
+function openModal(id)  { document.getElementById(id).classList.remove('d-none'); }
+function closeModal(id) { document.getElementById(id).classList.add('d-none'); }
+function toast(msg, type='info') {
+    const t = document.getElementById('toast');
+    t.className = 'show ' + type;
+    document.getElementById('toastMsg').textContent = msg;
+    clearTimeout(t._t); t._t = setTimeout(() => t.classList.remove('show'), 3500);
+}
+function showMsg(el, text, type) {
+    el.textContent = text; el.className = 'form-msg ' + type; el.classList.remove('d-none');
+    setTimeout(() => el.classList.add('d-none'), 4000);
+}
+async function api(endpoint, data, method='POST') {
+    const opts = { method, headers: {'Content-Type':'application/json','X-CSRFToken':CSRF} };
+    if (data) opts.body = JSON.stringify(data);
+    const r = await fetch(endpoint, opts);
+    return r.json();
+}
+
+/* Modal close */
+document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
+document.querySelectorAll('.modal-veil').forEach(v => v.addEventListener('click', e => { if (e.target === v) closeModal(v.id); }));
+
+/* ── Toggle accordion ── */
+function toggleDetail(n) {
+    document.getElementById('detail-' + n).classList.toggle('open');
+}
+
+/* ── Balance update ── */
+function updateBalance(data) {
+    if (data.total_debt !== undefined) {
+        const el = document.getElementById('balDebt');
+        el.innerHTML = parseFloat(data.total_debt).toLocaleString() + ' <small style="font-size:.65rem;color:var(--t2)">so\'m</small>';
+        el.className = 'bal-val ' + (parseFloat(data.total_debt) > 0 ? 'red' : 'green');
+        document.getElementById('payDebtInfo').textContent = parseFloat(data.total_debt).toLocaleString() + ' so\'m';
+    }
+    if (data.advance_balance !== undefined) {
+        const el = document.getElementById('balAdv');
+        el.innerHTML = parseFloat(data.advance_balance).toLocaleString() + ' <small style="font-size:.65rem;color:var(--t2)">so\'m</small>';
+        el.className = 'bal-val ' + (parseFloat(data.advance_balance) > 0 ? 'green' : 'amber');
+    }
+}
+
+/* ── Inline xarita toggle ── */
+{% if client.has_location %}
+let inlineMapLoaded = false;
+
+function toggleInlineMap() {
+    const box = document.getElementById('cdMapInline');
+    const btn = document.getElementById('toggleMapBtn');
+    const isOpen = box.classList.toggle('open');
+
+    btn.innerHTML = isOpen
+        ? '<i class="fa fa-times fa-xs"></i> Yopish'
+        : '<i class="fa fa-map fa-xs"></i> Xarita';
+
+    if (isOpen && !inlineMapLoaded) {
+        inlineMapLoaded = true;
+        LocationPicker.initViewerMap(
+            'inlineMap',
+            {{ client.latitude }},
+            {{ client.longitude }},
+            '{{ client.name|escapejs }}'
+        );
+    }
+}
+{% endif %}
+
+/* ── Edit client + location picker ── */
+document.getElementById('editClientBtn').addEventListener('click', () => openModal('editModal'));
+
+// Xarita tugmasi — edit modal da
+document.getElementById('editMapBtn')?.addEventListener('click', () => {
+    const currentLat = document.getElementById('editLat').value || null;
+    const currentLng = document.getElementById('editLng').value || null;
+
+    LocationPicker.openPicker({
+        currentLat,
+        currentLng,
+        onSelect: (lat, lng, address) => {
+            document.getElementById('editLat').value = lat;
+            document.getElementById('editLng').value = lng;
+
+            // Manzil bo'sh bo'lsa auto to'ldirish
+            const addrField = document.getElementById('editAddress');
+            if (addrField && !addrField.value.trim()) {
+                addrField.value = address;
+            }
+
+            // Preview
+            document.getElementById('editLocPreviewText').textContent =
+                `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            document.getElementById('editLocPreview').style.display = 'block';
+        }
+    });
+});
+
+// Koordinatani o'chirish
+document.getElementById('editLocClear')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('editLat').value = '';
+    document.getElementById('editLng').value = '';
+    document.getElementById('editLocPreview').style.display = 'none';
+});
+
+// Saqlash
+document.getElementById('editSave').addEventListener('click', async () => {
+    const btn = document.getElementById('editSave');
+    const msg = document.getElementById('editMsg');
+    const name = document.getElementById('editName').value.trim();
+    if (!name) { showMsg(msg, 'Ism majburiy!', 'error'); return; }
+
+    btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', CSRF);
+    fd.append('client_id', CLIENT_ID);
+    fd.append('name',    name);
+    fd.append('phone',   document.getElementById('editPhone').value);
+    fd.append('address', document.getElementById('editAddress').value);
+    fd.append('latitude',  document.getElementById('editLat').value);
+    fd.append('longitude', document.getElementById('editLng').value);
+
+    const r = await fetch(URLS.clientUpdate, { method:'POST', body:fd });
+    const d = await r.json();
+
+    if (d.status === 'updated') {
+        toast('Mijoz yangilandi', 'success');
+        closeModal('editModal');
+        document.querySelector('.header-title').textContent = name;
+        // Manzilni ham yangilash
+        setTimeout(() => location.reload(), 800);
+    } else {
+        showMsg(msg, d.message || 'Xato!', 'error');
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-check"></i> Saqlash';
+});
+
+/* ── Products modal ── */
+let prodPage = 1;
+function loadProducts(page=1) {
+    prodPage = page;
+    const q = document.getElementById('prodSearch').value.trim();
+    const cat = document.getElementById('catFilter').value;
+    let reqUrl = URLS.getFiltered + `?page=${page}`;
+    if (q)   reqUrl += `&search=${encodeURIComponent(q)}`;
+    if (cat) reqUrl += `&category=${cat}`;
+    document.getElementById('prodList').innerHTML = '<div class="loading-wrap"><div class="spinner"></div></div>';
+    fetch(reqUrl).then(r => r.json()).then(d => {
+        if (!d.products || !d.products.length) {
+            document.getElementById('prodList').innerHTML = '<div class="empty-state"><div class="empty-icon"><i class="fa fa-box-open"></i></div><div class="empty-title">Topilmadi</div></div>';
+        } else {
+            let html = '<div class="card-list" style="padding:8px 12px">';
+            d.products.forEach(p => {
+                html += `<div class="batch-card" style="overflow:visible">
+                    <div class="batch-main" style="padding:10px 12px">
+                        <div style="flex:1">
+                            <div style="font-weight:700;font-size:.9rem;color:var(--t)">${p.name}</div>
+                            <div style="font-size:.75rem;color:var(--t2);margin-top:2px">${p.category||''} · Qoldiq: <span style="color:var(--green);font-weight:700">${p.stock} ta</span></div>
+                            <div style="font-family:var(--mono);font-size:.82rem;color:var(--amber);margin-top:2px">${Number(p.price).toLocaleString()} so'm</div>
+                        </div>
+                        <div style="display:flex;align-items:center;gap:6px">
+                            <input type="number" id="qty-${p.id}" value="1" min="1" max="${p.stock}"
+                                style="width:56px;height:36px;background:var(--bg-el);border:1px solid var(--b);border-radius:8px;color:var(--t);text-align:center;font-family:var(--mono);font-size:.85rem;outline:none">
+                            <button class="ba-btn ba-btn-history" style="height:36px;padding:0 12px" onclick="addToCart(${p.id})">
+                                <i class="fa fa-plus"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+            document.getElementById('prodList').innerHTML = html;
+        }
+        const pp = document.getElementById('prodPagination');
+        pp.innerHTML = '';
+        if (d.total_pages > 1) {
+            if (d.has_previous) { const b=document.createElement('button'); b.className='page-btn'; b.innerHTML='<i class="fa fa-chevron-left"></i>'; b.onclick=()=>loadProducts(prodPage-1); pp.appendChild(b); }
+            [prodPage-1,prodPage,prodPage+1].filter(n=>n>0&&n<=d.total_pages).forEach(n => {
+                const b=document.createElement('button'); b.className='page-btn'+(n===prodPage?' active':''); b.textContent=n; b.onclick=()=>loadProducts(n); pp.appendChild(b);
+            });
+            if (d.has_next) { const b=document.createElement('button'); b.className='page-btn'; b.innerHTML='<i class="fa fa-chevron-right"></i>'; b.onclick=()=>loadProducts(prodPage+1); pp.appendChild(b); }
+        }
+    }).catch(() => { document.getElementById('prodList').innerHTML='<div class="empty-state"><div class="empty-title">Xato</div></div>'; });
+}
+
+let searchT;
+document.getElementById('prodSearch').addEventListener('input', () => { clearTimeout(searchT); searchT=setTimeout(()=>loadProducts(1),350); });
+document.getElementById('catFilter').addEventListener('change', () => loadProducts(1));
+document.getElementById('btnSell').addEventListener('click', () => { openModal('productModal'); loadProducts(1); });
+document.getElementById('fabSell').addEventListener('click', () => { openModal('productModal'); loadProducts(1); });
+
+/* ── Cart ── */
+async function addToCart(productId) {
+    const qty = parseInt(document.getElementById('qty-'+productId)?.value) || 1;
+    const d = await api(url(URLS.addToCart, CLIENT_ID), {product_id:productId, quantity:qty, client_id:CLIENT_ID});
+    if (d.status==='success') { toast('Savatchaga qo\'shildi ✓','success'); updateCartBadge(d.cart_count||0); }
+    else toast(d.message||'Xato!','error');
+}
+
+function updateCartBadge(n) {
+    ['cartBadge','fabCartBadge'].forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = n;
+        el.style.display = n > 0 ? 'flex' : 'none';
+    });
+}
+
+async function loadCart() {
+    const d = await fetch(url(URLS.getCart, CLIENT_ID)).then(r=>r.json());
+    updateCartBadge(d.item_count||d.cart?.length||0);
+    const empty=document.getElementById('cartEmpty');
+    const items=document.getElementById('cartItems');
+    const total=document.getElementById('cartTotal');
+    if (!d.cart||!d.cart.length) { empty.classList.remove('d-none'); items.classList.add('d-none'); total.textContent='0 so\'m'; return; }
+    empty.classList.add('d-none'); items.classList.remove('d-none');
+    let sum=0, html='';
+    d.cart.forEach(item => {
+        const price=parseFloat(item.price), sub=price*item.quantity; sum+=sub;
+        html+=`<div class="batch-card"><div class="batch-main" style="padding:10px 12px"><div style="flex:1"><div style="font-weight:700;font-size:.88rem;color:var(--t)">${item.name}</div><div style="font-size:.75rem;color:var(--t2);font-family:var(--mono)">${item.quantity} × ${price.toLocaleString()} so'm</div></div><div style="font-family:var(--mono);font-weight:700;color:var(--green)">${sub.toLocaleString()} so'm</div></div></div>`;
+    });
+    items.innerHTML = html;
+    total.textContent = sum.toLocaleString() + ' so\'m';
+}
+
+document.getElementById('btnCart').addEventListener('click', () => { openModal('cartModal'); loadCart(); });
+document.getElementById('fabCart').addEventListener('click', () => { openModal('cartModal'); loadCart(); });
+document.getElementById('clearCartBtn').addEventListener('click', async () => {
+    const d = await api(url(URLS.clearCart,CLIENT_ID),{});
+    if (d.status==='success') { toast('Savatcha tozalandi'); loadCart(); } else toast(d.message||'Xato!','error');
+});
+
+document.getElementById('sellBtn').addEventListener('click', async () => {
+    const btn=document.getElementById('sellBtn');
+    btn.disabled=true; btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
+    const d=await api(url(URLS.createSale,CLIENT_ID),{});
+    if (d.status==='success') { toast(`Sotuv amalga oshirildi: ${d.total_amount?.toLocaleString()||''} so'm`,'success'); closeModal('cartModal'); updateCartBadge(0); setTimeout(()=>location.reload(),1200); }
+    else toast(d.message||'Xato!','error');
+    btn.disabled=false; btn.innerHTML='<i class="fa fa-check"></i> Sotish';
+});
+
+/* ── Payment ── */
+document.getElementById('btnPay').addEventListener('click', () => openModal('payModal'));
+document.getElementById('fabPay').addEventListener('click', () => openModal('payModal'));
+document.getElementById('paySave').addEventListener('click', async () => {
+    const btn=document.getElementById('paySave'), msg=document.getElementById('payMsg');
+    const amount=parseFloat(document.getElementById('payAmount').value);
+    if (!amount||amount<=0) { showMsg(msg,'Summani kiriting!','error'); return; }
+    btn.disabled=true; btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
+    const d=await api(url(URLS.createPay,CLIENT_ID),{amount,note:document.getElementById('payNote').value});
+    if (d.status==='success') { toast(`To'lov qabul qilindi: ${amount.toLocaleString()} so'm`,'success'); closeModal('payModal'); updateBalance(d); document.getElementById('payAmount').value=''; document.getElementById('payNote').value=''; setTimeout(()=>location.reload(),1200); }
+    else showMsg(msg,d.message||'Xato!','error');
+    btn.disabled=false; btn.innerHTML='<i class="fa fa-check"></i> To\'lash';
+});
+
+/* ── Sale Return ── */
+let currentSaleId=null, returnType='full';
+function setReturnType(t) {
+    returnType=t;
+    document.getElementById('retTypeFull').className='act-btn '+(t==='full'?'act-btn-batch':'act-btn-edit');
+    document.getElementById('retTypePartial').className='act-btn '+(t==='partial'?'act-btn-batch':'act-btn-edit');
+    document.getElementById('retItemsWrap').classList.toggle('d-none', t==='full');
+}
+function openReturn(saleId) {
+    currentSaleId=saleId; returnType='full'; setReturnType('full');
+    document.getElementById('retReason').value=''; document.getElementById('retItemsList').innerHTML='';
+    const script=document.getElementById(saleId);
+    if (script) {
+        const items=JSON.parse(script.textContent); let html='';
+        items.forEach(item => {
+            const rem=item.quantity-(item.returned_quantity||0); if(rem<=0)return;
+            html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--b)"><div><div style="font-size:.85rem;font-weight:700;color:var(--t)">${item.product.name}</div><div style="font-size:.72rem;color:var(--t2)">Qolgan: ${rem} ta</div></div><input type="number" class="ret-qty" data-id="${item.id}" value="0" min="0" max="${rem}" oninput="this.value=Math.min(${rem},Math.max(0,parseInt(this.value)||0))" style="width:60px;height:34px;background:var(--bg-el);border:1px solid var(--b);border-radius:8px;color:var(--t);text-align:center;font-family:var(--mono);outline:none"></div>`;
+        });
+        document.getElementById('retItemsList').innerHTML=html||'<div style="color:var(--t3);font-size:.82rem">Qaytarish mumkin bo\'lgan mahsulot yo\'q</div>';
+    }
+    openModal('returnModal');
+}
+document.getElementById('retConfirm').addEventListener('click', async () => {
+    const btn=document.getElementById('retConfirm'), msg=document.getElementById('retMsg');
+    const payload={reason:document.getElementById('retReason').value.trim()};
+    if (returnType==='full') { payload.full_return=true; }
+    else {
+        const items=[]; document.querySelectorAll('.ret-qty').forEach(inp=>{const qty=parseInt(inp.value)||0; if(qty>0)items.push({sale_item_id:parseInt(inp.dataset.id),quantity:qty});});
+        if(!items.length){showMsg(msg,'Hech qanday miqdor kiritilmadi!','error');return;}
+        payload.items=items;
+    }
+    btn.disabled=true; btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
+    const d=await api(url(URLS.saleReturn,currentSaleId),payload);
+    if(d.status==='success'){toast('Qaytarish amalga oshirildi','success');closeModal('returnModal');setTimeout(()=>location.reload(),1000);}
+    else showMsg(msg,d.message||'Xato!','error');
+    btn.disabled=false; btn.innerHTML='<i class="fa fa-undo"></i> Qaytarish';
+});
+
+/* ── Payment Refund ── */
+let currentPayId=null, currentPayRemaining=0;
+function openPayRefund(payId, remaining, total) {
+    currentPayId=payId; currentPayRemaining=parseFloat(remaining);
+    document.getElementById('refundInfo').innerHTML=`Jami to'lov: <strong>${Number(total).toLocaleString()} so'm</strong> &nbsp;·&nbsp; Qaytarish mumkin: <strong>${Number(remaining).toLocaleString()} so'm</strong>`;
+    document.getElementById('refundAmount').value=''; document.getElementById('refundAmount').max=remaining;
+    document.getElementById('refundMaxLabel').textContent=`Maksimum: ${Number(remaining).toLocaleString()} so'm`;
+    document.getElementById('refundReason').value=''; openModal('refundModal');
+}
+document.getElementById('refundFullBtn').addEventListener('click', () => { document.getElementById('refundAmount').value=currentPayRemaining; });
+document.getElementById('refundConfirm').addEventListener('click', async () => {
+    const btn=document.getElementById('refundConfirm'), msg=document.getElementById('refundMsg');
+    const amount=parseFloat(document.getElementById('refundAmount').value);
+    if(!amount||amount<=0){showMsg(msg,'Summani kiriting!','error');return;}
+    if(amount>currentPayRemaining){showMsg(msg,`Maksimum: ${currentPayRemaining.toLocaleString()} so'm`,'error');return;}
+    btn.disabled=true; btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
+    const d=await api(url(URLS.payRefund,currentPayId),{amount,reason:document.getElementById('refundReason').value});
+    if(d.status==='success'){toast('To\'lov qaytarildi','success');closeModal('refundModal');setTimeout(()=>location.reload(),1000);}
+    else showMsg(msg,d.message||'Xato!','error');
+    btn.disabled=false; btn.innerHTML='<i class="fa fa-undo-alt"></i> Qaytarish';
+});
+
+/* ── History pagination ── */
+function loadHistory(page) { window.scrollTo(0,0); window.location.href=`?history_page=${page}`; }
+
+/* ── Init ── */
+fetch(url(URLS.getCart,CLIENT_ID)).then(r=>r.json()).then(d=>updateCartBadge(d.item_count||d.cart?.length||0)).catch(()=>{});
+</script>
+</body>
+</html>

@@ -1,0 +1,587 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# NoteBook i18n, 2026.
+#
+
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-05-16 01:31+0500\n"
+"PO-Revision-Date: 2026-05-16 00:00+0500\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=4; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && "
+"n%10<=4 && (n%100<12 || n%100>14) ? 1 : n%10==0 || (n%10>=5 && n%10<=9) || "
+"(n%100>=11 && n%100<=14)? 2 : 3);\n"
+msgid "TIZIM"
+msgstr "СИСТЕМА"
+
+msgid "KATEGORIYALAR"
+msgstr "КАТЕГОРИИ"
+
+msgid "VILOYATLAR"
+msgstr "РЕГИОНЫ"
+
+msgid "Saqlash"
+msgstr "Сохранить"
+
+msgid "Tartib raqami"
+msgstr "Порядковый номер"
+
+msgid "Sign In"
+msgstr "Войти"
+
+msgid "Secure Access"
+msgstr "Безопасный вход"
+
+msgid "Welcome back"
+msgstr "Добро пожаловать"
+
+msgid "Sign in to continue to your account"
+msgstr "Войдите в свой аккаунт"
+
+msgid "Username"
+msgstr "Имя пользователя"
+
+msgid "Password"
+msgstr "Пароль"
+
+msgid "Forgot password?"
+msgstr "Забыли пароль?"
+
+msgid "Create account"
+msgstr "Создать аккаунт"
+
+msgid "Sozlamalar"
+msgstr "Настройки"
+
+msgid "HISOB"
+msgstr "СЧЁТ"
+
+msgid "Login (username)"
+msgstr "Логин (имя польз.)"
+
+msgid "Telefon raqam"
+msgstr "Номер телефона"
+
+msgid "Joriy parol"
+msgstr "Текущий пароль"
+
+msgid "Yangi parol"
+msgstr "Новый пароль"
+
+msgid "Yangi parolni tasdiqlang"
+msgstr "Подтвердите новый пароль"
+
+msgid "Xodimlar Boshqaruvi"
+msgstr "Управление персоналом"
+
+msgid "SUPER ADMIN PANEL"
+msgstr "ПАНЕЛЬ СУПЕРАДМИНА"
+
+msgid "Xodimlar"
+msgstr "Сотрудники"
+
+msgid "Faol"
+msgstr "Активный"
+
+msgid "Haydalgan"
+msgstr "Уволен"
+
+msgid "Jami"
+msgstr "Итого"
+
+msgid "Login"
+msgstr "Вход"
+
+msgid "Telefon"
+msgstr "Телефон"
+
+msgid "Lavozim"
+msgstr "Должность"
+
+msgid "Xodim"
+msgstr "Сотрудник"
+
+msgid "Admin"
+msgstr "Администратор"
+
+msgid "Parol"
+msgstr "Пароль"
+
+msgid "Bekor"
+msgstr "Отмена"
+
+msgid "Tasdiqlash"
+msgstr "Подтвердить"
+
+msgid "BATCH MANAGEMENT"
+msgstr "УПРАВЛЕНИЕ БАТЧАМИ"
+
+msgid "Umumiy qoldiq"
+msgstr "Общий остаток"
+
+msgid "Faol batchlar"
+msgstr "Активные батчи"
+
+msgid "Sotuv narxi"
+msgstr "Цена продажи"
+
+msgid "Batchlar tarixi"
+msgstr "История батчей"
+
+msgid "Qabul"
+msgstr "Получено"
+
+msgid "Qoldiq"
+msgstr "Остаток"
+
+msgid "Tan narxi"
+msgstr "Себестоимость"
+
+msgid "Sotuv"
+msgstr "Продажа"
+
+msgid "Tugagan"
+msgstr "Закончился"
+
+msgid "Qisman"
+msgstr "Частично"
+
+msgid "Filial sahifasidan sotib oling"
+msgstr "Покупайте через страницу филиала"
+
+msgid "KOMPANIYAGA QAYTARISH"
+msgstr "ВОЗВРАТ ПОСТАВЩИКУ"
+
+msgid "Qaytariladigan miqdor *"
+msgstr "Количество к возврату *"
+
+msgid "Qaytariladigan summa:"
+msgstr "Сумма к возврату:"
+
+msgid "Sabab (ixtiyoriy)"
+msgstr "Причина (необяз.)"
+
+msgid "Mijozlar"
+msgstr "Клиенты"
+
+msgid "MIJOZLAR"
+msgstr "КЛИЕНТЫ"
+
+msgid "Jami qarz"
+msgstr "Общий долг"
+
+msgid "Avans"
+msgstr "Аванс"
+
+msgid "Tahrirlash"
+msgstr "Редактировать"
+
+msgid "Ism familiya"
+msgstr "Имя Фамилия"
+
+msgid "Viloyat"
+msgstr "Регион"
+
+msgid "— Tanlang —"
+msgstr "— Выбрать —"
+
+msgid "Manzil (ixtiyoriy)"
+msgstr "Адрес (необяз.)"
+
+msgid "Ortga"
+msgstr "Назад"
+
+msgid "Mahsulot sotish"
+msgstr "Продать товар"
+
+msgid "Savatcha"
+msgstr "Корзина"
+
+msgid "To‘lov"
+msgstr "To‘lov"
+
+msgid "To‘lov va Sotuv tarixi"
+msgstr "To‘lov va Sotuv tarixi"
+
+msgid "Sana"
+msgstr "Дата"
+
+msgid "Turi"
+msgstr "Тип"
+
+msgid "Tavsif"
+msgstr "Описание"
+
+msgid "Summa"
+msgstr "Сумма"
+
+msgid "Qaytarilgan"
+msgstr "Возвращено"
+
+msgid "Sotilgan mahsulotlar:"
+msgstr "Проданные товары:"
+
+msgid "Qaytarilgan mahsulotlar:"
+msgstr "Возвращённые товары:"
+
+msgid "Qoldi"
+msgstr "Осталось"
+
+msgid "Qaytarish tafsiloti:"
+msgstr "Детали возврата:"
+
+msgid "Qaytarilgan summa"
+msgstr "Сумма возврата"
+
+msgid "Oldingi"
+msgstr "Предыдущий"
+
+msgid "Keyingi"
+msgstr "Следующий"
+
+msgid "Jami sotilgan"
+msgstr "Итого продано"
+
+msgid "Jami to‘langan"
+msgstr "Jami to‘langan"
+
+msgid "Qoldiq qarz"
+msgstr "Остаток долга"
+
+msgid "Mijozni tahrirlash"
+msgstr "Редакт. клиента"
+
+msgid "Ism"
+msgstr "Имя"
+
+msgid "Manzil"
+msgstr "Адрес"
+
+msgid "Bekor qilish"
+msgstr "Отменить"
+
+msgid "Hozircha savatcha bo‘sh"
+msgstr "Hozircha savatcha bo‘sh"
+
+msgid "Mahsulot qo‘shish uchun yuqoridagi tugmalardan foydalaning"
+msgstr "Mahsulot qo‘shish uchun yuqoridagi tugmalardan foydalaning"
+
+msgid "0 ta"
+msgstr "0 шт."
+
+msgid "0 so‘m"
+msgstr "0 so‘m"
+
+msgid "Barcha kategoriyalar"
+msgstr "Все категории"
+
+msgid "Yopish"
+msgstr "Закрыть"
+
+msgid "Mijoz:"
+msgstr "Клиент:"
+
+msgid "To‘lov summasi"
+msgstr "To‘lov summasi"
+
+msgid "so‘m"
+msgstr "so‘m"
+
+msgid "Izoh (ixtiyoriy)"
+msgstr "Примечание (необяз.)"
+
+msgid "Sotuvni qaytarish"
+msgstr "Возврат продажи"
+
+msgid "To‘liq qaytarish"
+msgstr "To‘liq qaytarish"
+
+msgid "Qaytariladigan mahsulotlar:"
+msgstr "Товары к возврату:"
+
+msgid "Qaytarish sababi (ixtiyoriy)"
+msgstr "Причина возврата (необяз.)"
+
+msgid "Qaytarish mumkin:"
+msgstr "Можно вернуть:"
+
+msgid "Qaytarish summasi"
+msgstr "Сумма возврата"
+
+msgid "Mahsulotlar"
+msgstr "Товары"
+
+msgid "Umumiy stok"
+msgstr "Общий сток"
+
+msgid "Bizning qarzimiz"
+msgstr "Наш долг"
+
+msgid "Avansimiz"
+msgstr "Наш аванс"
+
+msgid "YANGI MAHSULOT"
+msgstr "НОВЫЙ ТОВАР"
+
+msgid "Mahsulot nomi *"
+msgstr "Название товара *"
+
+msgid "Kategoriya *"
+msgstr "Категория *"
+
+msgid "— tanlang —"
+msgstr "— выбрать —"
+
+msgid "Sotuv narxi *"
+msgstr "Цена продажи *"
+
+msgid "Rasm (ixtiyoriy)"
+msgstr "Фото (необяз.)"
+
+msgid "Bosing yoki torting"
+msgstr "Нажмите или перетащите"
+
+msgid "MAHSULOTNI TAHRIRLASH"
+msgstr "РЕДАКТ. ТОВАР"
+
+msgid "Nomi *"
+msgstr "Название *"
+
+msgid "Kategoriya"
+msgstr "Категория"
+
+msgid "Yangi rasm (ixtiyoriy)"
+msgstr "Новое фото (необяз.)"
+
+msgid "SOTIB OLISH"
+msgstr "ПОКУПКА"
+
+msgid "Miqdor (dona) *"
+msgstr "Количество (шт.) *"
+
+msgid "Jami xarajat:"
+msgstr "Итого расходов:"
+
+msgid "Kompaniyalar"
+msgstr "Компании"
+
+msgid "Jami kompaniya"
+msgstr "Всего компаний"
+
+msgid "Jami qarzimiz"
+msgstr "Наш общий долг"
+
+msgid "YANGI KOMPANIYA"
+msgstr "НОВАЯ КОМПАНИЯ"
+
+msgid "Izoh"
+msgstr "Примечание"
+
+msgid "YANGI FILIAL"
+msgstr "НОВЫЙ ФИЛИАЛ"
+
+msgid "Filial nomi *"
+msgstr "Название филиала *"
+
+msgid "Summa *"
+msgstr "Сумма *"
+
+msgid "Tur"
+msgstr "Тип"
+
+msgid "Naqd"
+msgstr "Наличные"
+
+msgid "Chegirma"
+msgstr "Скидка"
+
+msgid "Dashboard — Savdo Tizimi"
+msgstr "Дашборд — Система Продаж"
+
+msgid "SAVDO"
+msgstr "ПРОДАЖА"
+
+msgid "DASHBOARD"
+msgstr "ПАНЕЛЬ"
+
+msgid "JONLI"
+msgstr "ОНЛАЙН"
+
+msgid "Yillik Foyda"
+msgstr "Годовая прибыль"
+
+msgid "Yillik Sotuv"
+msgstr "Годовые продажи"
+
+msgid "Yillik Harajat"
+msgstr "Годовые расходы"
+
+msgid "SAVDO STATISTIKASI"
+msgstr "СТАТИСТИКА ПРОДАЖ"
+
+msgid "7 kun"
+msgstr "7 дней"
+
+msgid "Oylik"
+msgstr "Месячный"
+
+msgid "Yillik"
+msgstr "Годовой"
+
+msgid "TOP MAHSULOTLAR"
+msgstr "ТОП ТОВАРЫ"
+
+msgid "BUGUNGI KUN"
+msgstr "СЕГОДНЯ"
+
+msgid "Foyda"
+msgstr "Прибыль"
+
+msgid "Harajat"
+msgstr "Расход"
+
+msgid "Redis"
+msgstr "Redis"
+
+msgid "Faoliyat Tarixi"
+msgstr "История активности"
+
+msgid "AUDIT LOG"
+msgstr "ЖУРНАЛ АУДИТА"
+
+msgid "ta"
+msgstr "шт."
+
+msgid "Dan"
+msgstr "С"
+
+msgid "Gacha"
+msgstr "По"
+
+msgid "Qaytarish"
+msgstr "Возврат"
+
+msgid "Kirim"
+msgstr "Приход"
+
+msgid "Sotuv Tarixi"
+msgstr "История продаж"
+
+msgid "Tarix"
+msgstr "История"
+
+msgid "ta yozuv"
+msgstr "записей"
+
+msgid "Barchasi"
+msgstr "Все"
+
+msgid "Mijoz yangilandi"
+msgstr "Клиент обновлён"
+
+msgid "Batafsil"
+msgstr "Подробнее"
+
+msgid "Ombor Tarixi"
+msgstr "История склада"
+
+msgid "Stok kirdi"
+msgstr "Сток пришёл"
+
+msgid "Stok qaytdi"
+msgstr "Сток возвращён"
+
+msgid "Tuzatish"
+msgstr "Коррекция"
+
+msgid "Mahsulot yangilandi"
+msgstr "Товар обновлён"
+
+msgid "Kompaniya yangilandi"
+msgstr "Компания обновлена"
+
+msgid "Mahsulotlar — Inventar"
+msgstr "Товары — Инвентарь"
+
+msgid "INVENTAR"
+msgstr "ИНВЕНТАРЬ"
+
+msgid "Jami mahsulot"
+msgstr "Всего товаров"
+
+msgid "Stockda bor"
+msgstr "В наличии"
+
+msgid "Tugayapti"
+msgstr "Заканчивается"
+
+msgid "Mahsulotlar topilmadi"
+msgstr "Товары не найдены"
+
+msgid "Savdo Tizimi"
+msgstr "Система Продаж"
+
+msgid "Boshqaruv Tizimi"
+msgstr "Система управления"
+
+msgid "Yangi"
+msgstr "Новый"
+
+msgid "Mijoz"
+msgstr "Клиент"
+
+msgid "Mahsulot"
+msgstr "Товар"
+
+msgid "ASOSIY MENYU"
+msgstr "ГЛАВНОЕ МЕНЮ"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Statistika"
+msgstr "Статистика"
+
+msgid "Inventar & Batch"
+msgstr "Инвентарь & Батч"
+
+msgid "Sotuv & Ombor"
+msgstr "Продажи и Склад"
+
+msgid "Rollar & Ruxsat"
+msgstr "Роли и Доступ"
+
+msgid "Viloyatlar"
+msgstr "Регионы"
+
+msgid "Hudud katalogi"
+msgstr "Каталог регионов"
+
+msgid "Profil"
+msgstr "Профиль"
+
+msgid "Chiqish"
+msgstr "Выйти"
+
+msgid "Tizimdan"
+msgstr "Из системы"
+
+msgid "YANGI MIJOZ"
+msgstr "НОВЫЙ КЛИЕНТ"
+
+msgid "Ismi *"
+msgstr "Имя *"
+
+msgid "Telefon *"
+msgstr "Телефон *"
+
+msgid "Rasmni tanlash uchun bosing"
+msgstr "Нажмите для выбора фото"
