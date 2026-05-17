@@ -1,10 +1,11 @@
-{% load static %}
+{% load i18n %}
+{% load static i18n %}
 <!DOCTYPE html>
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Mijozlar</title>
+    <title>{% trans 'Mijozlar' %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <link rel="icon" href="{% static 'img/logo.png' %}">
@@ -22,7 +23,7 @@
             <i class="fa fa-arrow-left"></i>
         </button>
         <div class="header-center">
-            <span class="header-label">MIJOZLAR</span>
+            <span class="header-label">{% trans 'MIJOZLAR' %}</span>
             <span class="header-count" id="totalCount">{{ page_obj.paginator.count }} ta</span>
         </div>
         <button class="add-client-btn" data-bs-toggle="modal" data-bs-target="#addClientModal">
@@ -42,7 +43,7 @@
         </div>
 
         <div class="region-filter" id="regionFilter">
-            <button class="region-chip active" data-region="">Barchasi</button>
+            <button class="region-chip active" data-region="">{% trans 'Barchasi' %}</button>
             {% for region in regions %}
             <button class="region-chip {% if selected_region == region.id|stringformat:'s' %}active{% endif %}"
                     data-region="{{ region.id }}">
@@ -55,7 +56,7 @@
     <!-- STATS BAR -->
     <div class="stats-bar" id="statsBar">
         <div class="stat-item">
-            <span class="stat-label">Jami qarz</span>
+            <span class="stat-label">{% trans 'Jami qarz' %}</span>
             <span class="stat-value danger" id="statTotalDebt">—</span>
         </div>
         <div class="stat-divider"></div>
@@ -65,7 +66,7 @@
         </div>
         <div class="stat-divider"></div>
         <div class="stat-item">
-            <span class="stat-label">Mijozlar</span>
+            <span class="stat-label">{% trans 'Mijozlar' %}</span>
             <span class="stat-value" id="statCount">{{ page_obj.paginator.count }}</span>
         </div>
     </div>
@@ -118,7 +119,7 @@
 
             <div class="card-actions">
                 <button class="ca-btn view-btn" data-id="{{ client.id }}">
-                    <i class="fa fa-eye"></i><span>Ko'rish</span>
+                    <i class="fa fa-eye"></i><span>{% trans "Ko'rish" %}</span>
                 </button>
                 <button class="ca-btn edit-btn"
                         data-id="{{ client.id }}"
@@ -128,13 +129,13 @@
                         data-region-id="{{ client.region_id|default:'' }}"
                         data-lat="{{ client.latitude|default:'' }}"
                         data-lng="{{ client.longitude|default:'' }}">
-                    <i class="fa fa-edit"></i><span>Tahrirlash</span>
+                    <i class="fa fa-edit"></i><span>{% trans 'Tahrirlash' %}</span>
                 </button>
                 {% if request.user.is_admin %}
                 <button class="ca-btn delete-btn"
                         data-id="{{ client.id }}"
                         data-name="{{ client.name }}">
-                    <i class="fa fa-trash"></i><span>O'chirish</span>
+                    <i class="fa fa-trash"></i><span>{% trans "O'chirish" %}</span>
                 </button>
                 {% endif %}
             </div>
@@ -143,7 +144,7 @@
         {% empty %}
         <div class="empty-state" id="emptyState">
             <div class="empty-icon"><i class="fa fa-users"></i></div>
-            <h3>Mijozlar yo'q</h3>
+            <h3>{% trans "Mijozlar yo'q" %}</h3>
             <p>Yangi mijoz qo'shish uchun + tugmasini bosing</p>
         </div>
         {% endfor %}
@@ -195,7 +196,7 @@
                 <div class="modal-body">
 
                     <div class="field-group">
-                        <label>Ism familiya</label>
+                        <label>{% trans 'Ism familiya' %}</label>
                         <input type="text" class="form-control" name="name"
                                placeholder="Sardor Aliyev" required>
                     </div>
@@ -207,7 +208,7 @@
                     </div>
 
                     <div class="field-group">
-                        <label>Viloyat</label>
+                        <label>{% trans 'Viloyat' %}</label>
                         <select class="form-select" name="region">
                             <option value="">— Tanlang —</option>
                             {% for region in regions %}
@@ -246,9 +247,9 @@
 
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans 'Bekor' %}</button>
                     <button type="submit" class="btn btn-primary" id="addSubmitBtn">
-                        <i class="fa fa-check me-1"></i>Saqlash
+                        <i class="fa fa-check me-1"></i>{% trans 'Saqlash' %}
                     </button>
                 </div>
             </form>
@@ -266,14 +267,14 @@
                 <input type="hidden" name="client_id" id="editClientId">
                 <div class="modal-header">
                     <h5 class="modal-title">
-                        <i class="fa fa-edit me-2"></i>Tahrirlash
+                        <i class="fa fa-edit me-2"></i>{% trans 'Tahrirlash' %}
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
 
                     <div class="field-group">
-                        <label>Ism familiya</label>
+                        <label>{% trans 'Ism familiya' %}</label>
                         <input type="text" class="form-control" id="editName" name="name" required>
                     </div>
 
@@ -283,7 +284,7 @@
                     </div>
 
                     <div class="field-group">
-                        <label>Viloyat</label>
+                        <label>{% trans 'Viloyat' %}</label>
                         <select class="form-select" name="region_id" id="editRegion">
                             <option value="">— Tanlang —</option>
                             {% for region in regions %}
@@ -322,9 +323,9 @@
 
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans 'Bekor' %}</button>
                     <button type="submit" class="btn btn-primary" id="editSubmitBtn">
-                        <i class="fa fa-check me-1"></i>Saqlash
+                        <i class="fa fa-check me-1"></i>{% trans 'Saqlash' %}
                     </button>
                 </div>
             </form>
@@ -342,7 +343,7 @@
                 <input type="hidden" name="client_id" id="deleteClientId">
                 <div class="modal-header">
                     <h5 class="modal-title text-danger">
-                        <i class="fa fa-exclamation-triangle me-2"></i>O'chirish
+                        <i class="fa fa-exclamation-triangle me-2"></i>{% trans "O'chirish" %}
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -351,9 +352,9 @@
                     <strong id="deleteClientName" style="color: var(--text-primary); font-size: 1rem;"></strong>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans 'Bekor' %}</button>
                     <button type="submit" class="btn btn-danger">
-                        <i class="fa fa-trash me-1"></i>O'chirish
+                        <i class="fa fa-trash me-1"></i>{% trans "O'chirish" %}
                     </button>
                 </div>
             </form>
@@ -365,6 +366,8 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Leaflet JS (location picker uchun) -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% include "partials/i18n_js.html" %}
+
 <script src="{% static 'script/location_picker.js' %}"></script>
 <script src="{% static 'script/client.js' %}"></script>
 </body>

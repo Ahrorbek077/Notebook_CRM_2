@@ -57,7 +57,7 @@ const LocationPicker = (() => {
       headers: { 'Accept-Language': 'uz,ru', 'User-Agent': 'NoteBook-App' }
     });
     const data = await resp.json();
-    if (!data.length) throw new Error('Manzil topilmadi');
+    if (!data.length) throw new Error(T.address_not_found);
     return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), display: data[0].display_name };
   }
 
@@ -96,7 +96,7 @@ const LocationPicker = (() => {
                   <i class="fa fa-search"></i>
                 </button>
                 <button class="btn btn-sm btn-outline-secondary"
-                        onclick="LocationPicker.useMyLocation()" title="Mening joylashuvim">
+                        onclick="LocationPicker.useMyLocation()" title="" + T.location_title + "">
                   <i class="fa fa-location-crosshairs"></i>
                 </button>
               </div>
@@ -277,7 +277,7 @@ const LocationPicker = (() => {
       const el = document.getElementById('pickerAddressDisplay');
       if (el) el.innerHTML = `<i class="fa fa-map-marker-alt me-1"></i>${result.display}`;
     } catch {
-      showToast("Manzil topilmadi. Aniqroq yozing (masalan: Yunusobod tumani, Toshkent)", 'warning');
+      showToast(T.address_not_found, 'warning');
     } finally {
       if (btn) btn.innerHTML = '<i class="fa fa-search"></i>';
     }
@@ -301,7 +301,7 @@ const LocationPicker = (() => {
         const el   = document.getElementById('pickerAddressDisplay');
         if (el) el.innerHTML = `<i class="fa fa-location-crosshairs me-1"></i>${addr}`;
       },
-      () => showToast("Joylashuvni aniqlashda xatolik. Ruxsat bering.", 'warning')
+      () => showToast(T.server_error, 'warning')
     );
   }
 

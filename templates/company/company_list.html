@@ -1,10 +1,11 @@
-{% load static %}
+{% load i18n %}
+{% load static i18n %}
 <!DOCTYPE html>
 <html lang="uz">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Kompaniyalar</title>
+<title>{% trans 'Kompaniyalar' %}</title>
 <link rel="icon" href="{% static 'img/logo.png' %}">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/main.css' %}">
@@ -15,8 +16,8 @@
     <div class="page-header">
         <a href="{% url 'dashboard:launcher' %}" class="back-btn"><i class="fa fa-arrow-left"></i></a>
         <div class="header-center">
-            <span class="header-super">TA'MINOTCHILAR</span>
-            <h1 class="header-title">Kompaniyalar</h1>
+            <span class="header-super">{% trans "TA'MINOTCHILAR" %}</span>
+            <h1 class="header-title">{% trans 'Kompaniyalar' %}</h1>
         </div>
         <button class="header-action-btn" id="openAddCompany"><i class="fa fa-plus"></i></button>
     </div>
@@ -37,13 +38,13 @@
         </div>
         <div class="stat-card">
             <div class="stat-icon red"><i class="fa fa-money-bill-wave"></i></div>
-            <div class="stat-label">Jami qarzimiz</div>
+            <div class="stat-label">{% trans 'Jami qarzimiz' %}</div>
             <div class="stat-value text-mono" style="font-size:.85rem" id="totalDebt">—</div>
         </div>
     </div>
 
     <div class="section-hdr">
-        <span class="section-title">Ro'yxat</span>
+        <span class="section-title">{% trans "Ro'yxat" %}</span>
         <span class="section-badge">{{ companies|length }} ta</span>
     </div>
 
@@ -117,14 +118,14 @@
         <div class="sheet-body">
             <input type="hidden" id="companyId">
             <div class="form-group"><label class="form-label">Nomi *</label><input type="text" class="form-control" id="companyName" placeholder="Nomi..."></div>
-            <div class="form-group"><label class="form-label">Telefon</label><input type="tel" class="form-control" id="companyPhone" placeholder="+998..."></div>
-            <div class="form-group"><label class="form-label">Manzil</label><input type="text" class="form-control" id="companyAddress" placeholder="..."></div>
-            <div class="form-group"><label class="form-label">Izoh</label><textarea class="form-control" id="companyNote" rows="2"></textarea></div>
+            <div class="form-group"><label class="form-label">{% trans 'Telefon' %}</label><input type="tel" class="form-control" id="companyPhone" placeholder="+998..."></div>
+            <div class="form-group"><label class="form-label">{% trans 'Manzil' %}</label><input type="text" class="form-control" id="companyAddress" placeholder="..."></div>
+            <div class="form-group"><label class="form-label">{% trans 'Izoh' %}</label><textarea class="form-control" id="companyNote" rows="2"></textarea></div>
             <div id="companyMsg" class="form-msg d-none"></div>
         </div>
         <div class="sheet-actions">
-            <button class="btn btn-secondary" data-close="companyModal">Bekor</button>
-            <button class="btn btn-primary" id="companySubmit"><i class="fa fa-check"></i> Saqlash</button>
+            <button class="btn btn-secondary" data-close="companyModal">{% trans 'Bekor' %}</button>
+            <button class="btn btn-primary" id="companySubmit"><i class="fa fa-check"></i> {% trans 'Saqlash' %}</button>
         </div>
     </div>
 </div>
@@ -142,14 +143,14 @@
             <input type="hidden" id="branchCompanyId">
             <div style="background:var(--bg-el);border:1px solid var(--b);border-radius:var(--r);padding:8px 12px;font-size:.8rem;color:var(--t2);margin-bottom:2px" id="branchCompanyLabel"></div>
             <div class="form-group"><label class="form-label">Filial nomi *</label><input type="text" class="form-control" id="branchName" placeholder="Nomi..."></div>
-            <div class="form-group"><label class="form-label">Telefon</label><input type="tel" class="form-control" id="branchPhone" placeholder="+998..."></div>
-            <div class="form-group"><label class="form-label">Manzil</label><input type="text" class="form-control" id="branchAddress" placeholder="..."></div>
-            <div class="form-group"><label class="form-label">Izoh</label><textarea class="form-control" id="branchNote" rows="2"></textarea></div>
+            <div class="form-group"><label class="form-label">{% trans 'Telefon' %}</label><input type="tel" class="form-control" id="branchPhone" placeholder="+998..."></div>
+            <div class="form-group"><label class="form-label">{% trans 'Manzil' %}</label><input type="text" class="form-control" id="branchAddress" placeholder="..."></div>
+            <div class="form-group"><label class="form-label">{% trans 'Izoh' %}</label><textarea class="form-control" id="branchNote" rows="2"></textarea></div>
             <div id="branchMsg" class="form-msg d-none"></div>
         </div>
         <div class="sheet-actions">
-            <button class="btn btn-secondary" data-close="branchModal">Bekor</button>
-            <button class="btn btn-primary" id="branchSubmit"><i class="fa fa-check"></i> Saqlash</button>
+            <button class="btn btn-secondary" data-close="branchModal">{% trans 'Bekor' %}</button>
+            <button class="btn btn-primary" id="branchSubmit"><i class="fa fa-check"></i> {% trans 'Saqlash' %}</button>
         </div>
     </div>
 </div>
@@ -169,22 +170,25 @@
                 <div class="form-group"><label class="form-label">Summa *</label><input type="number" class="form-control" id="payAmount" placeholder="0" min="1"></div>
                 <div class="form-group"><label class="form-label">Tur</label>
                     <select class="form-control" id="payType">
-                        <option value="cash">Naqd</option>
-                        <option value="transfer">O'tkazma</option>
-                        <option value="discount">Chegirma</option>
+                        <option value="cash">{% trans 'Naqd' %}</option>
+                        <option value="transfer">{% trans "O'tkazma" %}</option>
+                        <option value="discount">{% trans 'Chegirma' %}</option>
                     </select>
                 </div>
             </div>
-            <div class="form-group"><label class="form-label">Sana</label><input type="date" class="form-control" id="payDue"></div>
-            <div class="form-group"><label class="form-label">Izoh</label><input type="text" class="form-control" id="payNote" placeholder="..."></div>
+            <div class="form-group"><label class="form-label">{% trans 'Sana' %}</label><input type="date" class="form-control" id="payDue"></div>
+            <div class="form-group"><label class="form-label">{% trans 'Izoh' %}</label><input type="text" class="form-control" id="payNote" placeholder="..."></div>
             <div id="payMsg" class="form-msg d-none"></div>
         </div>
         <div class="sheet-actions">
-            <button class="btn btn-secondary" data-close="payModal">Bekor</button>
-            <button class="btn btn-primary" id="paySubmit"><i class="fa fa-check"></i> To'lash</button>
+            <button class="btn btn-secondary" data-close="payModal">{% trans 'Bekor' %}</button>
+            <button class="btn btn-primary" id="paySubmit"><i class="fa fa-check"></i> {% trans "To'lash" %}</button>
         </div>
     </div>
 </div>
+
+{% include "partials/i18n_js.html" %}
+
 
 <script>
 const CSRF = "{{ csrf_token }}";

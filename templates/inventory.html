@@ -17,7 +17,7 @@
         <a href="{% url 'dashboard:launcher' %}" class="back-btn"><i class="fa fa-arrow-left"></i></a>
         <div class="header-center">
             <span class="header-super">INVENTAR</span>
-            <h1 class="header-title">Mahsulotlar</h1>
+            <h1 class="header-title">{% trans 'Mahsulotlar' %}</h1>
         </div>
     </div>
 
@@ -51,7 +51,7 @@
 
     <!-- SECTION HEADER -->
     <div class="section-hdr">
-        <span class="section-title">Mahsulotlar ro'yxati</span>
+        <span class="section-title">{% trans "Mahsulotlar ro'yxati" %}</span>
         <span class="section-badge" id="countBadge">{{ page_obj.paginator.count }} ta</span>
     </div>
 
@@ -129,6 +129,8 @@
 </div><!-- /page-shell -->
 
 <div id="toast"><span class="toast-dot"></span><span id="toastMsg"></span></div>
+
+{% include "partials/i18n_js.html" %}
 
 <script>
 const CSRF = "{{ csrf_token }}";

@@ -1,0 +1,79 @@
+{% load i18n %}
+
+<script>
+window.T = {
+  /* ── Umumiy ─────────────────────────────────────────────── */
+  save:           "{% trans 'Saqlash' %}",
+  cancel:         "{% trans 'Bekor' %}",
+  delete:         "{% blocktrans %}O'chirish{% endblocktrans %}",
+  edit:           "{% trans 'Tahrirlash' %}",
+  close:          "{% trans 'Yopish' %}",
+  confirm:        "{% trans 'Tasdiqlash' %}",
+  loading:        "{% trans 'Yuklanmoqda...' %}",
+  saving:         "{% trans 'Saqlanmoqda...' %}",
+  error:          "{% trans 'Xatolik yuz berdi' %}",
+  server_error:   "{% blocktrans %}Server bilan bog'lanishda xatolik{% endblocktrans %}",
+  not_found:      "{% trans 'Topilmadi' %}",
+  success:        "{% trans 'Muvaffaqiyatli' %}",
+  required:       "{% trans 'Majburiy maydon' %}",
+  today:          "{% trans 'Bugun' %}",
+
+  /* ── Mijoz / Sotuv ───────────────────────────────────────── */
+  added_to_cart:       "{% blocktrans %}Savatchaga qo'shildi{% endblocktrans %} ✅",
+  cart_cleared:        "{% trans 'Savatcha tozalandi' %}",
+  cart_empty:          "{% blocktrans %}Savatcha bo'sh! Avval mahsulot qo'shing.{% endblocktrans %}",
+  sale_confirm_title:  "{% trans 'Sotuvni tasdiqlang' %}",
+  sale_confirm_text:   "{% trans 'Savatchadagi mahsulotlarni sotib yubormoqchimisiz?' %}",
+  quick_sale_title:    "{% trans 'Tez sotish' %}",
+  quick_sale_text:     "{% trans 'ta mahsulotni darhol sotib yubormoqchimisiz?' %}",
+  sale_success:        "{% trans 'Sotuv muvaffaqiyatli amalga oshirildi!' %}",
+  payment_success:     "{% blocktrans %}To'lov muvaffaqiyatli qabul qilindi!{% endblocktrans %}",
+  return_success:      "{% trans 'Qaytarish muvaffaqiyatli amalga oshirildi!' %}",
+  confirm_refund:      "{% blocktrans %}so'm qaytarishni tasdiqlaysizmi?{% endblocktrans %}",
+  confirm_full_return: "{% trans 'BUTUN sotuvni qaytarishni tasdiqlaysizmi?' %}",
+  confirm_part_return: "{% trans 'Tanlangan mahsulotlarni qaytarishni tasdiqlaysizmi?' %}",
+  connection_lost:     "{% trans 'Server bilan aloqa uzildi' %}",
+
+  /* ── Chek / Printer ──────────────────────────────────────── */
+  receipt_printed:     "{% trans 'Chek muvaffaqiyatli chiqarildi!' %} 🖨️",
+  receipt_loading:     "{% trans 'Chek yuklanmoqda...' %}",
+  receipt_not_loaded:  "{% trans 'Chek yuklanmadi' %}",
+  printer_searching:   "{% trans 'Printer qidirilmoqda...' %}",
+  bluetooth_unsupported: "{% blocktrans %}Brauzeringiz Web Bluetooth API ni qo'llab-quvvatlamaydi (Chrome/Edge kerak){% endblocktrans %}",
+
+  /* ── Sozlamalar / Parol ──────────────────────────────────── */
+  profile_updated:     "{% trans 'Profil yangilandi!' %}",
+  password_changed:    "{% blocktrans %}Parol muvaffaqiyatli o'zgartirildi!{% endblocktrans %}",
+  passwords_mismatch:  "{% trans 'Yangi parollar mos emas!' %}",
+  passwords_match:     "{% trans '✓ Parollar mos keldi' %}",
+  passwords_no_match:  "{% trans '✗ Parollar mos emas' %}",
+  password_min_length: "{% blocktrans %}Parol kamida 6 ta belgi bo'lishi kerak!{% endblocktrans %}",
+  password_changing:   "{% blocktrans %}Parol o'zgartirilmoqda...{% endblocktrans %}",
+  strength_very_weak:  "{% trans 'Juda zaif' %}",
+  strength_weak:       "{% trans 'Zaif' %}",
+  strength_strong:     "{% trans 'Kuchli' %}",
+  strength_very_strong:"{% trans 'Juda kuchli' %}",
+
+  /* ── Xodimlar ────────────────────────────────────────────── */
+  fire:            "{% trans 'Ishdan haydash' %}",
+  fire_confirm:    "{% trans 'ni ishdan haydashni tasdiqlaysizmi?' %}",
+  fire_btn:        "{% trans 'Haydash' %}",
+  rehire:          "{% trans 'Qayta yollash' %}",
+  rehire_btn:      "{% trans 'Yollash' %}",
+  added_today:     "{% blocktrans %}Bugun qo'shildi{% endblocktrans %}",
+  employee:        "{% trans 'Xodim' %}",
+
+  /* ── Katalog / Viloyat ───────────────────────────────────── */
+  cat_add:    "{% blocktrans %}Kategoriya qo'shish{% endblocktrans %}",
+  cat_edit:   "{% trans 'Kategoriyani tahrirlash' %}",
+  cat_updated:"{% trans 'Kategoriya yangilandi!' %}",
+  reg_add:    "{% blocktrans %}Viloyat qo'shish{% endblocktrans %}",
+  reg_edit:   "{% trans 'Viloyatni tahrirlash' %}",
+  reg_updated:"{% trans 'Viloyat yangilandi!' %}",
+
+  /* ── Manzil ──────────────────────────────────────────────── */
+  location_title:    "{% trans 'Mening joylashuvim' %}",
+  location_search:   "{% trans 'Qidirish' %}",
+  address_not_found: "{% trans 'Manzil topilmadi' %}",
+};
+</script>

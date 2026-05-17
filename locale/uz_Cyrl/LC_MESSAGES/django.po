@@ -583,3 +583,210 @@ msgstr "Телефон *"
 
 msgid "Rasmni tanlash uchun bosing"
 msgstr "Расмни танлаш учун босинг"
+
+msgid "Yuklanmoqda..."
+msgstr "Юкланмоқда..."
+
+msgid "Saqlanmoqda..."
+msgstr "Сақланмоқда..."
+
+msgid "Xatolik yuz berdi"
+msgstr "Хатолик юз берди"
+
+msgid "Server bilan bog'lanishda xatolik"
+msgstr "Сервер билан боғланишда хатолик"
+
+msgid "Topilmadi"
+msgstr "Топилмади"
+
+msgid "Muvaffaqiyatli"
+msgstr "Муваффақиятли"
+
+msgid "Majburiy maydon"
+msgstr "Мажбурий майдон"
+
+msgid "Savatchaga qo'shildi"
+msgstr "Саватчага қўшилди"
+
+msgid "Savatcha tozalandi"
+msgstr "Саватча тозаланди"
+
+msgid "Savatcha bo'sh! Avval mahsulot qo'shing."
+msgstr "Саватча бўш! Аввал маҳсулот қўшинг."
+
+msgid "Sotuvni tasdiqlang"
+msgstr "Сотувни тасдиқланг"
+
+msgid "Savatchadagi mahsulotlarni sotib yubormoqchimisiz?"
+msgstr "Саватчадаги маҳсулотларни сотиб юбормоқчимисиз?"
+
+msgid "Tez sotish"
+msgstr "Тез сотиш"
+
+msgid "ta mahsulotni darhol sotib yubormoqchimisiz?"
+msgstr "та маҳсулотни дарҳол сотиб юбормоқчимисиз?"
+
+msgid "Sotuv muvaffaqiyatli amalga oshirildi!"
+msgstr "Сотув муваффақиятли амалга оширилди!"
+
+msgid "To'lov muvaffaqiyatli qabul qilindi!"
+msgstr "Тўлов муваффақиятли қабул қилинди!"
+
+msgid "Qaytarish muvaffaqiyatli amalga oshirildi!"
+msgstr "Қайтариш муваффақиятли амалга оширилди!"
+
+msgid "so'm qaytarishni tasdiqlaysizmi?"
+msgstr "сўм қайтаришни тасдиқлайсизми?"
+
+msgid "BUTUN sotuvni qaytarishni tasdiqlaysizmi?"
+msgstr "БУТУН сотувни қайтаришни тасдиқлайсизми?"
+
+msgid "Tanlangan mahsulotlarni qaytarishni tasdiqlaysizmi?"
+msgstr "Танланган маҳсулотларни қайтаришни тасдиқлайсизми?"
+
+msgid "Server bilan aloqa uzildi"
+msgstr "Сервер билан алоқа узилди"
+
+msgid "Chek muvaffaqiyatli chiqarildi!"
+msgstr "Чек муваффақиятли чиқарилди!"
+
+msgid "Chek yuklanmoqda..."
+msgstr "Чек юкланмоқда..."
+
+msgid "Chek yuklanmadi"
+msgstr "Чек юкланмади"
+
+msgid "Printer qidirilmoqda..."
+msgstr "Принтер қидирилмоқда..."
+
+msgid "Brauzeringiz Web Bluetooth API ni qo'llab-quvvatlamaydi (Chrome/Edge kerak)"
+msgstr "Браузерингиз Web Bluetooth API ни қўллаб-қувватламайди (Chrome/Edge керак)"
+
+msgid "Profil yangilandi!"
+msgstr "Профил янгиланди!"
+
+msgid "Parol muvaffaqiyatli o'zgartirildi!"
+msgstr "Парол муваффақиятли ўзгартирилди!"
+
+msgid "Yangi parollar mos emas!"
+msgstr "Янги паролlar мос эмас!"
+
+msgid "✓ Parollar mos keldi"
+msgstr "✓ Паролlar мос келди"
+
+msgid "✗ Parollar mos emas"
+msgstr "✗ Паролlar мос эмас"
+
+msgid "Parol kamida 6 ta belgi bo'lishi kerak!"
+msgstr "Парол камида 6 та белги бўлиши керак!"
+
+msgid "Parol o'zgartirilmoqda..."
+msgstr "Парол ўзгартирилмоқда..."
+
+msgid "Juda zaif"
+msgstr "Жуда заиф"
+
+msgid "Zaif"
+msgstr "Заиф"
+
+msgid "Kuchli"
+msgstr "Кучли"
+
+msgid "Juda kuchli"
+msgstr "Жуда кучли"
+
+msgid "Ishdan haydash"
+msgstr "Ишдан ҳайдаш"
+
+msgid "ni ishdan haydashni tasdiqlaysizmi?"
+msgstr "ни ишдан ҳайдашни тасдиқлайсизми?"
+
+msgid "Haydash"
+msgstr "Ҳайдаш"
+
+msgid "Qayta yollash"
+msgstr "Қайта ёллаш"
+
+msgid "Yollash"
+msgstr "Ёллаш"
+
+msgid "Bugun qo'shildi"
+msgstr "Бугун қўшилди"
+
+msgid "Kategoriya qo'shish"
+msgstr "Категория қўшиш"
+
+msgid "Kategoriyani tahrirlash"
+msgstr "Категорияни таҳрирлаш"
+
+msgid "Kategoriya yangilandi!"
+msgstr "Категория янгиланди!"
+
+msgid "Viloyat qo'shish"
+msgstr "Вилоят қўшиш"
+
+msgid "Viloyatni tahrirlash"
+msgstr "Вилоятни таҳрирлаш"
+
+msgid "Viloyat yangilandi!"
+msgstr "Вилоят янгиланди!"
+
+msgid "Mening joylashuvim"
+msgstr "Менинг жойлашувим"
+
+msgid "Qidirish"
+msgstr "Қидириш"
+
+msgid "Manzil topilmadi"
+msgstr "Манзил топилмади"
+
+msgid "O'chirish"
+msgstr "Ўчириш"
+
+msgid "Bugun"
+msgstr "Бугун"
+
+msgid "Ta'minotchi & Filial"
+msgstr "Таъминотчи & Филиал"
+
+msgid "NAQD"
+msgstr "НАҚ"
+
+msgid "Mijozlar yo'q"
+msgstr "Мижозлар йўқ"
+
+msgid "Ko'rish"
+msgstr "Кўриш"
+
+msgid "Faol xodimlar yo'q"
+msgstr "Фаол ходимлар йўқ"
+
+msgid "TA'MINOTCHILAR"
+msgstr "ТАЪМИНОТЧИЛАР"
+
+msgid "To'lash"
+msgstr "Тўлаш"
+
+msgid "O'tkazma"
+msgstr "Ўтказма"
+
+msgid "Ro'yxat"
+msgstr "Рўйхат"
+
+msgid "Mahsulotlar yo'q"
+msgstr "Маҳсулотлар йўқ"
+
+msgid "Mahsulotlar ro'yxati"
+msgstr "Маҳсулотлар рўйхати"
+
+msgid "TIL"
+msgstr "ТИЛ"
+
+msgid "Ismi"
+msgstr "Исми"
+
+msgid "Qo'shish"
+msgstr "Қўшиш"
+
+msgid "Nomi"
+msgstr "Номи"

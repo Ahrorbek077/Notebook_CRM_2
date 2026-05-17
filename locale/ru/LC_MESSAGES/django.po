@@ -585,3 +585,210 @@ msgstr "Телефон *"
 
 msgid "Rasmni tanlash uchun bosing"
 msgstr "Нажмите для выбора фото"
+
+msgid "Yuklanmoqda..."
+msgstr "Загрузка..."
+
+msgid "Saqlanmoqda..."
+msgstr "Сохранение..."
+
+msgid "Xatolik yuz berdi"
+msgstr "Произошла ошибка"
+
+msgid "Server bilan bog'lanishda xatolik"
+msgstr "Ошибка соединения с сервером"
+
+msgid "Topilmadi"
+msgstr "Не найдено"
+
+msgid "Muvaffaqiyatli"
+msgstr "Успешно"
+
+msgid "Majburiy maydon"
+msgstr "Обязательное поле"
+
+msgid "Savatchaga qo'shildi"
+msgstr "Добавлено в корзину"
+
+msgid "Savatcha tozalandi"
+msgstr "Корзина очищена"
+
+msgid "Savatcha bo'sh! Avval mahsulot qo'shing."
+msgstr "Корзина пуста! Сначала добавьте товар."
+
+msgid "Sotuvni tasdiqlang"
+msgstr "Подтвердите продажу"
+
+msgid "Savatchadagi mahsulotlarni sotib yubormoqchimisiz?"
+msgstr "Продать товары из корзины?"
+
+msgid "Tez sotish"
+msgstr "Быстрая продажа"
+
+msgid "ta mahsulotni darhol sotib yubormoqchimisiz?"
+msgstr "товаров прямо сейчас?"
+
+msgid "Sotuv muvaffaqiyatli amalga oshirildi!"
+msgstr "Продажа успешно выполнена!"
+
+msgid "To'lov muvaffaqiyatli qabul qilindi!"
+msgstr "Оплата успешно принята!"
+
+msgid "Qaytarish muvaffaqiyatli amalga oshirildi!"
+msgstr "Возврат успешно выполнен!"
+
+msgid "so'm qaytarishni tasdiqlaysizmi?"
+msgstr "Подтвердите возврат суммы"
+
+msgid "BUTUN sotuvni qaytarishni tasdiqlaysizmi?"
+msgstr "Подтвердить полный возврат продажи?"
+
+msgid "Tanlangan mahsulotlarni qaytarishni tasdiqlaysizmi?"
+msgstr "Подтвердить возврат выбранных товаров?"
+
+msgid "Server bilan aloqa uzildi"
+msgstr "Соединение с сервером потеряно"
+
+msgid "Chek muvaffaqiyatli chiqarildi!"
+msgstr "Чек успешно распечатан!"
+
+msgid "Chek yuklanmoqda..."
+msgstr "Загрузка чека..."
+
+msgid "Chek yuklanmadi"
+msgstr "Чек не загружен"
+
+msgid "Printer qidirilmoqda..."
+msgstr "Поиск принтера..."
+
+msgid "Brauzeringiz Web Bluetooth API ni qo'llab-quvvatlamaydi (Chrome/Edge kerak)"
+msgstr "Ваш браузер не поддерживает Web Bluetooth API (нужен Chrome/Edge)"
+
+msgid "Profil yangilandi!"
+msgstr "Профиль обновлён!"
+
+msgid "Parol muvaffaqiyatli o'zgartirildi!"
+msgstr "Пароль успешно изменён!"
+
+msgid "Yangi parollar mos emas!"
+msgstr "Новые пароли не совпадают!"
+
+msgid "✓ Parollar mos keldi"
+msgstr "✓ Пароли совпадают"
+
+msgid "✗ Parollar mos emas"
+msgstr "✗ Пароли не совпадают"
+
+msgid "Parol kamida 6 ta belgi bo'lishi kerak!"
+msgstr "Пароль должен содержать минимум 6 символов!"
+
+msgid "Parol o'zgartirilmoqda..."
+msgstr "Изменение пароля..."
+
+msgid "Juda zaif"
+msgstr "Очень слабый"
+
+msgid "Zaif"
+msgstr "Слабый"
+
+msgid "Kuchli"
+msgstr "Надёжный"
+
+msgid "Juda kuchli"
+msgstr "Очень надёжный"
+
+msgid "Ishdan haydash"
+msgstr "Уволить"
+
+msgid "ni ishdan haydashni tasdiqlaysizmi?"
+msgstr "Подтвердите увольнение"
+
+msgid "Haydash"
+msgstr "Уволить"
+
+msgid "Qayta yollash"
+msgstr "Восстановить"
+
+msgid "Yollash"
+msgstr "Нанять"
+
+msgid "Bugun qo'shildi"
+msgstr "Добавлен сегодня"
+
+msgid "Kategoriya qo'shish"
+msgstr "Добавить категорию"
+
+msgid "Kategoriyani tahrirlash"
+msgstr "Редактировать категорию"
+
+msgid "Kategoriya yangilandi!"
+msgstr "Категория обновлена!"
+
+msgid "Viloyat qo'shish"
+msgstr "Добавить регион"
+
+msgid "Viloyatni tahrirlash"
+msgstr "Редактировать регион"
+
+msgid "Viloyat yangilandi!"
+msgstr "Регион обновлён!"
+
+msgid "Mening joylashuvim"
+msgstr "Моё местоположение"
+
+msgid "Qidirish"
+msgstr "Поиск"
+
+msgid "Manzil topilmadi"
+msgstr "Адрес не найден"
+
+msgid "O'chirish"
+msgstr "Удалить"
+
+msgid "Bugun"
+msgstr "Сегодня"
+
+msgid "Ta'minotchi & Filial"
+msgstr "Поставщик & Филиал"
+
+msgid "NAQD"
+msgstr "НАЛИЧНЫЕ"
+
+msgid "Mijozlar yo'q"
+msgstr "Клиентов нет"
+
+msgid "Ko'rish"
+msgstr "Просмотр"
+
+msgid "Faol xodimlar yo'q"
+msgstr "Нет активных сотрудников"
+
+msgid "TA'MINOTCHILAR"
+msgstr "ПОСТАВЩИКИ"
+
+msgid "To'lash"
+msgstr "Оплатить"
+
+msgid "O'tkazma"
+msgstr "Перевод"
+
+msgid "Ro'yxat"
+msgstr "Список"
+
+msgid "Mahsulotlar yo'q"
+msgstr "Товаров нет"
+
+msgid "Mahsulotlar ro'yxati"
+msgstr "Список товаров"
+
+msgid "TIL"
+msgstr "ЯЗЫК"
+
+msgid "Ismi"
+msgstr "Имя"
+
+msgid "Qo'shish"
+msgstr "Добавить"
+
+msgid "Nomi"
+msgstr "Название"

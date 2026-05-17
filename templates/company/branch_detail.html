@@ -1,4 +1,5 @@
-{% load static %}
+{% load i18n %}
+{% load static i18n %}
 <!DOCTYPE html>
 <html lang="uz">
 <head>
@@ -110,7 +111,7 @@
     <div class="stats-row" style="grid-template-columns:repeat(2,1fr)">
         <div class="stat-card">
             <div class="stat-icon" style="background:var(--teal-d);color:var(--teal)"><i class="fa fa-boxes"></i></div>
-            <div class="stat-label">Mahsulotlar</div>
+            <div class="stat-label">{% trans 'Mahsulotlar' %}</div>
             <div class="stat-value">{{ page_obj.paginator.count }}</div>
         </div>
         <div class="stat-card">
@@ -147,7 +148,7 @@
 
     <!-- SECTION HEADER -->
     <div class="section-hdr">
-        <span class="section-title">Mahsulotlar ro'yxati</span>
+        <span class="section-title">{% trans "Mahsulotlar ro'yxati" %}</span>
         <span class="section-badge">{{ page_obj.paginator.count }} ta</span>
     </div>
 
@@ -202,14 +203,14 @@
                     data-name="{{ product.name|escapejs }}"
                     data-price="{{ product.price }}"
                     data-category="{{ product.category_id }}">
-                    <i class="fa fa-edit"></i> Tahrirlash
+                    <i class="fa fa-edit"></i> {% trans 'Tahrirlash' %}
                 </button>
 
                 <!-- O'chirish -->
                 <button class="act-btn act-btn-delete delete-btn"
                     data-id="{{ product.id }}"
                     data-name="{{ product.name|escapejs }}">
-                    <i class="fa fa-trash"></i> O'chirish
+                    <i class="fa fa-trash"></i> {% trans "O'chirish" %}
                 </button>
 
                 <!-- Stock pill -->
@@ -222,7 +223,7 @@
         {% empty %}
         <div class="empty-state">
             <div class="empty-icon"><i class="fa fa-box-open"></i></div>
-            <div class="empty-title">Mahsulotlar yo'q</div>
+            <div class="empty-title">{% trans "Mahsulotlar yo'q" %}</div>
             <div class="empty-sub">+ tugmasi orqali qo'shing</div>
         </div>
         {% endfor %}
@@ -284,7 +285,7 @@
                 </div>
             </div>
             <div class="form-group">
-                <label class="form-label">Rasm (ixtiyoriy)</label>
+                <label class="form-label">{% trans 'Rasm (ixtiyoriy)' %}</label>
                 <div class="img-upload-wrap" id="apImgWrap">
                     <div class="img-upload-icon"><i class="fa fa-image"></i></div>
                     <div class="img-upload-text">Bosing yoki torting</div>
@@ -294,8 +295,8 @@
             <div id="apMsg" class="form-msg d-none"></div>
         </div>
         <div class="sheet-actions">
-            <button class="btn btn-secondary" data-close="addProductModal">Bekor</button>
-            <button class="btn btn-primary" id="apSubmit"><i class="fa fa-check"></i> Qo'shish</button>
+            <button class="btn btn-secondary" data-close="addProductModal">{% trans 'Bekor' %}</button>
+            <button class="btn btn-primary" id="apSubmit"><i class="fa fa-check"></i> {% trans "Qo'shish" %}</button>
         </div>
     </div>
 </div>
@@ -305,7 +306,7 @@
     <div class="modal-sheet">
         <div class="sheet-handle"></div>
         <div class="sheet-head">
-            <div class="sheet-title">MAHSULOTNI TAHRIRLASH</div>
+            <div class="sheet-title">{% trans 'MAHSULOTNI TAHRIRLASH' %}</div>
             <button class="sheet-close" data-close="editProductModal"><i class="fa fa-times"></i></button>
         </div>
         <div class="sheet-body">
@@ -316,7 +317,7 @@
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Kategoriya</label>
+                    <label class="form-label">{% trans 'Kategoriya' %}</label>
                     <select class="form-control" id="epCategory">
                         {% for cat in categories %}
                         <option value="{{ cat.id }}">{{ cat.name }}</option>
@@ -339,8 +340,8 @@
             <div id="epMsg" class="form-msg d-none"></div>
         </div>
         <div class="sheet-actions">
-            <button class="btn btn-secondary" data-close="editProductModal">Bekor</button>
-            <button class="btn btn-primary" id="epSubmit"><i class="fa fa-check"></i>Saqlash</button>
+            <button class="btn btn-secondary" data-close="editProductModal">{% trans 'Bekor' %}</button>
+            <button class="btn btn-primary" id="epSubmit"><i class="fa fa-check"></i>{% trans 'Saqlash' %}</button>
         </div>
     </div>
 </div>
@@ -350,7 +351,7 @@
     <div class="modal-sheet">
         <div class="sheet-handle"></div>
         <div class="sheet-head">
-            <div class="sheet-title">SOTIB OLISH</div>
+            <div class="sheet-title">{% trans 'SOTIB OLISH' %}</div>
             <button class="sheet-close" data-close="purchaseModal"><i class="fa fa-times"></i></button>
         </div>
         <div class="sheet-body">
@@ -392,13 +393,15 @@
             <div id="pmMsg" class="form-msg d-none"></div>
         </div>
         <div class="sheet-actions">
-            <button class="btn btn-secondary" data-close="purchaseModal">Bekor</button>
+            <button class="btn btn-secondary" data-close="purchaseModal">{% trans 'Bekor' %}</button>
             <button class="btn btn-primary" id="pmSubmit">
                 <i class="fa fa-shopping-cart"></i> Sotib olish
             </button>
         </div>
     </div>
 </div>
+
+{% include "partials/i18n_js.html" %}
 
 <script>
 const CSRF = "{{ csrf_token }}";

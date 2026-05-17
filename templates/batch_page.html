@@ -1,4 +1,5 @@
-{% load static %}
+{% load i18n %}
+{% load static i18n %}
 <!DOCTYPE html>
 <html lang="uz">
 <head>
@@ -85,7 +86,7 @@
                             <span class="bnum-val">{{ batch.cost_price|floatformat:0 }} so'm</span>
                         </div>
                         <div class="bnum">
-                            <span class="bnum-label">Sotuv</span>
+                            <span class="bnum-label">{% trans 'Sotuv' %}</span>
                             <span class="bnum-val" style="color:var(--green)">{{ batch.selling_price|floatformat:0 }} so'm</span>
                         </div>
                     </div>
@@ -98,7 +99,7 @@
                     {% elif batch.remaining_quantity < batch.quantity_received %}
                     <span class="status-badge partial">Qisman</span>
                     {% else %}
-                    <span class="status-badge active">Faol</span>
+                    <span class="status-badge active">{% trans 'Faol' %}</span>
                     {% endif %}
                 </div>
             </div>
@@ -131,7 +132,7 @@
                 {% endif %}
                 {% if batch.remaining_quantity == 0 %}
                 <button class="ba-btn ba-btn-delete del-btn" data-id="{{ batch.id }}">
-                    <i class="fa fa-trash"></i> O'chirish
+                    <i class="fa fa-trash"></i> {% trans "O'chirish" %}
                 </button>
                 {% endif %}
             </div>
@@ -191,13 +192,15 @@
             <div id="retMsg" class="form-msg d-none"></div>
         </div>
         <div class="sheet-actions">
-            <button class="btn btn-secondary" data-close="returnModal">Bekor</button>
+            <button class="btn btn-secondary" data-close="returnModal">{% trans 'Bekor' %}</button>
             <button class="btn btn-amber" id="retSubmit">
                 <i class="fa fa-undo"></i> Qaytarish
             </button>
         </div>
     </div>
 </div>
+
+{% include "partials/i18n_js.html" %}
 
 <script>
 const CSRF = "{{ csrf_token }}";
@@ -350,7 +353,7 @@ document.getElementById('retSubmit').addEventListener('click', async () => {
                     if (actionsEl) {
                         actionsEl.innerHTML +=
                             `<button class="ba-btn ba-btn-delete del-btn" data-id="${batchId}">
-                                <i class="fa fa-trash"></i> O'chirish
+                                <i class="fa fa-trash"></i> {% trans "O'chirish" %}
                              </button>`;
                         /* Yangi del-btn ga listener bog'laymiz */
                         actionsEl.querySelector('.del-btn')

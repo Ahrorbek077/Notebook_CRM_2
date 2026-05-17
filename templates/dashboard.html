@@ -30,25 +30,25 @@
                 <span class="lm-bar b3"></span>
             </div>
             <div>
-                <div class="header-title">SAVDO<span class="accent">DASHBOARD</span></div>
+                <div class="header-title">SAVDO<span class="accent">{% trans 'DASHBOARD' %}</span></div>
                 <div class="header-sub" id="currentDate">—</div>
             </div>
         </div>
         <div class="header-right">
             <div class="live-indicator">
                 <span class="live-dot"></span>
-                <span class="live-label">JONLI</span>
+                <span class="live-label">{% trans 'JONLI' %}</span>
             </div>
             <div class="header-nav">
       
                 <a href="{% url 'dashboard:launcher' %}" class="nav-chip">
-                    <i class="fa fa-arrow-left"></i> Ortga
+                    <i class="fa fa-arrow-left"></i> {% trans 'Ortga' %}
                 </a>
                 <a href="{% url 'dashboard:history-stock' %}" class="nav-chip">
-                    <i class="fa fa-history"></i> Tarix
+                    <i class="fa fa-history"></i> {% trans 'Tarix' %}
                 </a>
                 <a href="{% url 'clients:client_list' %}" class="nav-chip">
-                    <i class="fa fa-users"></i> Mijozlar
+                    <i class="fa fa-users"></i> {% trans 'Mijozlar' %}
                 </a>
             </div>
         </div>
@@ -60,7 +60,7 @@
             <div class="kpi-label" style="display:flex;align-items:center;gap:6px">
                 {% trans "Yillik Foyda" %}
                 <span style="font-size:.6rem;background:rgba(0,230,118,.15);color:var(--green);
-                    padding:1px 5px;border-radius:4px;font-weight:700">NAQD</span>
+                    padding:1px 5px;border-radius:4px;font-weight:700">{% trans 'NAQD' %}</span>
             </div>
             <div class="kpi-value" id="profit-year">—</div>
             <div style="font-size:.72rem;color:var(--t2);margin-top:2px">
@@ -93,7 +93,7 @@
     <section class="chart-section">
         <div class="chart-header">
             <div class="chart-title-group">
-                <span class="section-label">SAVDO STATISTIKASI</span>
+                <span class="section-label">{% trans 'SAVDO STATISTIKASI' %}</span>
                 <div class="chart-summaries" id="chartSummaries">
                     <span class="cs-item green">
                         <span class="cs-dot"></span>
@@ -115,7 +115,7 @@
             </div>
             <div class="period-toggle">
                 <button class="pt-btn active" data-period="weekly">7 kun</button>
-                <button class="pt-btn" data-period="monthly">Oylik</button>
+                <button class="pt-btn" data-period="monthly">{% trans 'Oylik' %}</button>
                 <button class="pt-btn" data-period="yearly">Yillik</button>
             </div>
         </div>
@@ -148,21 +148,21 @@
         <!-- Today snapshot -->
         <section class="bottom-card today-card">
             <div class="bc-header">
-                <span class="section-label">BUGUNGI KUN</span>
+                <span class="section-label">{% trans 'BUGUNGI KUN' %}</span>
                 <span class="today-label" id="todayLabel">—</span>
             </div>
             <div class="today-stats" id="todayStats">
                 <div class="ts-item">
                     <div class="ts-icon green"><i class="fa fa-coins"></i></div>
                     <div class="ts-info">
-                        <span class="ts-label">Foyda</span>
+                        <span class="ts-label">{% trans 'Foyda' %}</span>
                         <span class="ts-val green" id="today-profit">—</span>
                     </div>
                 </div>
                 <div class="ts-item">
                     <div class="ts-icon cyan"><i class="fa fa-shopping-cart"></i></div>
                     <div class="ts-info">
-                        <span class="ts-label">Sotuv</span>
+                        <span class="ts-label">{% trans 'Sotuv' %}</span>
                         <span class="ts-val cyan" id="today-sale">—</span>
                     </div>
                 </div>
@@ -176,7 +176,7 @@
                 <div class="ts-item">
                     <div class="ts-icon red"><i class="fa fa-boxes"></i></div>
                     <div class="ts-info">
-                        <span class="ts-label">Harajat</span>
+                        <span class="ts-label">{% trans 'Harajat' %}</span>
                         <span class="ts-val red" id="today-expense">—</span>
                     </div>
                 </div>
@@ -203,6 +203,7 @@
         <div class="loader-text">Ma'lumotlar yuklanmoqda...</div>
     </div>
 </div>
+{% include "partials/i18n_js.html" %}
 
 <script>
 window.DASHBOARD_URLS = {

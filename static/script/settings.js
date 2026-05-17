@@ -71,7 +71,7 @@ profileForm?.addEventListener('submit', async e => {
     const btn     = profileForm.querySelector('[type=submit]');
     const origTxt = btn.innerHTML;
     btn.disabled  = true;
-    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saqlanmoqda...';
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + T.saving;
 
     try {
         const res  = await fetch(window.SETTINGS_URL, {
@@ -82,18 +82,18 @@ profileForm?.addEventListener('submit', async e => {
         const data = await res.json();
 
         if (data.status === 'success') {
-            showFeedback('profileFeedback', data.message || 'Profil yangilandi!', 'success');
-            showToast('✅ Profil yangilandi!');
+            showFeedback('profileFeedback', data.message || T.profile_updated, 'success');
+            showToast(T.profile_updated);
 
             // Header / avatar yangilash
             if (data.username) {
                 updateProfileDisplay(data.username);
             }
         } else {
-            showFeedback('profileFeedback', data.errors || data.message || 'Xatolik yuz berdi', 'error');
+            showFeedback('profileFeedback', data.errors || data.message || T.error, 'error');
         }
     } catch {
-        showFeedback('profileFeedback', 'Server bilan bog\'lanishda xatolik', 'error');
+        showFeedback('profileFeedback', T.server_error, 'error');
     } finally {
         btn.disabled  = false;
         btn.innerHTML = origTxt;
@@ -141,11 +141,11 @@ function calcStrength(pass) {
 
 const STRENGTH_MAP = [
     { label: '',           color: '',          width: '0%'   },
-    { label: 'Juda zaif',  color: '#ef4444',   width: '20%'  },
-    { label: 'Zaif',       color: '#f97316',   width: '40%'  },
+    { label: T.strength_very_weak,  color: '#ef4444',   width: '20%'  },
+    { label: T.strength_weak,       color: '#f97316',   width: '40%'  },
     { label: "O'rtacha",   color: '#eab308',   width: '60%'  },
-    { label: 'Kuchli',     color: '#22c55e',   width: '80%'  },
-    { label: 'Juda kuchli',color: '#16a34a',   width: '100%' },
+    { label: T.strength_strong,     color: '#22c55e',   width: '80%'  },
+    { label: T.strength_very_strong,color: '#16a34a',   width: '100%' },
 ];
 
 newPassInput?.addEventListener('input', () => {
@@ -182,10 +182,10 @@ function checkMatch() {
     matchHint.classList.remove('d-none');
 
     if (newVal === confVal) {
-        matchHint.textContent = '✓ Parollar mos keldi';
+        matchHint.textContent = T.passwords_match;
         matchHint.style.color = '#22c55e';
     } else {
-        matchHint.textContent = '✗ Parollar mos emas';
+        matchHint.textContent = T.passwords_no_match;
         matchHint.style.color = '#ef4444';
     }
 }
@@ -220,11 +220,11 @@ passwordForm?.addEventListener('submit', async e => {
 
     // Client-side tekshirish
     if (newVal !== confVal) {
-        showFeedback('passwordFeedback', 'Yangi parollar mos emas!', 'error');
+        showFeedback('passwordFeedback', T.passwords_mismatch, 'error');
         return;
     }
     if (newVal.length < 6) {
-        showFeedback('passwordFeedback', 'Parol kamida 6 ta belgi bo\'lishi kerak!', 'error');
+        showFeedback('passwordFeedback', T.password_min_length, 'error');
         return;
     }
 
@@ -242,7 +242,7 @@ passwordForm?.addEventListener('submit', async e => {
         const data = await res.json();
 
         if (data.status === 'success') {
-            showFeedback('passwordFeedback', data.message || 'Parol muvaffaqiyatli o\'zgartirildi!', 'success');
+            showFeedback('passwordFeedback', data.message || T.password_changed, 'success');
             showToast('🔒 Parol o\'zgartirildi!');
             passwordForm.reset();
 
@@ -253,10 +253,10 @@ passwordForm?.addEventListener('submit', async e => {
 
             passSubmitBtn.disabled = true;
         } else {
-            showFeedback('passwordFeedback', data.errors || data.message || 'Xatolik yuz berdi', 'error');
+            showFeedback('passwordFeedback', data.errors || data.message || T.error, 'error');
         }
     } catch {
-        showFeedback('passwordFeedback', 'Server bilan bog\'lanishda xatolik', 'error');
+        showFeedback('passwordFeedback', T.server_error, 'error');
     } finally {
         btn.disabled  = false;
         btn.innerHTML = origTxt;

@@ -29,7 +29,7 @@
             <div class="brand-mark">S</div>
             <div>
                 <div class="brand-name">SAVDO</div>
-                <div class="brand-sub">Boshqaruv Tizimi</div>
+                <div class="brand-sub">{% trans 'Boshqaruv Tizimi' %}</div>
             </div>
         </div>
         <div class="lh-right">
@@ -56,62 +56,74 @@
     <div class="quick-row">
         <button class="quick-btn client-quick" id="openClientModal">
             <div class="qb-icon"><i class="fa fa-user-plus"></i></div>
-            <div class="qb-text"><span class="qb-label">Yangi</span><span class="qb-name">Mijoz</span></div>
+            <div class="qb-text"><span class="qb-label">{% trans 'Yangi' %}</span><span class="qb-name">{% trans 'Mijoz' %}</span></div>
+            <i class="fa fa-plus qb-plus"></i>
+        </button>
+        <button class="quick-btn expense-quick" id="openExpenseQuick">
+            <div class="qb-icon"><i class="fa fa-wallet"></i></div>
+            <div class="qb-text"><span class="qb-label">Xarajat</span><span class="qb-name">Qo'shish</span></div>
             <i class="fa fa-plus qb-plus"></i>
         </button>
     </div>
 
     <!-- MENU GRID -->
     <div class="menu-section">
-        <div class="ms-label">ASOSIY MENYU</div>
+        <div class="ms-label">{% trans 'ASOSIY MENYU' %}</div>
         <div class="menu-grid">
             {% if request.user.is_admin %}
             <a href="{% url 'dashboard:dashboard' %}" class="menu-tile">
                 <div class="tile-icon dashboard-icon"><i class="fa fa-chart-line"></i></div>
-                <div><div class="tile-label">Dashboard</div><div class="tile-sub">Statistika</div></div>
+                <div><div class="tile-label">{% trans 'Dashboard' %}</div><div class="tile-sub">{% trans 'Statistika' %}</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
             {% endif %}
             <a href="{% url 'clients:client_list' %}" class="menu-tile">
                 <div class="tile-icon clients-icon"><i class="fa fa-users"></i></div>
-                <div><div class="tile-label">Mijozlar</div><div class="tile-sub">Sotuv & To'lov</div></div>
+                <div><div class="tile-label">{% trans 'Mijozlar' %}</div><div class="tile-sub">Sotuv & To'lov</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
             <a href="{% url 'catalog:product_list' %}" class="menu-tile">
                 <div class="tile-icon products-icon"><i class="fa fa-boxes"></i></div>
-                <div><div class="tile-label">Mahsulotlar</div><div class="tile-sub">Inventar & Batch</div></div>
+                <div><div class="tile-label">{% trans 'Mahsulotlar' %}</div><div class="tile-sub">{% trans 'Inventar & Batch' %}</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
             <a href="{% url 'company:list' %}" class="menu-tile">
                 <div class="tile-icon company-icon-t"><i class="fa fa-building"></i></div>
-                <div><div class="tile-label">Kompaniyalar</div><div class="tile-sub">Ta'minotchi & Filial</div></div>
+                <div><div class="tile-label">{% trans 'Kompaniyalar' %}</div><div class="tile-sub">{% trans "Ta'minotchi & Filial" %}</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
+            <a href="{% url 'expenses:page' %}" class="menu-tile">
+                <div class="tile-icon" style="background:var(--amber-d);color:var(--amber)">
+                    <i class="fa fa-wallet"></i>
+                </div>
+                <div><div class="tile-label">Chiqimlar</div><div class="tile-sub">Shaxsiy xarajat</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>            
             {% if request.user.is_admin %}
             <a href="{% url 'dashboard:history-sales' %}" class="menu-tile">
                 <div class="tile-icon history-icon"><i class="fa fa-history"></i></div>
-                <div><div class="tile-label">Tarix</div><div class="tile-sub">Sotuv & Ombor</div></div>
+                <div><div class="tile-label">{% trans 'Tarix' %}</div><div class="tile-sub">{% trans 'Sotuv & Ombor' %}</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
             <a href="{% url 'accounts:staff-list' %}" class="menu-tile">
                 <div class="tile-icon staff-icon"><i class="fa fa-user-shield"></i></div>
-                <div><div class="tile-label">Xodimlar</div><div class="tile-sub">Rollar & Ruxsat</div></div>
+                <div><div class="tile-label">{% trans 'Xodimlar' %}</div><div class="tile-sub">{% trans 'Rollar & Ruxsat' %}</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
             <a href="{% url 'accounts:directory' %}" class="menu-tile">
                 <div class="tile-icon" style="background:var(--blue-d);color:var(--blue)"><i class="fa fa-map-marker-alt"></i></div>
-                <div><div class="tile-label">Viloyatlar</div><div class="tile-sub">Hudud katalogi</div></div>
+                <div><div class="tile-label">{% trans 'Viloyatlar' %}</div><div class="tile-sub">{% trans 'Hudud katalogi' %}</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
             {% endif %}
             <a href="{% url 'accounts:settings' %}" class="menu-tile">
                 <div class="tile-icon settings-icon"><i class="fa fa-cog"></i></div>
-                <div><div class="tile-label">Sozlamalar</div><div class="tile-sub">Profil</div></div>
+                <div><div class="tile-label">{% trans 'Sozlamalar' %}</div><div class="tile-sub">{% trans 'Profil' %}</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
             <a href="{% url 'accounts:logout' %}" class="menu-tile">
                 <div class="tile-icon" style="background:var(--red-d);color:var(--red)"><i class="fa fa-sign-out-alt"></i></div>
-                <div><div class="tile-label">Chiqish</div><div class="tile-sub">Tizimdan</div></div>
+                <div><div class="tile-label">{% trans 'Chiqish' %}</div><div class="tile-sub">{% trans 'Tizimdan' %}</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
         </div>
@@ -139,7 +151,7 @@
             </div>
             <div class="form-row">
                 <div class="form-group">
-                    <label class="form-label">Viloyat</label>
+                    <label class="form-label">{% trans 'Viloyat' %}</label>
                     <select class="form-control" id="clientRegion">
                         <option value="">— tanlang —</option>
                         {% for region in regions %}
@@ -148,31 +160,64 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Manzil</label>
+                    <label class="form-label">{% trans 'Manzil' %}</label>
                     <input type="text" class="form-control" id="clientAddress" placeholder="Ko'cha...">
                 </div>
             </div>
             <div id="clientMsg" class="form-msg d-none"></div>
         </div>
         <div class="sheet-actions">
-            <button class="btn btn-secondary" data-close="clientModal">Bekor</button>
-            <button class="btn btn-primary" id="clientSubmit"><i class="fa fa-check"></i> Saqlash</button>
+            <button class="btn btn-secondary" data-close="clientModal">{% trans 'Bekor' %}</button>
+            <button class="btn btn-primary" id="clientSubmit"><i class="fa fa-check"></i> {% trans 'Saqlash' %}</button>
         </div>
     </div>
 </div>
 
+<!-- MODAL: Yangi Xarajat -->
+<div class="modal-veil d-none" id="expenseModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">YANGI XARAJAT</div>
+            <button class="sheet-close" data-close="expenseModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <div class="form-group">
+                <label class="form-label">Tavsif *</label>
+                <input type="text" class="form-control" id="expDesc" placeholder="Nima uchun? (Taxi, Ovqat...)">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Miqdor (so'm) *</label>
+                    <input type="number" class="form-control" id="expAmt" placeholder="25 000" min="1" inputmode="numeric">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Kategoriya</label>
+                    <input type="text" class="form-control" id="expCat" placeholder="Transport, Ovqat...">
+                </div>
+            </div>
+            <div id="expMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="expenseModal">Bekor</button>
+            <button class="btn btn-primary" id="expSubmit"><i class="fa fa-check"></i> Saqlash</button>
+        </div>
+    </div>
+</div>
+{% include "partials/i18n_js.html" %}
+
 <script>
 const CSRF = "{{ csrf_token }}";
 const CLIENT_URL  = "{% url 'clients:client_create' %}";
-
+ 
 /* Modal */
 document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => closeModal(b.dataset.close)));
 document.querySelectorAll('.modal-veil').forEach(v => v.addEventListener('click', e => { if(e.target===v) closeModal(v.id); }));
 document.getElementById('openClientModal').addEventListener('click', () => openModal('clientModal'));
-
+ 
 function openModal(id) { document.getElementById(id).classList.remove('d-none'); }
 function closeModal(id) { document.getElementById(id).classList.add('d-none'); }
-
+ 
 /* Toast */
 function toast(msg, type='info') {
     const t = document.getElementById('toast');
@@ -181,7 +226,7 @@ function toast(msg, type='info') {
     clearTimeout(t._t);
     t._t = setTimeout(() => t.classList.remove('show'), 3200);
 }
-
+ 
 /* Client */
 document.getElementById('clientSubmit').addEventListener('click', async () => {
     const btn = document.getElementById('clientSubmit');
@@ -203,11 +248,61 @@ document.getElementById('clientSubmit').addEventListener('click', async () => {
     } catch { showMsg(msg,'Tarmoq xatosi','error'); }
     btn.disabled=false; btn.innerHTML='<i class="fa fa-check"></i> Saqlash';
 });
-
+ 
 function showMsg(el,text,type) {
     el.textContent=text; el.className='form-msg '+type; el.classList.remove('d-none');
     setTimeout(()=>el.classList.add('d-none'),4000);
 }
+ 
+/* Expense quick-add */
+const EXPENSE_URL = "{% url 'expenses:create' %}";
+ 
+document.getElementById('openExpenseQuick').addEventListener('click', () => {
+    document.getElementById('expDesc').value = '';
+    document.getElementById('expAmt').value  = '';
+    document.getElementById('expCat').value  = '';
+    openModal('expenseModal');
+});
+ 
+document.getElementById('expSubmit').addEventListener('click', async () => {
+    const btn  = document.getElementById('expSubmit');
+    const msg  = document.getElementById('expMsg');
+    const desc = document.getElementById('expDesc').value.trim();
+    const amt  = document.getElementById('expAmt').value;
+    const cat  = document.getElementById('expCat').value.trim();
+ 
+    if (!desc)           { showMsg(msg, 'Tavsif kiritilmadi!', 'error'); return; }
+    if (!amt || +amt<=0) { showMsg(msg, 'Miqdor kiritilmadi!', 'error'); return; }
+ 
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+ 
+    try {
+        const res = await fetch(EXPENSE_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({
+                description: desc,
+                amount: +amt,
+                category: cat,
+                date: new Date().toISOString().slice(0, 10),
+            }),
+        });
+        const d = await res.json();
+        if (d.status === 'created') {
+            toast("Xarajat qo'shildi: " + desc, 'success');
+            closeModal('expenseModal');
+        } else {
+            showMsg(msg, d.message || 'Xato!', 'error');
+        }
+    } catch {
+        showMsg(msg, 'Tarmoq xatosi', 'error');
+    }
+ 
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fa fa-check"></i> Saqlash';
+});
 </script>
+
 </body>
 </html>

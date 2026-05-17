@@ -583,3 +583,210 @@ msgstr "Telefon *"
 
 msgid "Rasmni tanlash uchun bosing"
 msgstr "Rasmni tanlash uchun bosing"
+
+msgid "Yuklanmoqda..."
+msgstr "Yuklanmoqda..."
+
+msgid "Saqlanmoqda..."
+msgstr "Saqlanmoqda..."
+
+msgid "Xatolik yuz berdi"
+msgstr "Xatolik yuz berdi"
+
+msgid "Server bilan bog'lanishda xatolik"
+msgstr "Server bilan bog'lanishda xatolik"
+
+msgid "Topilmadi"
+msgstr "Topilmadi"
+
+msgid "Muvaffaqiyatli"
+msgstr "Muvaffaqiyatli"
+
+msgid "Majburiy maydon"
+msgstr "Majburiy maydon"
+
+msgid "Savatchaga qo'shildi"
+msgstr "Savatchaga qo'shildi"
+
+msgid "Savatcha tozalandi"
+msgstr "Savatcha tozalandi"
+
+msgid "Savatcha bo'sh! Avval mahsulot qo'shing."
+msgstr "Savatcha bo'sh! Avval mahsulot qo'shing."
+
+msgid "Sotuvni tasdiqlang"
+msgstr "Sotuvni tasdiqlang"
+
+msgid "Savatchadagi mahsulotlarni sotib yubormoqchimisiz?"
+msgstr "Savatchadagi mahsulotlarni sotib yubormoqchimisiz?"
+
+msgid "Tez sotish"
+msgstr "Tez sotish"
+
+msgid "ta mahsulotni darhol sotib yubormoqchimisiz?"
+msgstr "ta mahsulotni darhol sotib yubormoqchimisiz?"
+
+msgid "Sotuv muvaffaqiyatli amalga oshirildi!"
+msgstr "Sotuv muvaffaqiyatli amalga oshirildi!"
+
+msgid "To'lov muvaffaqiyatli qabul qilindi!"
+msgstr "To'lov muvaffaqiyatli qabul qilindi!"
+
+msgid "Qaytarish muvaffaqiyatli amalga oshirildi!"
+msgstr "Qaytarish muvaffaqiyatli amalga oshirildi!"
+
+msgid "so'm qaytarishni tasdiqlaysizmi?"
+msgstr "so'm qaytarishni tasdiqlaysizmi?"
+
+msgid "BUTUN sotuvni qaytarishni tasdiqlaysizmi?"
+msgstr "BUTUN sotuvni qaytarishni tasdiqlaysizmi?"
+
+msgid "Tanlangan mahsulotlarni qaytarishni tasdiqlaysizmi?"
+msgstr "Tanlangan mahsulotlarni qaytarishni tasdiqlaysizmi?"
+
+msgid "Server bilan aloqa uzildi"
+msgstr "Server bilan aloqa uzildi"
+
+msgid "Chek muvaffaqiyatli chiqarildi!"
+msgstr "Chek muvaffaqiyatli chiqarildi!"
+
+msgid "Chek yuklanmoqda..."
+msgstr "Chek yuklanmoqda..."
+
+msgid "Chek yuklanmadi"
+msgstr "Chek yuklanmadi"
+
+msgid "Printer qidirilmoqda..."
+msgstr "Printer qidirilmoqda..."
+
+msgid "Brauzeringiz Web Bluetooth API ni qo'llab-quvvatlamaydi (Chrome/Edge kerak)"
+msgstr "Brauzeringiz Web Bluetooth API ni qo'llab-quvvatlamaydi (Chrome/Edge kerak)"
+
+msgid "Profil yangilandi!"
+msgstr "Profil yangilandi!"
+
+msgid "Parol muvaffaqiyatli o'zgartirildi!"
+msgstr "Parol muvaffaqiyatli o'zgartirildi!"
+
+msgid "Yangi parollar mos emas!"
+msgstr "Yangi parollar mos emas!"
+
+msgid "✓ Parollar mos keldi"
+msgstr "✓ Parollar mos keldi"
+
+msgid "✗ Parollar mos emas"
+msgstr "✗ Parollar mos emas"
+
+msgid "Parol kamida 6 ta belgi bo'lishi kerak!"
+msgstr "Parol kamida 6 ta belgi bo'lishi kerak!"
+
+msgid "Parol o'zgartirilmoqda..."
+msgstr "Parol o'zgartirilmoqda..."
+
+msgid "Juda zaif"
+msgstr "Juda zaif"
+
+msgid "Zaif"
+msgstr "Zaif"
+
+msgid "Kuchli"
+msgstr "Kuchli"
+
+msgid "Juda kuchli"
+msgstr "Juda kuchli"
+
+msgid "Ishdan haydash"
+msgstr "Ishdan haydash"
+
+msgid "ni ishdan haydashni tasdiqlaysizmi?"
+msgstr "ni ishdan haydashni tasdiqlaysizmi?"
+
+msgid "Haydash"
+msgstr "Haydash"
+
+msgid "Qayta yollash"
+msgstr "Qayta yollash"
+
+msgid "Yollash"
+msgstr "Yollash"
+
+msgid "Bugun qo'shildi"
+msgstr "Bugun qo'shildi"
+
+msgid "Kategoriya qo'shish"
+msgstr "Kategoriya qo'shish"
+
+msgid "Kategoriyani tahrirlash"
+msgstr "Kategoriyani tahrirlash"
+
+msgid "Kategoriya yangilandi!"
+msgstr "Kategoriya yangilandi!"
+
+msgid "Viloyat qo'shish"
+msgstr "Viloyat qo'shish"
+
+msgid "Viloyatni tahrirlash"
+msgstr "Viloyatni tahrirlash"
+
+msgid "Viloyat yangilandi!"
+msgstr "Viloyat yangilandi!"
+
+msgid "Mening joylashuvim"
+msgstr "Mening joylashuvim"
+
+msgid "Qidirish"
+msgstr "Qidirish"
+
+msgid "Manzil topilmadi"
+msgstr "Manzil topilmadi"
+
+msgid "O'chirish"
+msgstr "O'chirish"
+
+msgid "Bugun"
+msgstr "Bugun"
+
+msgid "Ta'minotchi & Filial"
+msgstr "Ta'minotchi & Filial"
+
+msgid "NAQD"
+msgstr "NAQD"
+
+msgid "Mijozlar yo'q"
+msgstr "Mijozlar yo'q"
+
+msgid "Ko'rish"
+msgstr "Ko'rish"
+
+msgid "Faol xodimlar yo'q"
+msgstr "Faol xodimlar yo'q"
+
+msgid "TA'MINOTCHILAR"
+msgstr "TA'MINOTCHILAR"
+
+msgid "To'lash"
+msgstr "To'lash"
+
+msgid "O'tkazma"
+msgstr "O'tkazma"
+
+msgid "Ro'yxat"
+msgstr "Ro'yxat"
+
+msgid "Mahsulotlar yo'q"
+msgstr "Mahsulotlar yo'q"
+
+msgid "Mahsulotlar ro'yxati"
+msgstr "Mahsulotlar ro'yxati"
+
+msgid "TIL"
+msgstr "TIL"
+
+msgid "Ismi"
+msgstr "Ismi"
+
+msgid "Qo'shish"
+msgstr "Qo'shish"
+
+msgid "Nomi"
+msgstr "Nomi"

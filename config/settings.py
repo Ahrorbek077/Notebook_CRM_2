@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'notebook.payments',
     'notebook.activity',
     'notebook.dashboard',
+    'notebook.expenses',
     # ── Third-party ──────────────────────────────────────────────────────────
     'django_celery_beat',
     'django_celery_results',
@@ -88,6 +89,7 @@ TEMPLATES = [{
         'django.template.context_processors.request',
         'django.contrib.auth.context_processors.auth',
         'django.contrib.messages.context_processors.messages',
+        'django.template.context_processors.i18n',
     ]},
 }]
 

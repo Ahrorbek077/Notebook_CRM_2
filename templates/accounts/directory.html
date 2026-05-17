@@ -1,4 +1,5 @@
-{% load static %}
+{% load i18n %}
+{% load static i18n %}
 <!DOCTYPE html>
 <html lang="uz">
 <head>
@@ -182,7 +183,7 @@
             <div class="modal-body">
                 <div class="field-wrap">
                     <label class="field-label">
-                        Nomi <span class="req">*</span>
+                        {% trans 'Nomi' %} <span class="req">*</span>
                     </label>
                     <input type="text" name="name" id="catName"
                            class="field-in" placeholder="Masalan: Ichimliklar"
@@ -192,11 +193,11 @@
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn-ghost" data-close="catModal">
-                    Bekor
+                    {% trans 'Bekor' %}
                 </button>
                 <button type="submit" class="btn-solid cat-solid" id="catSubmit">
                     <i class="fa fa-check"></i>
-                    <span>Saqlash</span>
+                    <span>{% trans 'Saqlash' %}</span>
                 </button>
             </div>
         </form>
@@ -222,7 +223,7 @@
             <div class="modal-body">
                 <div class="field-wrap">
                     <label class="field-label">
-                        Nomi <span class="req">*</span>
+                        {% trans 'Nomi' %} <span class="req">*</span>
                     </label>
                     <input type="text" name="name" id="regName"
                            class="field-in" placeholder="Masalan: Toshkent viloyati"
@@ -240,11 +241,11 @@
             </div>
             <div class="modal-foot">
                 <button type="button" class="btn-ghost" data-close="regModal">
-                    Bekor
+                    {% trans 'Bekor' %}
                 </button>
                 <button type="submit" class="btn-solid reg-solid" id="regSubmit">
                     <i class="fa fa-check"></i>
-                    <span>Saqlash</span>
+                    <span>{% trans 'Saqlash' %}</span>
                 </button>
             </div>
         </form>
@@ -269,10 +270,10 @@
         </div>
         <div class="modal-foot">
             <button type="button" class="btn-ghost" data-close="confirmModal">
-                Bekor
+                {% trans 'Bekor' %}
             </button>
             <button type="button" class="btn-danger" id="confirmOk">
-                <i class="fa fa-trash"></i> O'chirish
+                <i class="fa fa-trash"></i> {% trans "O'chirish" %}
             </button>
         </div>
     </div>
@@ -280,6 +281,8 @@
 
 <!-- TOAST -->
 <div class="toast-el" id="toast"></div>
+
+{% include "partials/i18n_js.html" %}
 
 <script>
 window.DIR_URLS = {

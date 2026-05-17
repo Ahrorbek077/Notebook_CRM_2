@@ -413,11 +413,11 @@ const ReceiptManager = (() => {
   // ── Web Bluetooth ESC/POS ─────────────────────────────────────────────────
   async function doBluetooth(saleId) {
     if (!navigator.bluetooth) {
-      showToast("Brauzeringiz Web Bluetooth API ni qo'llab-quvvatlamaydi (Chrome/Edge kerak)", 'warning');
+      showToast(T.bluetooth_unsupported, 'warning');
       return;
     }
     try {
-      showToast('Printer qidirilmoqda...', 'info');
+      showToast(T.printer_searching, 'info');
 
       // ESC/POS printerlari uchun GATT service UUID
       const PRINTER_SERVICE  = '000018f0-0000-1000-8000-00805f9b34fb';
@@ -452,7 +452,7 @@ const ReceiptManager = (() => {
       }
 
       await server.disconnect();
-      showToast('Chek muvaffaqiyatli chiqarildi! 🖨️', 'success');
+      showToast(T.receipt_printed, 'success');
 
     } catch (err) {
       if (err.name === 'NotFoundError' || err.name === 'AbortError') {
@@ -503,7 +503,7 @@ const ReceiptManager = (() => {
     // Modalni ochadi (barcha variant tugmalari bilan)
     async print(saleId) {
       try {
-        showToast('Chek yuklanmoqda...', 'info');
+        showToast(T.receipt_loading, 'info');
         const receipt = await fetchReceipt(saleId);
         showModal(receipt);
       } catch (err) {

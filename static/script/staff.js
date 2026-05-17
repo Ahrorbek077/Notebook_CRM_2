@@ -133,7 +133,7 @@ document.getElementById('addStaffForm')?.addEventListener('submit', async e => {
     const btn     = form.querySelector('[type=submit]');
     const origTxt = btn.innerHTML;
     btn.disabled  = true;
-    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saqlanmoqda...';
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + T.saving;
 
     try {
         const res  = await fetch(window.STAFF_URLS.create, {
@@ -145,15 +145,15 @@ document.getElementById('addStaffForm')?.addEventListener('submit', async e => {
 
         if (data.status === 'created') {
             closeModal('addModal');
-            showToast(`✅ ${data.username} qo'shildi!`);
+            showToast(`✅ ${data.username} ` + T.success);
             appendActiveCard(data);
             updateStats();
             form.reset();
         } else {
-            showFormError('addError', data.errors || data.message || 'Xatolik yuz berdi');
+            showFormError('addError', data.errors || data.message || T.error);
         }
     } catch {
-        showFormError('addError', 'Server bilan bog\'lanishda xatolik');
+        showFormError('addError', T.server_error);
     } finally {
         btn.disabled  = false;
         btn.innerHTML = origTxt;
@@ -188,7 +188,7 @@ function appendActiveCard(data) {
                 ${data.phone ? `<span class="sc-phone"><i class="fa fa-phone"></i> ${data.phone}</span>` : ''}
             </div>
             <div class="sc-date">
-                <i class="fa fa-calendar"></i> Bugun qo'shildi
+                <i class="fa fa-calendar"></i> ' + T.added_today + '
             </div>
         </div>
         <div class="sc-actions">
@@ -203,7 +203,7 @@ function appendActiveCard(data) {
             <button class="sca-btn fire"
                     data-id="${data.id}"
                     data-username="${data.username}"
-                    title="Ishdan haydash">
+                    title=T.fire>
                 <i class="fa fa-user-slash"></i>
             </button>
         </div>
@@ -239,7 +239,7 @@ document.getElementById('editStaffForm')?.addEventListener('submit', async e => 
     const btn     = form.querySelector('[type=submit]');
     const origTxt = btn.innerHTML;
     btn.disabled  = true;
-    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Saqlanmoqda...';
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> ' + T.saving;
 
     const url = buildUrl(window.STAFF_URLS.edit, userId);
 
@@ -256,10 +256,10 @@ document.getElementById('editStaffForm')?.addEventListener('submit', async e => 
             showToast(`✏️ ${data.username} tahrirlandi`);
             updateCardUI(userId, data);
         } else {
-            showFormError('editError', data.errors || data.message || 'Xatolik');
+            showFormError('editError', data.errors || data.message || T.error);
         }
     } catch {
-        showFormError('editError', 'Server bilan bog\'lanishda xatolik');
+        showFormError('editError', T.server_error);
     } finally {
         btn.disabled  = false;
         btn.innerHTML = origTxt;
@@ -337,11 +337,11 @@ document.addEventListener('click', e => {
     const { id, username } = fireBtn.dataset;
     pendingAction = { userId: id, action: 'fire', username };
 
-    document.getElementById('confirmTitle').textContent = 'Ishdan haydash';
+    document.getElementById('confirmTitle').textContent = T.fire;
     document.getElementById('confirmText').textContent  =
-        `"${username}" ni ishdan haydashni tasdiqlaysizmi?`;
+        `"${username}" T.fire_confirm}`;
     document.getElementById('confirmOk').className = 'btn-danger';
-    document.getElementById('confirmOk').textContent = 'Haydash';
+    document.getElementById('confirmOk').textContent = T.fire_btn;
 
     openModal('confirmModal');
 });
@@ -354,11 +354,11 @@ document.addEventListener('click', e => {
     const { id, username } = restoreBtn.dataset;
     pendingAction = { userId: id, action: 'restore', username };
 
-    document.getElementById('confirmTitle').textContent = 'Qayta yollash';
+    document.getElementById('confirmTitle').textContent = T.rehire;
     document.getElementById('confirmText').textContent  =
-        `"${username}" ni qayta yollashni tasdiqlaysizmi?`;
+        `"${username}" T.rehire + '}`;
     document.getElementById('confirmOk').className = 'btn-submit';
-    document.getElementById('confirmOk').textContent = 'Yollash';
+    document.getElementById('confirmOk').textContent = T.rehire_btn;
 
     openModal('confirmModal');
 });
@@ -394,10 +394,10 @@ document.getElementById('confirmOk')?.addEventListener('click', async () => {
             }
             updateStats();
         } else {
-            showToast(data.message || 'Xatolik yuz berdi', 'error');
+            showToast(data.message || T.error, 'error');
         }
     } catch {
-        showToast('Server bilan bog\'lanishda xatolik', 'error');
+        showToast(T.server_error, 'error');
     }
 });
 
@@ -450,7 +450,7 @@ function moveToFired(userId, username) {
             <button class="sca-btn restore"
                     data-id="${userId}"
                     data-username="${username}"
-                    title="Qayta yollash">
+                    title="'+T.rehire+'">
                 <i class="fa fa-rotate-left"></i>
             </button>
         </div>
@@ -510,7 +510,7 @@ function moveToActive(userId, username) {
             <button class="sca-btn fire"
                     data-id="${userId}"
                     data-username="${username}"
-                    title="Ishdan haydash">
+                    title=T.fire>
                 <i class="fa fa-user-slash"></i>
             </button>
         </div>

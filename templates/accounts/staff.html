@@ -1,4 +1,5 @@
-{% load static %}
+{% load i18n %}
+{% load static i18n %}
 <!DOCTYPE html>
 <html lang="uz">
 <head>
@@ -21,12 +22,12 @@
             <i class="fa fa-arrow-left"></i>
         </button>
         <div class="header-center">
-            <div class="header-eyebrow">SUPER ADMIN PANEL</div>
-            <h1 class="header-title">Xodimlar</h1>
+            <div class="header-eyebrow">{% trans 'SUPER ADMIN PANEL' %}</div>
+            <h1 class="header-title">{% trans 'Xodimlar' %}</h1>
         </div>
         <button class="add-btn" id="openAddStaff">
             <i class="fa fa-plus"></i>
-            <span>Qo'shish</span>
+            <span>{% trans "Qo'shish" %}</span>
         </button>
     </header>
 
@@ -34,17 +35,17 @@
     <div class="staff-stats">
         <div class="ss-item">
             <span class="ss-num active-count">{{ active_users|length }}</span>
-            <span class="ss-label">Faol</span>
+            <span class="ss-label">{% trans 'Faol' %}</span>
         </div>
         <div class="ss-div"></div>
         <div class="ss-item">
             <span class="ss-num fired-count">{{ fired_users|length }}</span>
-            <span class="ss-label">Haydalgan</span>
+            <span class="ss-label">{% trans 'Haydalgan' %}</span>
         </div>
         <div class="ss-div"></div>
         <div class="ss-item">
             <span class="ss-num total-count">{{ active_users|length|add:fired_users|length }}</span>
-            <span class="ss-label">Jami</span>
+            <span class="ss-label">{% trans 'Jami' %}</span>
         </div>
     </div>
 
@@ -112,7 +113,7 @@
             {% empty %}
             <div class="empty-state">
                 <div class="es-icon"><i class="fa fa-users"></i></div>
-                <p>Faol xodimlar yo'q</p>
+                <p>{% trans "Faol xodimlar yo'q" %}</p>
             </div>
             {% endfor %}
         </div>
@@ -134,7 +135,7 @@
                 <div class="sc-info">
                     <div class="sc-name fired-name">{{ user.username }}</div>
                     <div class="sc-meta">
-                        <span class="role-badge fired">Haydalgan</span>
+                        <span class="role-badge fired">{% trans 'Haydalgan' %}</span>
                         {% if user.fired_at %}
                         <span class="fired-date">
                             <i class="fa fa-calendar-xmark"></i>
@@ -191,19 +192,19 @@
                            placeholder="sardor_admin" required autocomplete="off">
                 </div>
                 <div class="field-group">
-                    <label>Telefon</label>
+                    <label>{% trans 'Telefon' %}</label>
                     <input type="text" name="phone" class="field-input" 
                            placeholder="+998 90 123 45 67">
                 </div>
                 <div class="field-group">
-                    <label>Lavozim <span class="req">*</span></label>
+                    <label>{% trans 'Lavozim' %} <span class="req">*</span></label>
                     <select name="role" class="field-select">
-                        <option value="staff">Xodim</option>
+                        <option value="staff">{% trans 'Xodim' %}</option>
                         <option value="admin">Admin</option>
                     </select>
                 </div>
                 <div class="field-group">
-                    <label>Parol <span class="req">*</span></label>
+                    <label>{% trans 'Parol' %} <span class="req">*</span></label>
                     <div class="pass-wrap">
                         <input type="password" name="password" id="addPassword"
                                class="field-input" placeholder="Kamida 6 ta belgi" required>
@@ -215,7 +216,7 @@
                 <div class="form-error d-none" id="addError"></div>
             </div>
             <div class="modal-foot">
-                <button type="button" class="btn-cancel" data-close="addModal">Bekor</button>
+                <button type="button" class="btn-cancel" data-close="addModal">{% trans 'Bekor' %}</button>
                 <button type="submit" class="btn-submit">
                     <i class="fa fa-check"></i> Yaratish
                 </button>
@@ -229,7 +230,7 @@
     <div class="modal-box">
         <div class="modal-head">
             <div class="modal-title">
-                <i class="fa fa-pen"></i> Tahrirlash
+                <i class="fa fa-pen"></i> {% trans 'Tahrirlash' %}
             </div>
             <button class="modal-close" data-close="editModal">
                 <i class="fa fa-times"></i>
@@ -245,22 +246,22 @@
                            class="field-input" required>
                 </div>
                 <div class="field-group">
-                    <label>Telefon</label>
+                    <label>{% trans 'Telefon' %}</label>
                     <input type="text" name="phone" id="editPhone" class="field-input">
                 </div>
                 <div class="field-group">
-                    <label>Lavozim</label>
+                    <label>{% trans 'Lavozim' %}</label>
                     <select name="role" id="editRole" class="field-select">
-                        <option value="staff">Xodim</option>
+                        <option value="staff">{% trans 'Xodim' %}</option>
                         <option value="admin">Admin</option>
                     </select>
                 </div>
                 <div class="form-error d-none" id="editError"></div>
             </div>
             <div class="modal-foot">
-                <button type="button" class="btn-cancel" data-close="editModal">Bekor</button>
+                <button type="button" class="btn-cancel" data-close="editModal">{% trans 'Bekor' %}</button>
                 <button type="submit" class="btn-submit">
-                    <i class="fa fa-check"></i> Saqlash
+                    <i class="fa fa-check"></i> {% trans 'Saqlash' %}
                 </button>
             </div>
         </form>
@@ -271,7 +272,7 @@
 <div class="modal-overlay d-none" id="confirmModal">
     <div class="modal-box modal-sm">
         <div class="modal-head">
-            <div class="modal-title danger" id="confirmTitle">Tasdiqlash</div>
+            <div class="modal-title danger" id="confirmTitle">{% trans 'Tasdiqlash' %}</div>
             <button class="modal-close" data-close="confirmModal">
                 <i class="fa fa-times"></i>
             </button>
@@ -280,14 +281,15 @@
             <p class="confirm-text" id="confirmText"></p>
         </div>
         <div class="modal-foot">
-            <button type="button" class="btn-cancel" data-close="confirmModal">Bekor</button>
-            <button type="button" class="btn-danger" id="confirmOk">Tasdiqlash</button>
+            <button type="button" class="btn-cancel" data-close="confirmModal">{% trans 'Bekor' %}</button>
+            <button type="button" class="btn-danger" id="confirmOk">{% trans 'Tasdiqlash' %}</button>
         </div>
     </div>
 </div>
 
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
+{% include "partials/i18n_js.html" %}
 
 <script>
 window.STAFF_URLS = {

@@ -1,4 +1,5 @@
-{% load static %}
+{% load i18n %}
+{% load static i18n %}
 <!DOCTYPE html>
 <html lang="uz">
 <head>
@@ -17,7 +18,7 @@
         <button onclick="history.back()" class="back-btn"><i class="fa fa-arrow-left"></i></button>
         <div class="header-center">
             <span class="header-super">AUDIT LOG</span>
-            <h1 class="header-title">Tarix</h1>
+            <h1 class="header-title">{% trans 'Tarix' %}</h1>
         </div>
         <div class="header-count" style="display:flex;flex-direction:column;align-items:flex-end;flex-shrink:0">
             <span id="totalNum" style="font-family:var(--mono);font-size:1.2rem;font-weight:700;color:var(--t)">—</span>
@@ -46,8 +47,8 @@
 
     <!-- TYPE CHIPS -->
     <div class="chips-row" id="typeChips">
-        <button class="chip active" data-type=""><i class="fa fa-border-all"></i> Barchasi</button>
-        <button class="chip" data-type="sale"><i class="fa fa-shopping-cart"></i> Sotuv</button>
+        <button class="chip active" data-type=""><i class="fa fa-border-all"></i> {% trans 'Barchasi' %}</button>
+        <button class="chip" data-type="sale"><i class="fa fa-shopping-cart"></i> {% trans 'Sotuv' %}</button>
         <button class="chip" data-type="sale_return"><i class="fa fa-undo"></i> Qaytarish</button>
         <button class="chip" data-type="payment"><i class="fa fa-credit-card"></i> To'lov</button>
         <button class="chip" data-type="payment_refund"><i class="fa fa-undo-alt"></i> To'lov qaytarildi</button>

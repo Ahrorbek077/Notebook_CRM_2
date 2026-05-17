@@ -394,6 +394,8 @@ body::before {
     cursor: pointer;
 }
 
+.expense-quick .qb-icon { background: var(--amber-d); color: var(--amber); }
+
 .product-thumb {
     width: 52px; height: 52px;
     border-radius: var(--r);

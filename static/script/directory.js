@@ -89,7 +89,7 @@ function buildCatItem(cat) {
         <div class="di-actions">
             <button class="dia-btn edit-cat"
                     data-id="${cat.id}" data-name="${cat.name}"
-                    title="Tahrirlash">
+                    title=T.edit>
                 <i class="fa fa-pen"></i>
             </button>
             <button class="dia-btn delete-cat"
@@ -129,7 +129,7 @@ document.getElementById('catList')?.addEventListener('click', e => {
     const delBtn = e.target.closest('.delete-cat');
     if (delBtn) {
         confirm(
-            `"${delBtn.dataset.name}" kategoriyasini o'chirishni tasdiqlaysizmi?`,
+            `"${delBtn.dataset.name}" ' + T.delete + '?}`,
             () => deleteCat(delBtn.dataset.id, delBtn.dataset.name)
         );
     }
@@ -179,11 +179,11 @@ document.getElementById('catForm')?.addEventListener('submit', async e => {
                 toast('Kategoriya qo\'shildi!');
             }
         } else {
-            showErr('catErr', data.errors || data.message || 'Xatolik');
+            showErr('catErr', data.errors || data.message || T.error);
         }
     } catch (err) {
         console.error(err);
-        showErr('catErr', 'Server bilan xatolik');
+        showErr('catErr', T.server_error);
     } finally {
         btn.disabled = false;
     }
@@ -218,11 +218,11 @@ async function deleteCat(id, name) {
             updateCount('catList', 'catCount');
             toast(`"${name}" o'chirildi`);
         } else {
-            toast(data.message || 'Xatolik yuz berdi', 'error');
+            toast(data.message || T.error, 'error');
         }
     } catch (err) {
         console.error(err);
-        toast('Server bilan xatolik', 'error');
+        toast(T.server_error, 'error');
     }
 }
 
@@ -246,7 +246,7 @@ function buildRegItem(reg) {
                     data-id="${reg.id}"
                     data-name="${reg.name}"
                     data-order="${reg.order || 0}"
-                    title="Tahrirlash">
+                    title=T.edit>
                 <i class="fa fa-pen"></i>
             </button>
             <button class="dia-btn delete-reg"
@@ -293,7 +293,7 @@ document.getElementById('regList')?.addEventListener('click', e => {
     const delBtn = e.target.closest('.delete-reg');
     if (delBtn) {
         confirm(
-            `"${delBtn.dataset.name}" viloyatini o'chirishni tasdiqlaysizmi?`,
+            `"${delBtn.dataset.name}" ' + T.delete + '?}`,
             () => deleteReg(delBtn.dataset.id, delBtn.dataset.name)
         );
     }
@@ -358,11 +358,11 @@ document.getElementById('regForm')?.addEventListener('submit', async e => {
                 toast('Viloyat qo\'shildi!');
             }
         } else {
-            showErr('regErr', data.errors || data.message || 'Xatolik');
+            showErr('regErr', data.errors || data.message || T.error);
         }
     } catch (err) {
         console.error(err);
-        showErr('regErr', 'Server bilan xatolik');
+        showErr('regErr', T.server_error);
     } finally {
         btn.disabled = false;
     }
@@ -395,11 +395,11 @@ async function deleteReg(id, name) {
             updateCount('regList', 'regCount');
             toast(`"${name}" o'chirildi`);
         } else {
-            toast(data.message || 'Xatolik', 'error');
+            toast(data.message || T.error, 'error');
         }
     } catch (err) {
         console.error(err);
-        toast('Server bilan xatolik', 'error');
+        toast(T.server_error, 'error');
     }
 }
 

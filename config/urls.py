@@ -20,6 +20,7 @@ urlpatterns = [
     path('products/',  include('notebook.catalog.urls')),
     path('company/',   include('notebook.company.urls', namespace='company')),
     path('dashboard/', include('notebook.dashboard.urls')),
+    path('expenses/', include('notebook.expenses.urls', namespace='expenses')),
 ]
 
 handler403 = 'notebook.accounts.views.error_403'
@@ -28,3 +29,4 @@ handler413 = 'notebook.accounts.views.error_413'
 handler500 = 'notebook.accounts.views.error_500'
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

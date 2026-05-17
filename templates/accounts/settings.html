@@ -1,10 +1,11 @@
-{% load static %}
+{% load i18n %}
+{% load static i18n %}
 <!DOCTYPE html>
 <html lang="uz">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Sozlamalar</title>
+    <title>{% trans 'Sozlamalar' %}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
@@ -22,7 +23,7 @@
         </button>
         <div class="header-center">
             <div class="header-eyebrow">HISOB</div>
-            <h1 class="header-title">Sozlamalar</h1>
+            <h1 class="header-title">{% trans 'Sozlamalar' %}</h1>
         </div>
         <div style="width:38px"></div>
     </header>
@@ -154,6 +155,7 @@
 <!-- TOAST -->
 <div class="toast" id="toast"></div>
 
+{% include "partials/i18n_js.html" %}
 <script>
 window.SETTINGS_URL = "{% url 'accounts:settings' %}";
 </script>
