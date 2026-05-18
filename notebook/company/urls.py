@@ -18,6 +18,7 @@ urlpatterns = [
     path('api/branch/<int:pk>/edit/',         views.BranchEditView.as_view(),           name='branch-edit'),
     path('api/branch/<int:pk>/delete/',       views.BranchDeleteView.as_view(),         name='branch-delete'),
     path('api/branch/<int:pk>/pay/',          views.BranchPayView.as_view(),            name='branch-pay'),
+    path('api/branch/<int:pk>/payments/',     views.BranchPaymentsApiView.as_view(),    name='branch-payments'),
 
     # Batch Return (xarid qaytarish)
     path('api/batch/<int:batch_id>/return/',             views.BatchReturnView.as_view(),            name='batch-return'),

@@ -131,6 +131,85 @@
         </div>
     </div>
 
+    <!-- TO'LOV STATISTIKASI -->
+    <div class="section-hdr" style="margin-top:4px">
+        <span class="section-title">Hisob-kitob</span>
+        <button class="act-btn" id="togglePayHistory" style="font-size:.75rem;padding:4px 10px">
+            <i class="fa fa-history"></i> Tarix
+        </button>
+    </div>
+    <div class="stats-row" style="grid-template-columns:repeat(3,1fr);margin-top:0">
+        <div class="stat-card">
+            <div class="stat-icon green"><i class="fa fa-money-bill"></i></div>
+            <div class="stat-label">Naqd</div>
+            <div class="stat-value" style="font-size:.82rem;font-family:var(--mono)">{{ pay_cash|floatformat:0 }} <small>so'm</small></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background:rgba(59,130,246,.12);color:#3b82f6"><i class="fa fa-university"></i></div>
+            <div class="stat-label">Bank</div>
+            <div class="stat-value" style="font-size:.82rem;font-family:var(--mono)">{{ pay_transfer|floatformat:0 }} <small>so'm</small></div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon purple"><i class="fa fa-tag"></i></div>
+            <div class="stat-label">Chegirma</div>
+            <div class="stat-value" style="font-size:.82rem;font-family:var(--mono);color:var(--purple)">{{ pay_discount|floatformat:0 }} <small>so'm</small></div>
+        </div>
+    </div>
+
+    <!-- TO'LOVLAR TARIXI (yashirin, toggle bilan ochiladi) -->
+    <div id="payHistoryBlock" style="display:none;padding:0 12px 8px">
+        {% if recent_payments %}
+        <div id="payList" style="display:flex;flex-direction:column;gap:6px">
+            {% for p in recent_payments %}
+            <div style="background:var(--bg-card);border:1px solid var(--b);border-radius:var(--r);padding:10px 14px;display:flex;align-items:center;gap:10px">
+                <div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+                    {% if p.payment_type == 'cash' %}background:var(--green-d);color:var(--green)
+                    {% elif p.payment_type == 'transfer' %}background:rgba(59,130,246,.12);color:#3b82f6
+                    {% else %}background:var(--purple-d);color:var(--purple){% endif %}">
+                    <i class="fa {% if p.payment_type == 'cash' %}fa-money-bill{% elif p.payment_type == 'transfer' %}fa-university{% else %}fa-tag{% endif %}" style="font-size:.8rem"></i>
+                </div>
+                <div style="flex:1;min-width:0">
+                    <div style="font-family:var(--mono);font-weight:700;font-size:.9rem;
+                        {% if p.payment_type == 'cash' %}color:var(--green)
+                        {% elif p.payment_type == 'transfer' %}color:#3b82f6
+                        {% else %}color:var(--purple){% endif %}">
+                        {{ p.amount|floatformat:0 }} so'm
+                    </div>
+                    <div style="font-size:.72rem;color:var(--t2);margin-top:2px">
+                        {{ p.get_payment_type_display }}
+                        {% if p.note %} · {{ p.note }}{% endif %}
+                    </div>
+                </div>
+                <div style="font-size:.7rem;color:var(--t3);text-align:right;flex-shrink:0">
+                    {{ p.created_at|date:"d.m.y" }}<br>
+                    <span style="font-size:.65rem">{{ p.created_at|date:"H:i" }}</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        <div id="loadMoreWrap" style="text-align:center;padding:10px 0">
+            <button id="loadMoreBtn"
+                style="background:var(--bg-el);border:1px solid var(--b);border-radius:var(--r);
+                       padding:8px 20px;font-size:.8rem;color:var(--t2);cursor:pointer;width:100%">
+                <i class="fa fa-chevron-down"></i> Ko'proq yuklash
+            </button>
+        </div>
+        {% else %}
+        <div id="payList" style="display:flex;flex-direction:column;gap:6px"></div>
+        <div id="loadMoreWrap" style="text-align:center;padding:10px 0">
+            <button id="loadMoreBtn"
+                style="background:var(--bg-el);border:1px solid var(--b);border-radius:var(--r);
+                       padding:8px 20px;font-size:.8rem;color:var(--t2);cursor:pointer;width:100%">
+                <i class="fa fa-chevron-down"></i> Ko'proq yuklash
+            </button>
+        </div>
+        <div style="text-align:center;padding:20px;color:var(--t3);font-size:.82rem" id="payEmpty">
+            <i class="fa fa-inbox" style="font-size:1.5rem;margin-bottom:6px;display:block"></i>
+            To'lovlar mavjud emas
+        </div>
+        {% endif %}
+    </div>
+
     <!-- SEARCH -->
     <div class="toolbar">
         <form method="get" style="flex:1;display:flex;gap:8px">
@@ -616,6 +695,89 @@ document.getElementById('pmSubmit').addEventListener('click',async()=>{
 let ts=0;
 document.querySelectorAll('.bp-card').forEach(c=>ts+=parseInt(c.dataset.stock)||0);
 document.getElementById('totalStock').textContent=ts;
+
+/* To'lovlar tarixi toggle + load more */
+const PAYMENTS_URL = `/company/api/branch/${BRANCH_ID}/payments/`;
+let payOffset = 10;   // Dastlab 10 ta Django server tomonida yuklandi
+let payLoading = false;
+
+// "Ko'proq" tugmasi bostirilganda yana 10 ta yuklaydi
+document.getElementById('loadMoreBtn').addEventListener('click', loadMorePayments);
+
+async function loadMorePayments() {
+    if (payLoading) return;
+    payLoading = true;
+    const btn = document.getElementById('loadMoreBtn');
+    btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Yuklanmoqda...';
+    btn.disabled = true;
+
+    try {
+        const res  = await fetch(`${PAYMENTS_URL}?offset=${payOffset}&limit=10`);
+        const data = await res.json();
+        const list = document.getElementById('payList');
+
+        const ICONS = { cash: 'fa-money-bill', transfer: 'fa-university', discount: 'fa-tag' };
+        const COLORS = {
+            cash:     { bg: 'var(--green-d)',              color: 'var(--green)' },
+            transfer: { bg: 'rgba(59,130,246,.12)',        color: '#3b82f6'      },
+            discount: { bg: 'var(--purple-d)',             color: 'var(--purple)'},
+        };
+
+        data.items.forEach(p => {
+            const c = COLORS[p.payment_type] || COLORS.cash;
+            const el = document.createElement('div');
+            el.style.cssText = 'background:var(--bg-card);border:1px solid var(--b);border-radius:var(--r);padding:10px 14px;display:flex;align-items:center;gap:10px';
+            el.innerHTML = `
+                <div style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:${c.bg};color:${c.color}">
+                    <i class="fa ${ICONS[p.payment_type] || 'fa-money-bill'}" style="font-size:.8rem"></i>
+                </div>
+                <div style="flex:1;min-width:0">
+                    <div style="font-family:var(--mono);font-weight:700;font-size:.9rem;color:${c.color}">
+                        ${parseFloat(p.amount).toLocaleString()} so'm
+                    </div>
+                    <div style="font-size:.72rem;color:var(--t2);margin-top:2px">
+                        ${p.type_label}${p.note ? ' · ' + p.note : ''}
+                    </div>
+                </div>
+                <div style="font-size:.7rem;color:var(--t3);text-align:right;flex-shrink:0">
+                    ${p.date}<br><span style="font-size:.65rem">${p.time}</span>
+                </div>`;
+            list.appendChild(el);
+        });
+
+        payOffset += data.items.length;
+
+        if (!data.has_more) {
+            // Hammasi yuklandi — tugmani yashiramiz
+            document.getElementById('loadMoreWrap').style.display = 'none';
+        } else {
+            btn.innerHTML = '<i class="fa fa-chevron-down"></i> Ko\'proq yuklash';
+            btn.disabled = false;
+        }
+    } catch {
+        btn.innerHTML = '<i class="fa fa-chevron-down"></i> Ko\'proq yuklash';
+        btn.disabled = false;
+    }
+    payLoading = false;
+}
+
+// Birinchi ochilishda tugmani tekshir: agar 10 dan kam bo'lsa yashir
+(function checkInitialLoadMore() {
+    // Django server tomonida nechta render qilindi
+    const rendered = document.querySelectorAll('#payList > div').length;
+    if (rendered < 10) {
+        document.getElementById('loadMoreWrap').style.display = 'none';
+    }
+})();
+
+document.getElementById('togglePayHistory').addEventListener('click', function () {
+    const block = document.getElementById('payHistoryBlock');
+    const isOpen = block.style.display !== 'none';
+    block.style.display = isOpen ? 'none' : 'block';
+    this.innerHTML = isOpen
+        ? '<i class="fa fa-history"></i> Tarix'
+        : '<i class="fa fa-times"></i> Yopish';
+});
 </script>
 </body>
 </html>

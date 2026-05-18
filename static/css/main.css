@@ -657,6 +657,22 @@ body::before {
     gap: 6px;
 }
 
+/* Keng karta — to'liq qator egallaydi */
+.stat-card--wide {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(59,130,246,0.06) 100%);
+    border-color: rgba(59,130,246,0.25);
+}
+.stat-card--wide .stat-label { margin-right: auto; }
+.stat-card--wide .stat-value--money {
+    font-size: 1.25rem;
+    color: #3b82f6;
+    text-align: right;
+}
+
 .stat-icon {
     width: 32px; height: 32px;
     border-radius: 8px;
@@ -670,6 +686,7 @@ body::before {
 .stat-icon.green { background: var(--green-d); color: var(--green); }
 .stat-icon.red   { background: var(--red-d);   color: var(--red);   }
 .stat-icon.purple{ background: var(--purple-d);color: var(--purple);}
+.stat-icon.blue  { background: rgba(59,130,246,0.15); color: #3b82f6; }
 
 .stat-label { font-size: 0.68rem; color: var(--t2); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; }
 .stat-value { font-family: var(--mono); font-size: 1.1rem; color: var(--t); font-weight: 600; }

@@ -118,29 +118,46 @@ class CompanyService:
                 note=note, user=user
             )
 
-            # Avvalo avansni ishlatamiz (agar bor bo'lsa)
-            remaining = amount
-            if branch.advance_balance > 0:
-                use_adv = min(branch.advance_balance, remaining)
-                branch.advance_balance -= use_adv
-                remaining -= use_adv
-
-            # Qolgan qismni qarzdan ayiramiz
-            if remaining > 0:
-                if branch.total_debt >= remaining:
-                    branch.total_debt -= remaining
+            if payment_type == 'discount':
+                # ──────────────────────────────────────────────────────────
+                # CHEGIRMA: haqiqiy pul to'lanmaydi.
+                # Qarz shunchaki kamayadi (avansga ta'sir yo'q, naqd/bank yo'q).
+                # 100 000 qarz bor, 25 000 chegirma → qarz 75 000 bo'ladi.
+                # ──────────────────────────────────────────────────────────
+                if branch.total_debt >= amount:
+                    branch.total_debt -= amount
                 else:
-                    # Qarz tugab, ortiqcha to'lov → avans
-                    overpaid = remaining - branch.total_debt
+                    # Qarzdan ko'p chegirma berildi → ortiqcha avansga
+                    overpaid = amount - branch.total_debt
                     branch.total_debt      = Decimal('0')
                     branch.advance_balance += overpaid
+            else:
+                # ──────────────────────────────────────────────────────────
+                # NAQD / BANK TO'LOV: avvalo avansni ishlatamiz,
+                # qolganini qarzdan ayiramiz.
+                # ──────────────────────────────────────────────────────────
+                remaining = amount
+                if branch.advance_balance > 0:
+                    use_adv = min(branch.advance_balance, remaining)
+                    branch.advance_balance -= use_adv
+                    remaining -= use_adv
+
+                if remaining > 0:
+                    if branch.total_debt >= remaining:
+                        branch.total_debt -= remaining
+                    else:
+                        # Qarz tugab, ortiqcha to'lov → avans
+                        overpaid = remaining - branch.total_debt
+                        branch.total_debt      = Decimal('0')
+                        branch.advance_balance += overpaid
 
             branch.save(update_fields=['total_debt', 'advance_balance'])
             _sync_company_balances(branch.company_id)
 
+            type_label = {'cash': 'naqd', 'transfer': "o'tkazma", 'discount': 'chegirma'}.get(payment_type, payment_type)
             ActivityLog.objects.create(
                 user=user, action_type='branch_payment',
-                description=f"{branch} — {amount:,.0f} so'm to'landi",
+                description=f"{branch} — {amount:,.0f} so'm {type_label} ({payment_type})",
                 extra_data={
                     'branch_payment_id': bp.id, 'branch_id': branch.id,
                     'amount': str(amount), 'payment_type': payment_type,

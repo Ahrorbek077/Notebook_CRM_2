@@ -3,7 +3,7 @@ import os
 from decimal import Decimal, InvalidOperation
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q
+from django.db.models import Q, Sum, F, DecimalField, ExpressionWrapper
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views import View
@@ -32,6 +32,13 @@ class ProductListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['form'] = ProductForm()
+        # Jami inventar narxi: price * stock — bitta aggregate query
+        result = Product.objects.filter(stock__gt=0).aggregate(
+            total_value=Sum(
+                ExpressionWrapper(F('price') * F('stock'), output_field=DecimalField())
+            )
+        )
+        ctx['total_inventory_value'] = result['total_value'] or 0
         return ctx
 
     def get(self, request, *args, **kwargs):

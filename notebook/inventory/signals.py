@@ -9,14 +9,18 @@ from notebook.activity.models import ActivityLog
 def log_stock_add(sender, instance, created, **kwargs):
     if not created:
         return
+    # product allaqachon xotirada bo'lishi mumkin emas (signal ichida),
+    # lekin product_id bilan description yozishdan qochamiz — product.name kerak.
+    # Bu bitta qo'shimcha query, lekin faqat yangi batch yaratilganda — maqbul.
+    product_name = instance.product.name  # 1 query, faqat create da
     ActivityLog.objects.create(
         user=instance.created_by,
         action_type='stock_add',
-        description=f"{instance.product.name} — {instance.quantity_received} ta kirim @ {instance.cost_price}",
+        description=f"{product_name} — {instance.quantity_received} ta kirim @ {instance.cost_price}",
         extra_data={
             'batch_id':     instance.id,
             'product_id':   instance.product_id,
-            'product':      instance.product.name,
+            'product':      product_name,
             'quantity':     instance.quantity_received,
             'cost_price':   str(instance.cost_price),
             'selling_price':str(instance.selling_price),
@@ -29,14 +33,17 @@ def log_stock_add(sender, instance, created, **kwargs):
 def log_stock_adjust(sender, instance, created, **kwargs):
     if not created or instance.adjustment_type == 'return':
         return
+    # batch.product — ikki qadam chuqurlik, select_related yo'q
+    # Lekin bu faqat manual adjustment da chaqiriladi — production da kam bo'ladi
     batch = instance.batch
+    product_name = batch.product.name  # 1 query
     ActivityLog.objects.create(
         user=instance.user,
-        action_type='stock_adjust' if instance.adjustment_type != 'return' else 'stock_return',
-        description=f"{batch.product.name} — batch #{batch.id} tuzatildi",
+        action_type='stock_adjust',
+        description=f"{product_name} — batch #{batch.id} tuzatildi",
         extra_data={
             'batch_id':        batch.id,
-            'product':         batch.product.name,
+            'product':         product_name,
             'adjustment_type': instance.adjustment_type,
             'quantity_change': instance.quantity_change,
             'reason':          instance.reason,

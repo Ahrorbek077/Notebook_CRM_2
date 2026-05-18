@@ -11,7 +11,8 @@ from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views import View
 
-from .models import Company, Branch
+from django.db.models import Sum, Q as dQ
+from .models import Company, Branch, BranchPayment
 from .services import CompanyService
 from notebook.catalog.models import Product, Category
 from notebook.catalog.forms import ProductForm
@@ -50,13 +51,26 @@ class BranchDetailView(LoginRequiredMixin, View):
 
         categories = Category.objects.filter(is_active=True)
 
+        # To'lovlar statistikasi — bitta aggregate query
+        pay_agg = BranchPayment.objects.filter(branch=branch).aggregate(
+            total_cash=Sum('amount', filter=dQ(payment_type='cash')),
+            total_transfer=Sum('amount', filter=dQ(payment_type='transfer')),
+            total_discount=Sum('amount', filter=dQ(payment_type='discount')),
+        )
+        # So'nggi 10 ta to'lov tarixi (AJAX load more bilan davom etadi)
+        recent_payments = BranchPayment.objects.filter(branch=branch).select_related('user').order_by('-created_at')[:10]
+
         return render(request, 'company/branch_detail.html', {
-            'branch':     branch,
-            'company':    branch.company,
-            'page_obj':   page_obj,
-            'products':   page_obj.object_list,
-            'categories': categories,
-            'search':     search,
+            'branch':          branch,
+            'company':         branch.company,
+            'page_obj':        page_obj,
+            'products':        page_obj.object_list,
+            'categories':      categories,
+            'search':          search,
+            'pay_cash':        pay_agg['total_cash']     or 0,
+            'pay_transfer':    pay_agg['total_transfer'] or 0,
+            'pay_discount':    pay_agg['total_discount'] or 0,
+            'recent_payments': recent_payments,
         })
 
 
@@ -155,16 +169,20 @@ class BranchPayView(LoginRequiredMixin, View):
             branch = get_object_or_404(Branch, pk=pk, is_active=True)
             data   = json.loads(request.body)
             amount = Decimal(str(data.get('amount', 0)))
-            CompanyService.pay_to_branch(
+            bp = CompanyService.pay_to_branch(
                 branch=branch, amount=amount,
                 payment_type=data.get('payment_type', 'cash'),
                 discount_percent=Decimal(str(data.get('discount_percent', 0))),
                 due_date=data.get('due_date') or None,
                 note=data.get('note', ''), user=request.user,
             )
+            # pay_to_branch() ichida branch.save() bo'ldi —
+            # ortiqcha Branch.objects.get() o'rniga branchni refresh qilamiz
+            branch.refresh_from_db(fields=['total_debt', 'advance_balance'])
             return JsonResponse({
-                'status': 'success',
-                'new_debt': str(Branch.objects.get(pk=pk).total_debt),
+                'status':      'success',
+                'new_debt':    str(branch.total_debt),
+                'new_advance': str(branch.advance_balance),
             })
         except (InvalidOperation, ValueError) as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
@@ -377,3 +395,41 @@ class BranchProductPurchaseView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+class BranchPaymentsApiView(LoginRequiredMixin, View):
+    """
+    AJAX: branch to'lovlari tarixi — offset asosida load more.
+    GET /company/api/branch/<pk>/payments/?offset=10&limit=10
+    """
+    PAGE_SIZE = 10
+
+    def get(self, request, pk):
+        branch = get_object_or_404(Branch, pk=pk, is_active=True)
+        try:
+            offset = max(int(request.GET.get('offset', 0)), 0)
+        except ValueError:
+            offset = 0
+
+        qs    = BranchPayment.objects.filter(branch=branch).order_by('-created_at')
+        total = qs.count()
+        items = qs.select_related('user')[offset: offset + self.PAGE_SIZE]
+
+        TYPE_LABELS = {'cash': 'Naqd', 'transfer': "O'tkazma", 'discount': 'Chegirma'}
+
+        return JsonResponse({
+            'items': [
+                {
+                    'amount':       str(p.amount),
+                    'payment_type': p.payment_type,
+                    'type_label':   TYPE_LABELS.get(p.payment_type, p.payment_type),
+                    'note':         p.note,
+                    'date':         p.created_at.strftime('%d.%m.%y'),
+                    'time':         p.created_at.strftime('%H:%M'),
+                }
+                for p in items
+            ],
+            'has_more': (offset + self.PAGE_SIZE) < total,
+            'next_offset': offset + self.PAGE_SIZE,
+            'total': total,
+        })

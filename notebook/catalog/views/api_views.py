@@ -169,15 +169,21 @@ class StockAdjustmentView(View):
 class SaleReturnView(View):
     def post(self, request, sale_id):
         try:
-            sale = get_object_or_404(Sale, id=sale_id)
+            sale = get_object_or_404(
+                Sale.objects.select_related('client').prefetch_related('items'),
+                id=sale_id
+            )
             if sale.status == Sale.STATUS_CANCELLED:
                 return JsonResponse({'status': 'error', 'message': "Bekor qilingan sotuvni qaytarib bo'lmaydi"}, status=400)
             data = json.loads(request.body)
-            return_data = (
-                [{'sale_item_id': i.id, 'quantity': i.get_remaining_quantity()}
-                 for i in sale.items.all() if i.get_remaining_quantity() > 0]
-                if data.get('full_return') else data.get('items', [])
-            )
+            if data.get('full_return'):
+                # items prefetch_related orqali allaqachon yuklangan — DB ga qayta bormaymiz
+                return_data = [
+                    {'sale_item_id': i.id, 'quantity': i.get_remaining_quantity()}
+                    for i in sale.items.all() if i.get_remaining_quantity() > 0
+                ]
+            else:
+                return_data = data.get('items', [])
             sale_return = SaleService.process_return(sale=sale, return_data=return_data,
                                                      user=request.user, reason=data.get('reason', ''))
             return JsonResponse({'status': 'success', 'return_id': sale_return.id})
@@ -188,7 +194,10 @@ class SaleReturnView(View):
 class SaleCancelView(View):
     def post(self, request, sale_id):
         try:
-            sale = get_object_or_404(Sale, id=sale_id)
+            sale = get_object_or_404(
+                Sale.objects.select_related('client').prefetch_related('items'),
+                id=sale_id
+            )
             if sale.status == Sale.STATUS_CANCELLED:
                 return JsonResponse({'status': 'error', 'message': "Allaqachon bekor qilingan"}, status=400)
             sale.full_cancel(cancelled_by=request.user)

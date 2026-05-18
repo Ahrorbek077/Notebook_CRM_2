@@ -80,10 +80,20 @@ class SaleService:
             returned_amount = Decimal('0')
             returned_items_data = []
 
+            # Barcha kerakli sale_item larni BITTA so'rovda olamiz (N+1 emas)
+            item_ids = [d['sale_item_id'] for d in return_data]
+            sale_items_map = {
+                si.id: si
+                for si in SaleItem.objects.select_for_update().select_related(
+                    'product', 'batch'
+                ).filter(id__in=item_ids, sale=sale)
+            }
+
+            return_item_objs = []
             for item_data in return_data:
-                sale_item = SaleItem.objects.select_for_update().get(
-                    id=item_data['sale_item_id'], sale=sale
-                )
+                sale_item = sale_items_map.get(item_data['sale_item_id'])
+                if not sale_item:
+                    raise ValueError("SaleItem topilmadi")
                 qty = item_data['quantity']
                 if qty <= 0 or qty > sale_item.get_remaining_quantity():
                     raise ValueError("Qaytarish miqdori noto'g'ri")
@@ -95,16 +105,19 @@ class SaleService:
                 sale_item.save(update_fields=['returned_quantity'])
                 returned_amount += sale_item.price_at_sale * qty
 
-                SaleReturnItem.objects.create(
+                return_item_objs.append(SaleReturnItem(
                     sale_return=sale_return,
                     sale_item=sale_item,
                     returned_quantity=qty,
                     returned_to_batch=sale_item.batch,
-                )
+                ))
                 returned_items_data.append({
                     'product': sale_item.product.name, 'quantity': qty,
                     'price': str(sale_item.price_at_sale),
                 })
+
+            # bulk_create — N ta INSERT o'rniga bitta
+            SaleReturnItem.objects.bulk_create(return_item_objs)
 
             ActivityLog.objects.create(
                 user=user, action_type='sale_return',
@@ -117,7 +130,10 @@ class SaleService:
             )
 
             SaleService._reduce_client_debt(sale.client, returned_amount)
-            if all(i.returned_quantity >= i.quantity for i in sale.items.all()):
+
+            # sale.items.all() bitta query — xotirada tekshiramiz
+            all_items = list(sale.items.all())
+            if all(i.returned_quantity >= i.quantity for i in all_items):
                 sale.cancel(cancelled_by=user)
 
             cache.delete('dashboard_full_data')
@@ -127,6 +143,7 @@ class SaleService:
     @staticmethod
     def full_cancel_sale(sale, cancelled_by=None, reason=""):
         with transaction.atomic():
+            # items bir marta olinadi, process_return ga list sifatida beriladi
             remaining = [
                 {'sale_item_id': i.id, 'quantity': i.get_remaining_quantity()}
                 for i in sale.items.all() if i.get_remaining_quantity() > 0
