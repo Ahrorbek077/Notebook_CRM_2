@@ -24,7 +24,7 @@ class ClientListView(LoginRequiredMixin, ListView):
     model = Client
     template_name = "client.html"
     context_object_name = "clients"
-    paginate_by = 30
+    paginate_by = 100
 
     def get_queryset(self):
         qs = Client.objects.select_related('region').order_by("-created_at")
