@@ -277,19 +277,15 @@ class BranchProductUpdateView(LoginRequiredMixin, View):
             product.save()
 
             # ── Tan narxini yangilash ──────────────────────────────────────
+            # MUHIM: Faqat default_cost_price o'zgaradi — keyingi xarid uchun.
+            # Mavjud batchlar o'ZGARMAYDI — ular tarixiy sotib olish narxi.
             new_cost = None
             if cost_price:
                 try:
                     new_cost = Decimal(cost_price)
                     if new_cost > 0:
-                        # 1) default_cost_price (keyingi "Sotib olish" uchun)
                         product.default_cost_price = new_cost
                         product.save(update_fields=['default_cost_price'])
-                        # 2) Oxirgi batch narxini ham yangilaymiz (agar bor bo'lsa)
-                        last_batch = product.stock_batches.filter(is_active=True).order_by('-created_at').first()
-                        if last_batch:
-                            last_batch.cost_price = new_cost
-                            last_batch.save(update_fields=['cost_price'])
                 except InvalidOperation:
                     pass
 

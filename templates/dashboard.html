@@ -56,9 +56,19 @@
 
     <!-- ── KPI ROW ── -->
     <section class="kpi-row" id="kpiRow">
+        <!-- Period toggle — chart toggle bilan bir xil dizayn -->
+        <div class="kpi-period-row">
+            <span class="section-label" style="font-size:.6rem;letter-spacing:.1em;color:var(--t2)"></span>
+            <div class="period-toggle">
+                <button class="kpi-period-btn pt-btn active" data-kpi-period="today">Bugun</button>
+                <button class="kpi-period-btn pt-btn" data-kpi-period="week">Hafta</button>
+                <button class="kpi-period-btn pt-btn" data-kpi-period="month">Oy</button>
+                <button class="kpi-period-btn pt-btn" data-kpi-period="year">Yil</button>
+            </div>
+        </div>
         <div class="kpi-card" id="kpi-profit">
             <div class="kpi-label" style="display:flex;align-items:center;gap:6px">
-                {% trans "Yillik Foyda" %}
+                Yillik Foyda 
                 <span style="font-size:.6rem;background:rgba(0,230,118,.15);color:var(--green);
                     padding:1px 5px;border-radius:4px;font-weight:700">{% trans 'NAQD' %}</span>
             </div>

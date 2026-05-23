@@ -635,3 +635,36 @@ body {
     .period-toggle { width: 100%; }
     .pt-btn { flex: 1; text-align: center; }
 }
+/* ── KPI full number tooltip ── */
+.kpi-value[title] {
+    position: relative;
+}
+.kpi-value[title]:hover::after {
+    content: attr(title);
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-card, #1e2433);
+    color: var(--text, #e0e6f0);
+    border: 1px solid var(--border, rgba(255,255,255,.1));
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: .75rem;
+    font-family: var(--mono);
+    white-space: nowrap;
+    z-index: 100;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,.3);
+}
+
+/* ── KPI period toggle row ── */
+.kpi-period-row {
+    grid-column: 1 / -1;          /* barcha ustunlarni egallaydi */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 4px 8px;
+    border-bottom: 1px solid var(--border, rgba(255,255,255,.06));
+    margin-bottom: 4px;
+}

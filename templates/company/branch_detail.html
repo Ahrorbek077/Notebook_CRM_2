@@ -252,7 +252,10 @@
                     <div class="bp-meta">
                         <div class="bp-meta-item">{{ product.category.name }}</div>
                         <div class="bp-meta-item">
-                            Narx: <span class="v green">{{ product.price|floatformat:0 }} so'm</span>
+                            Sotuv: <span class="v green bp-price">{{ product.price|floatformat:0 }} so'm</span>
+                        </div>
+                        <div class="bp-meta-item">
+                            Tan: <span class="v amber bp-cost">{{ product.annotated_cost_price|floatformat:0 }} so'm</span>
                         </div>
                         <div class="bp-meta-item">
                             Stok: <span class="v {% if product.stock == 0 %}red{% elif product.stock < 5 %}amber{% else %}green{% endif %}">
@@ -620,7 +623,17 @@ document.getElementById('epSubmit').addEventListener('click',async()=>{
                 card.querySelector('.bp-name').textContent=d.product.name;
                 card.dataset.name=d.product.name;
                 card.dataset.price=d.product.price;
-                card.querySelector('.bp-meta .v.green').textContent=parseFloat(d.product.price).toLocaleString()+' so\'m';
+                // Sotuv narxi
+                const priceEl=card.querySelector('.bp-price');
+                if(priceEl) priceEl.textContent=parseFloat(d.product.price).toLocaleString()+' so\'m';
+                // Tan narxi
+                if(d.product.cost_price){
+                    const costEl=card.querySelector('.bp-cost');
+                    if(costEl) costEl.textContent=parseFloat(d.product.cost_price).toLocaleString()+' so\'m';
+                    // purchase-btn va edit-btn data attributlarini yangilaymiz
+                    card.querySelector('.purchase-btn')?.setAttribute('data-cost-price', d.product.cost_price);
+                    card.querySelector('.edit-btn')?.setAttribute('data-cost-price', d.product.cost_price);
+                }
             }
         } else showMsg(msg,d.message||'Xato!','error');
     } catch{showMsg(msg,'Tarmoq xatosi','error');}

@@ -82,9 +82,15 @@ class SaleService:
 
             # Barcha kerakli sale_item larni BITTA so'rovda olamiz (N+1 emas)
             item_ids = [d['sale_item_id'] for d in return_data]
+            # select_for_update() + select_related(nullable FK) PostgreSQL da
+            # "FOR UPDATE cannot be applied to the nullable side of an outer join"
+            # xatosini beradi. Shuning uchun avval lock, keyin select_related.
+            SaleItem.objects.select_for_update().filter(
+                id__in=item_ids, sale=sale
+            ).values('id')  # faqat lock — SELECT FOR UPDATE, JOIN yo'q
             sale_items_map = {
                 si.id: si
-                for si in SaleItem.objects.select_for_update().select_related(
+                for si in SaleItem.objects.select_related(
                     'product', 'batch'
                 ).filter(id__in=item_ids, sale=sale)
             }

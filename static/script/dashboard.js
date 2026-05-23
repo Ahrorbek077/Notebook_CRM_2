@@ -177,7 +177,12 @@ function animateKPI(id, value, barId, fillPct = 75) {
         const current  = target * ease;
         el.textContent = fmt(current) + ' so\'m';
         if (progress < 1) requestAnimationFrame(tick);
-        else el.textContent = fmt(target) + ' so\'m';
+        else {
+            el.textContent = fmt(target) + ' so\'m';
+            // Hover da to'liq son ko'rsatish
+            el.title = fmtFull(target);
+            el.style.cursor = 'help';
+        }
     }
     requestAnimationFrame(tick);
 
@@ -189,25 +194,49 @@ function animateKPI(id, value, barId, fillPct = 75) {
     }
 }
 
-function renderKPI(year) {
-    const values = [
-        { valId: 'profit-year',  cardId: 'kpi-profit',  val: year.profit,  pct: 85 },
-        { valId: 'sale-year',    cardId: 'kpi-sale',    val: year.sale,    pct: 100 },
-        { valId: 'payment-year', cardId: 'kpi-payment', val: year.payment, pct: 70 },
-        { valId: 'expense-year', cardId: 'kpi-expense', val: year.expense, pct: 60 },
-    ];
+// currentKpiPeriod — KPI kartalar uchun joriy period (today/week/month/year)
+let currentKpiPeriod = 'year';
 
+function renderKPI(stats) {
+    if (!stats) return;
+    const values = [
+        { valId: 'profit-year',  cardId: 'kpi-profit',  val: stats.profit  },
+        { valId: 'sale-year',    cardId: 'kpi-sale',    val: stats.sale    },
+        { valId: 'payment-year', cardId: 'kpi-payment', val: stats.payment },
+        { valId: 'expense-year', cardId: 'kpi-expense', val: stats.expense },
+    ];
     const maxVal = Math.max(...values.map(v => Number(v.val) || 0)) || 1;
     values.forEach(({ valId, cardId, val }) => {
         const pct = Math.round((Number(val) / maxVal) * 100);
         animateKPI(valId, val, cardId, pct);
     });
-
-    // Potensial foyda (sotuv - harajat, qarz ham kiritilgan)
     const grossEl = document.getElementById('gross-profit-year');
-    if (grossEl && year.gross_profit !== undefined) {
-        grossEl.textContent = fmt(year.gross_profit) + ' so\'m';
+    if (grossEl && stats.gross_profit !== undefined) {
+        grossEl.textContent = fmt(stats.gross_profit) + ' so\'m';
     }
+}
+
+// KPI period label yangilash
+function updateKpiLabels(period) {
+    const labels = {
+        'today': 'Bugungi',
+        'week':  'Haftalik',
+        'month': 'Oylik',
+        'year':  'Yillik',
+    };
+    const label = labels[period] || 'Yillik';
+    ['kpi-profit','kpi-sale','kpi-payment','kpi-expense'].forEach((id, i) => {
+        const card = document.getElementById(id);
+        if (!card) return;
+        const lbl = card.querySelector('.kpi-label');
+        if (!lbl) return;
+        const names = ['Foyda', 'Sotuv', "To\'lov", 'Harajat'];
+        // faqat text qismini yangilaymiz (NAQD badge ni saqlaymiz)
+        const firstChild = lbl.firstChild;
+        if (firstChild && firstChild.nodeType === 3) {
+            firstChild.textContent = label + ' ' + names[i] + ' ';
+        }
+    });
 }
 
 // ── TOP PRODUCTS ──────────────────────────────────────────────────────────────
@@ -303,11 +332,24 @@ async function loadDashboard() {
 
         allData = await res.json();
 
-        // Render all
-        renderKPI(allData.year);
+        // Render all — default: bugungi KPI
+        renderKPI(allData.today);
+        updateKpiLabels('today');
+        currentKpiPeriod = 'today';
         renderProducts(allData.top_products);
         buildChart(allData.chart[period]);
         renderToday(allData.today);
+
+        // KPI period toggle (today/week/month/year)
+        document.querySelectorAll('.kpi-period-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.kpi-period-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentKpiPeriod = btn.dataset.kpiPeriod;
+                renderKPI(allData[currentKpiPeriod]);
+                updateKpiLabels(currentKpiPeriod);
+            });
+        });
         updateCacheInfo();
 
         // Hide loader
