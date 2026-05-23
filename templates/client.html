@@ -51,6 +51,25 @@
             </button>
             {% endfor %}
         </div>
+
+        <!-- Balance Filter -->
+        <div class="region-filter" id="balanceFilter" style="margin-top:6px">
+            <button class="region-chip balance-chip {% if not selected_balance %}active{% endif %}" data-balance="">
+                <i class="fa fa-list" style="font-size:.75rem"></i> Barchasi
+            </button>
+            <button class="region-chip balance-chip {% if selected_balance == 'debt' %}active{% endif %}" data-balance="debt"
+                    style="--chip-active-bg: rgba(239,83,80,.15); --chip-active-color: #ef5350; --chip-active-border: rgba(239,83,80,.35)">
+                <i class="fa fa-arrow-down" style="font-size:.75rem"></i> Qarzli
+            </button>
+            <button class="region-chip balance-chip {% if selected_balance == 'advance' %}active{% endif %}" data-balance="advance"
+                    style="--chip-active-bg: rgba(0,200,83,.12); --chip-active-color: #00c853; --chip-active-border: rgba(0,200,83,.3)">
+                <i class="fa fa-arrow-up" style="font-size:.75rem"></i> Avansli
+            </button>
+            <button class="region-chip balance-chip {% if selected_balance == 'clear' %}active{% endif %}" data-balance="clear"
+                    style="--chip-active-bg: rgba(100,181,246,.12); --chip-active-color: #64b5f6; --chip-active-border: rgba(100,181,246,.3)">
+                <i class="fa fa-check" style="font-size:.75rem"></i> Toza
+            </button>
+        </div>
     </div>
 
     <!-- STATS BAR -->
@@ -135,7 +154,7 @@
                 <button class="ca-btn delete-btn"
                         data-id="{{ client.id }}"
                         data-name="{{ client.name }}">
-                    <i class="fa fa-trash"></i><span>{% trans "O'chirish" %}</span>
+                    <i class="fa fa-unlink"></i><span>Aloqani uz</span>
                 </button>
                 {% endif %}
             </div>
@@ -342,19 +361,26 @@
                 {% csrf_token %}
                 <input type="hidden" name="client_id" id="deleteClientId">
                 <div class="modal-header">
-                    <h5 class="modal-title text-danger">
-                        <i class="fa fa-exclamation-triangle me-2"></i>{% trans "O'chirish" %}
+                    <h5 class="modal-title" style="color:var(--amber,#ffc107)">
+                        <i class="fa fa-unlink me-2"></i>Aloqani uzish
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <div class="modal-body text-center">
-                    <p class="mb-1" style="color: var(--text-secondary)">Bu mijozni o'chirmoqchimisiz?</p>
-                    <strong id="deleteClientName" style="color: var(--text-primary); font-size: 1rem;"></strong>
+                <div class="modal-body text-center" style="padding:20px 16px">
+                    <div style="font-size:2.2rem;margin-bottom:10px">🔕</div>
+                    <p class="mb-2" style="color:var(--text-secondary);font-size:.88rem">
+                        Quyidagi mijoz bilan aloqa uziladi. Barcha tarix va ma'lumotlar saqlanib qoladi.
+                    </p>
+                    <strong id="deleteClientName" style="color:var(--text-primary);font-size:1rem"></strong>
+                    <div style="margin-top:12px;background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.2);border-radius:8px;padding:8px 12px;font-size:.78rem;color:var(--amber,#ffc107)">
+                        <i class="fa fa-info-circle me-1"></i>
+                        Mijoz "faol emas" holatiga o'tadi. Istalgan payt qayta faollashtirilishi mumkin.
+                    </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans 'Bekor' %}</button>
-                    <button type="submit" class="btn btn-danger">
-                        <i class="fa fa-trash me-1"></i>{% trans "O'chirish" %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Bekor</button>
+                    <button type="submit" class="btn" style="background:rgba(255,193,7,.15);color:var(--amber,#ffc107);border:1px solid rgba(255,193,7,.3)">
+                        <i class="fa fa-unlink me-1"></i>Aloqani uz
                     </button>
                 </div>
             </form>

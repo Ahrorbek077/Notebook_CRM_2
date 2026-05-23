@@ -23,6 +23,13 @@ class Category(models.Model):
     def __str__(self):
         return self.name
 
+    @property
+    def latest_cost_price(self):
+        """Eng oxirgi StockBatch tan narxini qaytaradi.
+        Batch yo'q bo'lsa default_cost_price ni qaytaradi."""
+        batch = self.stock_batches.filter(is_active=True).order_by('-created_at').first()
+        return batch.cost_price if batch else self.default_cost_price
+
 
 class Product(models.Model):
     name     = models.CharField(max_length=200, verbose_name="Nomi")
@@ -44,6 +51,12 @@ class Product(models.Model):
     price = models.DecimalField(
         max_digits=10, decimal_places=2,
         verbose_name="Sotuv narxi"
+    )
+    default_cost_price = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        default=0,
+        verbose_name="Standart tan narxi",
+        help_text="Yaratishda kiritilgan tan narxi — Sotib olish modalida default sifatida ko'rsatiladi"
     )
     stock = models.PositiveIntegerField(default=0, editable=False)
 
@@ -75,3 +88,10 @@ class Product(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def latest_cost_price(self):
+        """Eng oxirgi StockBatch tan narxini qaytaradi.
+        Batch yo'q bo'lsa default_cost_price ni qaytaradi."""
+        batch = self.stock_batches.filter(is_active=True).order_by('-created_at').first()
+        return batch.cost_price if batch else self.default_cost_price

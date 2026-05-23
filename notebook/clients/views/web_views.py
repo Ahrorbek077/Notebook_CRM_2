@@ -24,16 +24,23 @@ class ClientListView(LoginRequiredMixin, ListView):
     model = Client
     template_name = "client.html"
     context_object_name = "clients"
-    paginate_by = 12
+    paginate_by = 2
 
     def get_queryset(self):
         qs = Client.objects.select_related('region').order_by("-created_at")
-        search = self.request.GET.get("search", "").strip()
+        search    = self.request.GET.get("search", "").strip()
         region_id = self.request.GET.get("region", "").strip()
+        balance   = self.request.GET.get("balance", "").strip()  # debt | advance | clear
         if search:
             qs = qs.filter(Q(name__icontains=search) | Q(phone__icontains=search))
         if region_id:
             qs = qs.filter(region_id=region_id)
+        if balance == "debt":
+            qs = qs.filter(total_debt__gt=0)
+        elif balance == "advance":
+            qs = qs.filter(advance_balance__gt=0)
+        elif balance == "clear":
+            qs = qs.filter(total_debt=0, advance_balance=0)
         return qs
 
     def get_context_data(self, **kwargs):
@@ -41,6 +48,7 @@ class ClientListView(LoginRequiredMixin, ListView):
         context['form'] = ClientForm()
         context['regions'] = Region.objects.filter(is_active=True)
         context['selected_region'] = self.request.GET.get("region", "")
+        context['selected_balance'] = self.request.GET.get("balance", "")
         return context
 
     def get(self, request, *args, **kwargs):
@@ -50,6 +58,14 @@ class ClientListView(LoginRequiredMixin, ListView):
 
     def get_ajax_response(self):
         queryset = self.get_queryset()
+
+        # ── Barcha filterlangan clientlarning UMUMIY summasi — bitta query ──
+        # Pagination bo'yicha emas, butun queryset bo'yicha hisoblanadi
+        grand_totals = queryset.aggregate(
+            grand_debt=Coalesce(Sum('total_debt'), Decimal('0')),
+            grand_advance=Coalesce(Sum('advance_balance'), Decimal('0')),
+        )
+
         paginator = Paginator(queryset, self.paginate_by)
         page_number = self.request.GET.get('page', 1)
         try:
@@ -81,6 +97,10 @@ class ClientListView(LoginRequiredMixin, ListView):
             "has_next": page_obj.has_next(),
             "has_previous": page_obj.has_previous(),
             "total_count": paginator.count,
+            # ── Barcha sahifalar bo'yicha UMUMIY yig'indi ──────────────────
+            "grand_total_debt": float(grand_totals['grand_debt']),
+            "grand_total_advance": float(grand_totals['grand_advance']),
+            "selected_balance": self.request.GET.get("balance", ""),
         })
 
 

@@ -6,7 +6,8 @@ from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q
+from django.db.models import Q, OuterRef, Subquery, DecimalField
+from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views import View
@@ -36,9 +37,22 @@ class BranchDetailView(LoginRequiredMixin, View):
         search   = request.GET.get('search', '').strip()
         page_num = request.GET.get('page', 1)
 
+        # ── latest_cost_price N+1 ni Subquery bilan hal qilamiz ──────────
+        # Har product uchun alohida query o'rniga bitta LEFT JOIN
+        from notebook.inventory.models import StockBatch
+        latest_batch_cost = StockBatch.objects.filter(
+            product=OuterRef('pk'), is_active=True
+        ).order_by('-created_at').values('cost_price')[:1]
+
         qs = Product.objects.filter(
             branch=branch, is_active=True
-        ).select_related('category').order_by('-created_at')
+        ).select_related('category').annotate(
+            annotated_cost_price=Coalesce(
+                Subquery(latest_batch_cost, output_field=DecimalField()),
+                'default_cost_price',
+                output_field=DecimalField()
+            )
+        ).order_by('-created_at')
 
         if search:
             qs = qs.filter(Q(name__icontains=search))
@@ -191,26 +205,44 @@ class BranchPayView(LoginRequiredMixin, View):
 # ─── Branch Product CRUD ──────────────────────────────────────────────────────
 
 class BranchProductCreateView(LoginRequiredMixin, View):
-    """Filialga yangi mahsulot qo'shish."""
+    """Filialga yangi mahsulot qo'shish.
+    
+    Faqat mahsulot katalogga qo'shiladi — stock 0 qoladi.
+    Stock keyinchalik 'Sotib olish' tugmasi orqali to'ldiriladi.
+    Tan narxi esa 'Sotib olish' modal da kiritiladi (default_cost_price sifatida saqlanadi).
+    """
     def post(self, request, branch_pk):
         try:
             branch = get_object_or_404(Branch, pk=branch_pk, is_active=True)
             form   = ProductForm(request.POST, request.FILES)
             if form.is_valid():
+                # ── Tan narxini validatsiya (stock uchun default) ──────────
+                cost_price_str = request.POST.get('cost_price', '').strip()
+                try:
+                    cost_price = Decimal(cost_price_str)
+                    if cost_price <= 0:
+                        raise ValueError
+                except (InvalidOperation, ValueError):
+                    return JsonResponse({'status': 'error', 'message': "Tan narxi to'g'ri kiritilmagan"}, status=400)
+
                 product = form.save(commit=False)
-                product.branch     = branch
-                product.created_by = request.user
+                product.branch           = branch
+                product.created_by       = request.user
+                product.default_cost_price = cost_price   # yangi maydon
                 product.save()
+                # ── Stock qo'shilmaydi — faqat katalogga qo'shildi ────────
+
                 ActivityLog.objects.create(
                     user=request.user, action_type='product_create',
-                    description=f"Mahsulot qo'shildi: {product.name} (filial: {branch.name})",
-                    extra_data={'product_id': product.id, 'branch_id': branch.id}
+                    description=f"Mahsulot katalogga qo'shildi: {product.name}, tan narxi: {cost_price:,.0f} so'm (filial: {branch.name})",
+                    extra_data={'product_id': product.id, 'branch_id': branch.id, 'cost_price': str(cost_price)}
                 )
                 return JsonResponse({
                     'status': 'success',
                     'product': {
                         'id': product.id, 'name': product.name,
                         'price': str(product.price), 'stock': product.stock,
+                        'cost_price': str(cost_price),
                         'category': product.category.name,
                         'image': product.image.url if product.image else None,
                     }
@@ -228,9 +260,10 @@ class BranchProductUpdateView(LoginRequiredMixin, View):
         from decimal import InvalidOperation as DIE
         try:
             product = get_object_or_404(Product, pk=pk, is_active=True)
-            name  = request.POST.get('name', '').strip()
-            price = request.POST.get('price', '')
-            cat   = request.POST.get('category', '')
+            name       = request.POST.get('name', '').strip()
+            price      = request.POST.get('price', '')
+            cat        = request.POST.get('category', '')
+            cost_price = request.POST.get('cost_price', '').strip()
 
             if name:  product.name = name
             if price:
@@ -242,16 +275,35 @@ class BranchProductUpdateView(LoginRequiredMixin, View):
                     os.remove(product.image.path)
                 product.image = request.FILES['image']
             product.save()
+
+            # ── Tan narxini yangilash ──────────────────────────────────────
+            new_cost = None
+            if cost_price:
+                try:
+                    new_cost = Decimal(cost_price)
+                    if new_cost > 0:
+                        # 1) default_cost_price (keyingi "Sotib olish" uchun)
+                        product.default_cost_price = new_cost
+                        product.save(update_fields=['default_cost_price'])
+                        # 2) Oxirgi batch narxini ham yangilaymiz (agar bor bo'lsa)
+                        last_batch = product.stock_batches.filter(is_active=True).order_by('-created_at').first()
+                        if last_batch:
+                            last_batch.cost_price = new_cost
+                            last_batch.save(update_fields=['cost_price'])
+                except InvalidOperation:
+                    pass
+
             ActivityLog.objects.create(
                 user=request.user, action_type='product_update',
-                description=f"Mahsulot yangilandi: {product.name}",
-                extra_data={'product_id': product.id}
+                description=f"Mahsulot yangilandi: {product.name}" + (f", tan narxi: {new_cost:,.0f} so'm" if new_cost else ""),
+                extra_data={'product_id': product.id, 'new_cost_price': str(new_cost) if new_cost else None}
             )
             return JsonResponse({
                 'status': 'success',
                 'product': {
                     'id': product.id, 'name': product.name,
                     'price': str(product.price),
+                    'cost_price': str(new_cost) if new_cost else str(product.latest_cost_price),
                     'category': product.category.name,
                     'image': product.image.url if product.image else None,
                 }
@@ -333,13 +385,22 @@ class BatchReturnView(LoginRequiredMixin, View):
 
 
 class BranchProductPurchaseView(LoginRequiredMixin, View):
-    """Mahsulotni sotib olish — tan narxi + miqdor → yangi StockBatch (FIFO)."""
+    """Mahsulotni sotib olish — faqat miqdor kiritiladi, tan narxi oxirgi batchdan olinadi."""
     def post(self, request, pk):
         try:
-            product    = get_object_or_404(Product, pk=pk, is_active=True)
-            data       = json.loads(request.body)
-            quantity   = int(data.get('quantity', 0))
-            cost_price = Decimal(str(data.get('cost_price', '0')))
+            product  = get_object_or_404(Product, pk=pk, is_active=True)
+            data     = json.loads(request.body)
+            quantity = int(data.get('quantity', 0))
+
+            # Tan narxini: 1) JSON dan (edit holat), 2) oxirgi batch dan olamiz
+            cost_price_raw = data.get('cost_price')
+            if cost_price_raw:
+                cost_price = Decimal(str(cost_price_raw))
+            else:
+                last_batch = product.stock_batches.filter(is_active=True).order_by('-created_at').first()
+                if not last_batch:
+                    return JsonResponse({'status': 'error', 'message': "Mahsulot uchun tan narxi belgilanmagan. Avval mahsulotni Edit qiling"}, status=400)
+                cost_price = last_batch.cost_price
 
             if quantity <= 0:
                 return JsonResponse({'status': 'error', 'message': "Miqdor 0 dan katta bo'lishi kerak"}, status=400)

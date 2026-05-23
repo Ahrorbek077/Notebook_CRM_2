@@ -14,8 +14,9 @@ class ClientManager {
         this.editModal   = document.getElementById('editClientModal');
         this.deleteModal = document.getElementById('deleteClientModal');
 
-        this.currentRegion = new URLSearchParams(window.location.search).get('region') || '';
-        this.currentSearch = new URLSearchParams(window.location.search).get('search') || '';
+        this.currentRegion  = new URLSearchParams(window.location.search).get('region')  || '';
+        this.currentSearch  = new URLSearchParams(window.location.search).get('search')  || '';
+        this.currentBalance = new URLSearchParams(window.location.search).get('balance') || '';
 
         this.init();
     }
@@ -24,8 +25,30 @@ class ClientManager {
         console.log('%c✅ ClientManager yuklandi', 'color:#00d4aa;font-weight:bold');
         this.bindEvents();
         this.bindLocationEvents();
-        this.updateStatsFromDOM();
+        this.loadInitialStats();   // ← AJAX bilan umumiy grand total olish
         this.updateSearchClear();
+    }
+
+    // Sahifa birinchi yuklanganda grand total ni backend dan AJAX bilan olish
+    async loadInitialStats() {
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('page');  // page parametri kerak emas
+            const resp = await fetch(url.toString(), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!resp.ok) { this.updateStatsFromDOM(); return; }
+            const data = await resp.json();
+            // Grand total keldi - to'g'ri ko'rsatamiz
+            this.updateStats(
+                data.clients || [],
+                data.grand_total_debt    ?? null,
+                data.grand_total_advance ?? null
+            );
+        } catch {
+            // AJAX xato bo'lsa DOM dan hisoblash (fallback)
+            this.updateStatsFromDOM();
+        }
     }
 
     // ==================== DEBOUNCE ====================
@@ -57,15 +80,14 @@ class ClientManager {
         if (this.statCount)     this.statCount.textContent     = cards.length;
     }
 
-    updateStats(clients) {
-        let totalDebt = 0, totalAdvance = 0;
-        clients.forEach(c => {
-            totalDebt    += c.total_debt      || 0;
-            totalAdvance += c.advance_balance || 0;
-        });
+    updateStats(clients, grandTotalDebt = null, grandTotalAdvance = null) {
+        // Agar backend dan umumiy yig'indi kelgan bo'lsa — uni ishlatamiz
+        // Aks holda joriy sahifadagi clientlar bo'yicha hisoblaymiz (fallback)
+        const totalDebt    = grandTotalDebt    !== null ? grandTotalDebt    : clients.reduce((s, c) => s + (c.total_debt      || 0), 0);
+        const totalAdvance = grandTotalAdvance !== null ? grandTotalAdvance : clients.reduce((s, c) => s + (c.advance_balance || 0), 0);
         if (this.statTotalDebt) this.statTotalDebt.textContent = this.fmt(totalDebt)    + ' so\'m';
         if (this.statAdvance)   this.statAdvance.textContent   = this.fmt(totalAdvance) + ' so\'m';
-        if (this.statCount)     this.statCount.textContent     = clients.length;
+        if (this.statCount)     this.statCount.textContent     = this.totalCount?.textContent || clients.length;
     }
 
     // ==================== SEARCH CLEAR ====================
@@ -156,7 +178,7 @@ class ClientManager {
     }
 
     // ==================== LOAD CLIENTS (AJAX) ====================
-    async loadClients(search = '', region = '') {
+    async loadClients(search = '', region = '', balance = '') {
         if (!this.clientList) return;
 
         this.clientList.innerHTML = `
@@ -170,6 +192,11 @@ class ClientManager {
             const url = new URL(window.location.href);
             url.searchParams.set('search', search);
             url.searchParams.set('region', region);
+            if (balance) {
+                url.searchParams.set('balance', balance);
+            } else {
+                url.searchParams.delete('balance');
+            }
             url.searchParams.delete('page');
 
             const resp = await fetch(url.toString(), {
@@ -194,7 +221,7 @@ class ClientManager {
             }
 
             this.clientList.innerHTML = data.clients.map(c => this.buildCard(c)).join('');
-            this.updateStats(data.clients);
+            this.updateStats(data.clients, data.grand_total_debt ?? null, data.grand_total_advance ?? null);
 
         } catch (err) {
             console.error('loadClients error:', err);
@@ -299,18 +326,28 @@ class ClientManager {
                 this.searchInput.value = '';
                 this.currentSearch = '';
                 this.updateSearchClear();
-                this.loadClients('', this.currentRegion);
+                this.loadClients('', this.currentRegion, this.currentBalance);
                 this.searchInput.focus();
             });
         }
 
         // Region filter chips
-        document.querySelectorAll('.region-chip').forEach(chip => {
+        document.querySelectorAll('#regionFilter .region-chip').forEach(chip => {
             chip.addEventListener('click', () => {
-                document.querySelectorAll('.region-chip').forEach(c => c.classList.remove('active'));
+                document.querySelectorAll('#regionFilter .region-chip').forEach(c => c.classList.remove('active'));
                 chip.classList.add('active');
                 this.currentRegion = chip.dataset.region || '';
-                this.loadClients(this.currentSearch, this.currentRegion);
+                this.loadClients(this.currentSearch, this.currentRegion, this.currentBalance);
+            });
+        });
+
+        // Balance filter chips
+        document.querySelectorAll('.balance-chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                document.querySelectorAll('.balance-chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                this.currentBalance = chip.dataset.balance || '';
+                this.loadClients(this.currentSearch, this.currentRegion, this.currentBalance);
             });
         });
 
@@ -408,7 +445,7 @@ class ClientManager {
                 document.getElementById('addLatInput').value  = '';
                 document.getElementById('addLngInput').value  = '';
                 document.getElementById('addLocationPreview').style.display = 'none';
-                await this.loadClients(this.currentSearch, this.currentRegion);
+                await this.loadClients(this.currentSearch, this.currentRegion, this.currentBalance);
             } else {
                 alert(data.message || 'Xatolik yuz berdi');
             }
@@ -436,7 +473,7 @@ class ClientManager {
 
             if (data.status === 'updated') {
                 this.hideModal(this.editModal);
-                await this.loadClients(this.currentSearch, this.currentRegion);
+                await this.loadClients(this.currentSearch, this.currentRegion, this.currentBalance);
             } else {
                 alert(data.message || 'Xatolik yuz berdi');
             }
@@ -464,7 +501,7 @@ class ClientManager {
 
             if (data.status === 'deleted') {
                 this.hideModal(this.deleteModal);
-                await this.loadClients(this.currentSearch, this.currentRegion);
+                await this.loadClients(this.currentSearch, this.currentRegion, this.currentBalance);
             } else {
                 alert(data.message || "O'chirishda xatolik");
             }

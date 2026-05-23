@@ -644,3 +644,15 @@ body {
                     var(--bg-base);
     }
 }
+/* ==================== BALANCE FILTER CHIPS ==================== */
+/* Balance chip lar har xil rang bilan active bo'ladi */
+.balance-chip.active {
+    background: var(--chip-active-bg, var(--accent-dim));
+    border-color: var(--chip-active-border, var(--accent));
+    color: var(--chip-active-color, var(--accent));
+    font-weight: 600;
+}
+.balance-chip:hover {
+    border-color: var(--chip-active-color, var(--accent));
+    color: var(--chip-active-color, var(--accent));
+}

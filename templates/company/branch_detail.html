@@ -272,7 +272,8 @@
                 <button class="btn-purchase purchase-btn"
                     data-id="{{ product.id }}"
                     data-name="{{ product.name|escapejs }}"
-                    data-price="{{ product.price }}">
+                    data-price="{{ product.price }}"
+                    data-cost-price="{{ product.annotated_cost_price }}">
                     <i class="fa fa-shopping-cart"></i> Sotib olish
                 </button>
 
@@ -281,6 +282,7 @@
                     data-id="{{ product.id }}"
                     data-name="{{ product.name|escapejs }}"
                     data-price="{{ product.price }}"
+                    data-cost-price="{{ product.annotated_cost_price }}"
                     data-category="{{ product.category_id }}">
                     <i class="fa fa-edit"></i> {% trans 'Tahrirlash' %}
                 </button>
@@ -364,6 +366,14 @@
                 </div>
             </div>
             <div class="form-group">
+                <label class="form-label" style="display:flex;align-items:center;gap:6px">
+                    Tan narxi *
+                    <span style="font-size:.65rem;background:var(--amber-d);color:var(--amber);padding:1px 6px;border-radius:4px;font-weight:700">XARID NARXI</span>
+                </label>
+                <input type="number" class="form-control" id="apCostPrice" placeholder="Kompaniyaga to'lanadigan narx..." min="0.01" step="0.01">
+                <small style="color:var(--t3);font-size:.7rem">1 dona omborga kirim sifatida qo'shiladi</small>
+            </div>
+            <div class="form-group">
                 <label class="form-label">{% trans 'Rasm (ixtiyoriy)' %}</label>
                 <div class="img-upload-wrap" id="apImgWrap">
                     <div class="img-upload-icon"><i class="fa fa-image"></i></div>
@@ -409,6 +419,17 @@
                 </div>
             </div>
             <div class="form-group">
+                <label class="form-label" style="display:flex;align-items:center;gap:6px">
+                    Tan narxi
+                    <span style="font-size:.65rem;background:var(--amber-d);color:var(--amber);padding:1px 6px;border-radius:4px;font-weight:700">XARID NARXI</span>
+                </label>
+                <div style="position:relative">
+                    <input type="number" class="form-control" id="epCostPrice" placeholder="0" min="0.01" step="0.01">
+                    <div id="epCostPriceHint" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.72rem;color:var(--t3);pointer-events:none"></div>
+                </div>
+                <small style="color:var(--t3);font-size:.7rem">Bo'sh qoldirsangiz o'zgarmaydi</small>
+            </div>
+            <div class="form-group">
                 <label class="form-label">Yangi rasm (ixtiyoriy)</label>
                 <div class="img-upload-wrap" id="epImgWrap">
                     <div class="img-upload-icon"><i class="fa fa-image"></i></div>
@@ -438,36 +459,33 @@
             <!-- mahsulot info -->
             <div style="background:var(--green-d);border:1px solid var(--green-b);border-radius:var(--r);padding:10px 14px" id="pmProductInfo"></div>
 
-            <div class="form-row" style="margin-top:8px">
+            <div style="margin-top:8px">
                 <div class="form-group">
                     <label class="form-label">Miqdor (dona) *</label>
                     <input type="number" class="form-control" id="pmQty" placeholder="0" min="1" value="1">
-                </div>
-                <div class="form-group">
-                    <label class="form-label" style="display:flex;align-items:center;gap:6px">
-                        Tan narxi *
-                        <span style="font-size:.65rem;background:var(--amber-d);color:var(--amber);padding:1px 6px;border-radius:4px;font-weight:700">XARID NARXI</span>
-                    </label>
-                    <input type="number" class="form-control" id="pmCost" placeholder="Siz to'laydigan narx..." min="0.01" step="0.01">
-                    <small style="color:var(--t3);font-size:.7rem">Sotuv narxidan farqli — bu kompaniyaga to'laydigan narx</small>
+                    <small style="color:var(--t3);font-size:.7rem">Mahsulotning tan narxi mahsulot kartasida belgilangan</small>
                 </div>
             </div>
 
-            <!-- Narxlar taqqoslash -->
+            <!-- Narxlar ko'rsatish (faqat info) -->
             <div style="background:var(--bg-el);border:1px solid var(--b);border-radius:var(--r);padding:10px 14px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                    <span style="font-size:.78rem;color:var(--t2)">Tan narxi (mahsulot kartasidagi):</span>
+                    <span style="font-family:var(--mono);font-size:.88rem;color:var(--amber);font-weight:700" id="pmCostDisplay">—</span>
+                </div>
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px">
                     <span style="font-size:.78rem;color:var(--t2)">Jami xarajat (tan narx × miqdor):</span>
                     <span style="font-family:var(--mono);font-size:.95rem;color:var(--amber);font-weight:700" id="pmTotal">0 so'm</span>
                 </div>
                 <div style="display:flex;justify-content:space-between">
                     <span style="font-size:.78rem;color:var(--t2)">Kutilgan foyda (1 dona):</span>
-                    <span style="font-family:var(--mono);font-size:.88rem;font-weight:700" id="pmProfit" style="color:var(--green)">0 so'm</span>
+                    <span style="font-family:var(--mono);font-size:.88rem;font-weight:700" id="pmProfit">0 so'm</span>
                 </div>
             </div>
 
             <div style="background:var(--cyan-d);border:1px solid rgba(0,188,212,.2);border-radius:var(--r);padding:8px 12px;font-size:.78rem;color:var(--cyan)">
                 <i class="fa fa-info-circle"></i>
-                Tan narxi ≠ Sotuv narxi. Tan narxi — siz kompaniyaga to'laydigan narx.
+                Tan narxini o'zgartirish uchun mahsulot <strong>Edit</strong> tugmasidan foydalaning.
             </div>
             <div id="pmMsg" class="form-msg d-none"></div>
         </div>
@@ -525,11 +543,14 @@ document.getElementById('apSubmit').addEventListener('click',async()=>{
     const name=document.getElementById('apName').value.trim();
     const cat=document.getElementById('apCategory').value;
     const price=document.getElementById('apPrice').value;
+    const costPrice=document.getElementById('apCostPrice').value;
     if(!name||!cat||!price){showMsg(msg,'Nomi, kategoriya va narx majburiy!','error');return;}
+    if(!costPrice||parseFloat(costPrice)<=0){showMsg(msg,'Tan narxini kiriting!','error');return;}
     btn.disabled=true;btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
     const fd=new FormData();
     fd.append('csrfmiddlewaretoken',CSRF);
     fd.append('name',name);fd.append('category',cat);fd.append('price',price);
+    fd.append('cost_price',costPrice);fd.append('initial_quantity','1');
     const img=document.getElementById('apImage');
     if(img&&img.files[0])fd.append('image',img.files[0]);
     try{
@@ -550,10 +571,17 @@ document.getElementById('apSubmit').addEventListener('click',async()=>{
 /* ── Edit Product ── */
 document.querySelectorAll('.edit-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
+        const currentCost=parseFloat(btn.dataset.costPrice||0);
         document.getElementById('epId').value=btn.dataset.id;
         document.getElementById('epName').value=btn.dataset.name;
         document.getElementById('epPrice').value=btn.dataset.price;
         document.getElementById('epCategory').value=btn.dataset.category;
+        // Tan narxini ko'rsatamiz - placeholder sifatida joriy narh
+        const epCost=document.getElementById('epCostPrice');
+        epCost.value='';  // Bo'sh - foydalanuvchi o'chirib yangi kiritadi
+        epCost.placeholder=currentCost>0?currentCost.toLocaleString()+' (joriy)':'0';
+        const hint=document.getElementById('epCostPriceHint');
+        if(hint) hint.textContent=currentCost>0?'Joriy: '+currentCost.toLocaleString():'';
         document.getElementById('epImgWrap').innerHTML='<div class="img-upload-icon"><i class="fa fa-image"></i></div><div class="img-upload-text">O\'zgartirish uchun bosing</div><input type="file" id="epImage" accept="image/*" style="display:none">';
         document.getElementById('epImgWrap').addEventListener('click',()=>document.getElementById('epImage').click());
         document.getElementById('epImage').addEventListener('change',function(){
@@ -576,6 +604,8 @@ document.getElementById('epSubmit').addEventListener('click',async()=>{
     fd.append('name',name);
     fd.append('price',document.getElementById('epPrice').value);
     fd.append('category',document.getElementById('epCategory').value);
+    const epCostVal=document.getElementById('epCostPrice').value;
+    if(epCostVal&&parseFloat(epCostVal)>0) fd.append('cost_price',epCostVal);
     const img=document.getElementById('epImage');
     if(img&&img.files[0])fd.append('image',img.files[0]);
     try{
@@ -615,21 +645,31 @@ document.querySelectorAll('.delete-btn').forEach(btn=>{
 document.querySelectorAll('.purchase-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
         const id=btn.dataset.id, name=btn.dataset.name, price=btn.dataset.price;
+        const costPrice=parseFloat(btn.dataset.costPrice||0);
         document.getElementById('pmProductId').value=id;
         document.getElementById('pmProductInfo').innerHTML=
             `<div style="font-weight:700;color:var(--t);margin-bottom:4px"><i class="fa fa-box" style="color:var(--green)"></i> ${name}</div>`+
-            `<div style="font-size:.78rem;color:var(--t2)">Joriy sotuv narxi: <span style="font-family:var(--mono);color:var(--green)">${parseFloat(price).toLocaleString()} so'm</span></div>`;
+            `<div style="font-size:.78rem;color:var(--t2)">Sotuv narxi: <span style="font-family:var(--mono);color:var(--green)">${parseFloat(price).toLocaleString()} so'm</span></div>`;
         document.getElementById('pmQty').value='1';
-        document.getElementById('pmCost').value='';
-        document.getElementById('pmTotal').textContent='0 so\'m';
+        // Tan narxini ko'rsatamiz
+        const costDisp=document.getElementById('pmCostDisplay');
+        if(costDisp) costDisp.textContent=costPrice>0?costPrice.toLocaleString()+' so\'m':'Belgilanmagan';
+        // pmCost hidden field - backend uchun
+        if(!document.getElementById('pmCostHidden')){
+            const h=document.createElement('input');h.type='hidden';h.id='pmCostHidden';
+            document.getElementById('pmProductId').parentNode.appendChild(h);
+        }
+        document.getElementById('pmCostHidden').value=costPrice;
+        updateTotalPurchase();
         openModal('purchaseModal');
     });
 });
 
-/* Jami hisob - live */
-function updateTotal(){
+/* Jami hisob - live (faqat qty kiritiladi, cost mahsulotdan olinadi) */
+function updateTotalPurchase(){
     const qty=parseFloat(document.getElementById('pmQty').value)||0;
-    const cost=parseFloat(document.getElementById('pmCost').value)||0;
+    const costHidden=document.getElementById('pmCostHidden');
+    const cost=costHidden?parseFloat(costHidden.value)||0:0;
     const sellPrice=parseFloat(document.querySelector('.purchase-btn[data-id="'+document.getElementById('pmProductId').value+'"]')?.dataset?.price||0);
     document.getElementById('pmTotal').textContent=(qty*cost).toLocaleString()+' so\'m';
     const profitEl=document.getElementById('pmProfit');
@@ -639,16 +679,16 @@ function updateTotal(){
         profitEl.style.color = profit > 0 ? 'var(--green)' : profit < 0 ? 'var(--red)' : 'var(--t2)';
     }
 }
-document.getElementById('pmQty').addEventListener('input',updateTotal);
-document.getElementById('pmCost').addEventListener('input',updateTotal);
+document.getElementById('pmQty').addEventListener('input',updateTotalPurchase);
 
 document.getElementById('pmSubmit').addEventListener('click',async()=>{
     const btn=document.getElementById('pmSubmit'),msg=document.getElementById('pmMsg');
     const id=document.getElementById('pmProductId').value;
     const qty=parseInt(document.getElementById('pmQty').value);
-    const cost=parseFloat(document.getElementById('pmCost').value);
+    const costHidden=document.getElementById('pmCostHidden');
+    const cost=costHidden?parseFloat(costHidden.value)||0:0;
     if(!qty||qty<1){showMsg(msg,'Miqdorni kiriting!','error');return;}
-    if(!cost||cost<=0){showMsg(msg,'Tan narxini kiriting!','error');return;}
+    if(!cost||cost<=0){showMsg(msg,"Bu mahsulotning tan narxi belgilanmagan. Edit qilib tan narxini kiriting!",'error');return;}
     btn.disabled=true;btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
     try{
         const res=await fetch(`/company/api/product/${id}/purchase/`,{
