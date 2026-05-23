@@ -177,7 +177,7 @@
         </div>
         <div class="pagination-btns">
             {% if page_obj.has_previous %}
-            <a class="pag-btn" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if selected_region %}&region={{ selected_region }}{% endif %}">
+            <a class="pag-btn" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if selected_region %}&region={{ selected_region }}{% endif %}{% if selected_balance %}&balance={{ selected_balance }}{% endif %}">
                 <i class="fa fa-chevron-left"></i>
             </a>
             {% endif %}
@@ -185,11 +185,11 @@
                 {% if i == page_obj.number %}
                 <span class="pag-btn active">{{ i }}</span>
                 {% elif i >= page_obj.number|add:"-2" and i <= page_obj.number|add:"2" %}
-                <a class="pag-btn" href="?page={{ i }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if selected_region %}&region={{ selected_region }}{% endif %}">{{ i }}</a>
+                <a class="pag-btn" href="?page={{ i }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if selected_region %}&region={{ selected_region }}{% endif %}{% if selected_balance %}&balance={{ selected_balance }}{% endif %}">{{ i }}</a>
                 {% endif %}
             {% endfor %}
             {% if page_obj.has_next %}
-            <a class="pag-btn" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if selected_region %}&region={{ selected_region }}{% endif %}">
+            <a class="pag-btn" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if selected_region %}&region={{ selected_region }}{% endif %}{% if selected_balance %}&balance={{ selected_balance }}{% endif %}">
                 <i class="fa fa-chevron-right"></i>
             </a>
             {% endif %}
