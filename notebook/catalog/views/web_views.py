@@ -32,13 +32,27 @@ class ProductListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx['form'] = ProductForm()
-        # Jami inventar narxi: price * stock — bitta aggregate query
+        # Jami sotuv qiymati: price * stock — bitta aggregate query
         result = Product.objects.filter(stock__gt=0).aggregate(
             total_value=Sum(
                 ExpressionWrapper(F('price') * F('stock'), output_field=DecimalField())
             )
         )
         ctx['total_inventory_value'] = result['total_value'] or 0
+
+        # Jami tan narxi: StockBatch.remaining_quantity * cost_price
+        # Bu FIFO bo'yicha eng to'g'ri hisob — har batch o'z narxida
+        batch_result = StockBatch.objects.filter(
+            is_active=True, remaining_quantity__gt=0
+        ).aggregate(
+            total_cost=Sum(
+                ExpressionWrapper(
+                    F('remaining_quantity') * F('cost_price'),
+                    output_field=DecimalField()
+                )
+            )
+        )
+        ctx['total_inventory_cost_value'] = batch_result['total_cost'] or 0
         return ctx
 
     def get(self, request, *args, **kwargs):
