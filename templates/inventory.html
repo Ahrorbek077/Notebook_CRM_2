@@ -53,9 +53,9 @@
             <div class="stat-value stat-value--money" id="totalValue">{{ total_inventory_value|floatformat:0 }} so'm</div>
         </div>
         <div class="stat-card stat-card--wide">
-            <div class="stat-icon amber"><i class="fa fa-tag"></i></div>
+            <div class="stat-icon red"><i class="fa fa-tag"></i></div>
             <div class="stat-label">Jami tan narxi</div>
-            <div class="stat-value stat-value--money" id="totalCostValue">{{ total_inventory_cost_value|floatformat:0 }} so'm</div>
+            <div class="stat-value stat-value--money" id="totalCostValue" style="color:var(--danger-color, #ef5350)">{{ total_inventory_cost_value|floatformat:0 }} so'm</div>
         </div>
     </div>
 
