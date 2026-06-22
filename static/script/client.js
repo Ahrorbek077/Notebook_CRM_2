@@ -158,6 +158,16 @@ class ClientManager {
                 <button class="ca-btn view-btn" data-id="${c.id}">
                     <i class="fa fa-eye"></i><span>Ko'rish</span>
                 </button>
+                ${(debt > 0 || advance > 0) ? `
+                <a class="ca-btn sms-btn"
+                   href="sms:${c.phone}?body=${encodeURIComponent(
+                        debt > 0
+                          ? `Hurmatli ${c.name}, sizning qarzingiz ${this.fmt(debt)} so'm. Iltimos, imkon qadar tezroq to'lovni amalga oshiring. Rahmat!`
+                          : `Hurmatli ${c.name}, sizning avansingiz ${this.fmt(advance)} so'm. Keyingi xaridingizda hisobga olinadi. Rahmat!`
+                   )}"
+                   onclick="event.stopPropagation()">
+                    <i class="fa fa-comment-sms"></i><span>SMS</span>
+                </a>` : ''}
                 <button class="ca-btn edit-btn"
                         data-id="${c.id}"
                         data-name="${c.name || ''}"
@@ -171,7 +181,7 @@ class ClientManager {
                 <button class="ca-btn delete-btn"
                         data-id="${c.id}"
                         data-name="${c.name || ''}">
-                    <i class="fa fa-trash"></i><span>O'chirish</span>
+                    <i class="fa fa-unlink"></i><span>Aloqani uz</span>
                 </button>
             </div>
         </div>`;

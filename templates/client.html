@@ -140,6 +140,13 @@
                 <button class="ca-btn view-btn" data-id="{{ client.id }}">
                     <i class="fa fa-eye"></i><span>{% trans "Ko'rish" %}</span>
                 </button>
+                {% if client.total_debt > 0 or client.advance_balance > 0 %}
+                <a class="ca-btn sms-btn"
+                   href="sms:{{ client.phone }}?body={% if client.total_debt > 0 %}Hurmatli {{ client.name }}, sizning qarzingiz {{ client.total_debt|floatformat:0 }} so'm. Iltimos, imkon qadar tezroq toʻlovni amalga oshiring. Rahmat!{% else %}Hurmatli {{ client.name }}, sizning avansingiz {{ client.advance_balance|floatformat:0 }} so'm. Keyingi xaridingizda hisobga olinadi. Rahmat!{% endif %}"
+                   onclick="event.stopPropagation()">
+                    <i class="fa fa-comment-sms"></i><span>SMS</span>
+                </a>
+                {% endif %}
                 <button class="ca-btn edit-btn"
                         data-id="{{ client.id }}"
                         data-name="{{ client.name }}"

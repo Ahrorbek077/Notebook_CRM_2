@@ -425,6 +425,8 @@ body {
 .ca-btn.view-btn:hover   { color: var(--info); background: var(--info-dim); }
 .ca-btn.edit-btn:hover   { color: var(--warning); background: rgba(251,191,36,0.08); }
 .ca-btn.delete-btn:hover { color: var(--danger); background: var(--danger-dim); }
+.ca-btn.sms-btn          { color: #00c853; text-decoration: none; }
+.ca-btn.sms-btn:hover    { background: rgba(0,200,83,0.1); }
 
 /* ==================== EMPTY STATE ==================== */
 .empty-state {
