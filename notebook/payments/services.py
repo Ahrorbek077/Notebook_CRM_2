@@ -50,7 +50,7 @@ class PaymentService:
             payment = Payment.objects.select_for_update().get(pk=payment.pk)
             client  = Client.objects.select_for_update().get(pk=payment.client.pk)
 
-            PaymentRefund.objects.create(payment=payment, amount=amount, user=user, reason=reason)
+            refund = PaymentRefund.objects.create(payment=payment, amount=amount, user=user, reason=reason)
             payment.refunded_amount += amount
             payment.save(update_fields=['refunded_amount'])
 
@@ -65,7 +65,7 @@ class PaymentService:
             ActivityLog.objects.create(
                 user=user, business=client.business, action_type='payment_refund',
                 description=f"{client.name} — {amount:,.0f} so'm to'lov qaytarildi",
-                extra_data={'refund_id': None, 'payment_id': payment.id,
+                extra_data={'refund_id': refund.id, 'payment_id': payment.id,
                             'client_name': client.name, 'amount': str(amount), 'reason': reason}
             )
             cache.delete(f'dashboard_full_data_{client.business_id}')

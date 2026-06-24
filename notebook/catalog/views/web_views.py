@@ -14,6 +14,7 @@ from notebook.business.mixins import BusinessRequiredMixin
 from notebook.inventory.services import StockService
 from notebook.inventory.models import StockBatch
 from ..models import Product, Category
+from notebook.activity.models import ActivityLog
 from ..forms import ProductForm, CategoryForm
 
 
@@ -70,7 +71,7 @@ class ProductListView(LoginRequiredMixin, BusinessRequiredMixin, ListView):
             page_obj = paginator.page(1)
         return JsonResponse({
             'products': [{'id': p.id, 'name': p.name, 'price': str(p.price),
-                          'stock': p.stock, 'image': p.image.url if p.image else None}
+                          'stock': str(p.stock), 'image': p.image.url if p.image else None}
                          for p in page_obj],
             'page': page_obj.number, 'total_pages': paginator.num_pages,
             'has_next': page_obj.has_next(), 'has_previous': page_obj.has_previous(),
@@ -177,7 +178,8 @@ class BatchAdjustmentsView(LoginRequiredMixin, BusinessRequiredMixin, View):
         batch       = get_object_or_404(StockBatch, id=batch_id, business=request.business)
         adjustments = batch.adjustments.select_related('user').order_by('-created_at')
         return JsonResponse({'status': 'success', 'adjustments': [
-            {'adjustment_type': a.adjustment_type, 'quantity_change': a.quantity_change,
+            {'adjustment_type': a.adjustment_type,
+             'quantity_change': str(a.quantity_change) if a.quantity_change is not None else None,
              'new_cost_price': float(a.new_cost_price) if a.new_cost_price else None,
              'reason': a.reason, 'created_at': a.created_at.strftime('%d.%m.%Y %H:%M')}
             for a in adjustments
@@ -188,7 +190,13 @@ class BatchDeleteView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request, batch_id):
         batch = get_object_or_404(StockBatch, id=batch_id, business=request.business)
         try:
+            product_name = batch.product.name  # o'chirishdan oldin saqlaymiz
             batch.soft_delete()
+            ActivityLog.objects.create(
+                user=request.user, business=request.business, action_type='stock_delete',
+                description=f"Batch o'chirildi: {product_name} (#{batch.id})",
+                extra_data={'batch_id': batch.id, 'name': product_name}
+            )
             return JsonResponse({'status': 'success'})
         except ValueError as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

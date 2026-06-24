@@ -189,7 +189,7 @@ class StockAdjustmentView(LoginRequiredMixin, View):
                                             new_cost_price=new_cost_price, user=request.user, reason=reason)
             batch.refresh_from_db(); batch.product.refresh_from_db()
             return JsonResponse({'status': 'success', 'adjustment_id': adj.id,
-                                 'new_remaining': batch.remaining_quantity, 'new_stock': batch.product.stock})
+                                 'new_remaining': str(batch.remaining_quantity), 'new_stock': str(batch.product.stock)})
         except ValueError as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 

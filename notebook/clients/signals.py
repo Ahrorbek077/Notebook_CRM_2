@@ -16,11 +16,22 @@ def log_client_save(sender, instance, created, update_fields, **kwargs):
         if changed <= BALANCE_ONLY_FIELDS:
             return  # balans o'zgarishi — tarixga keraksiz
 
+    # Soft-delete (is_active=False qilingan) holatni alohida aniqlaymiz —
+    # aks holda "o'chirildi" amali ham "yangilandi" deb yozilib qolardi.
+    is_soft_delete = (not created) and update_fields == frozenset({'is_active'}) and not instance.is_active
+
+    if created:
+        action_type, label = 'client_create', 'Yangi mijoz'
+    elif is_soft_delete:
+        action_type, label = 'client_delete', "Mijoz o'chirildi"
+    else:
+        action_type, label = 'client_update', 'Mijoz yangilandi'
+
     ActivityLog.objects.create(
         user=getattr(instance, '_current_user', None),
         business=instance.business,
-        action_type='client_create' if created else 'client_update',
-        description=f"{'Yangi mijoz' if created else 'Mijoz yangilandi'}: {instance.name}",
+        action_type=action_type,
+        description=f"{label}: {instance.name}",
         extra_data={
             'client_id': instance.id,
             'name':      instance.name,

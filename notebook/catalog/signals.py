@@ -4,16 +4,18 @@ from django.dispatch import receiver
 from .models import Product
 from notebook.activity.models import ActivityLog
 
-# Faqat stock o'zgarganda — log yozmaymiz (sotuv/xarid/qaytarish paytida)
-STOCK_ONLY_FIELDS = frozenset({'stock'})
+# Bu fieldlar o'zgarganda signal LOG YOZMAYDI — chunki:
+#   - 'stock'      — sotuv/xarid paytida o'zgaradi, alohida 'sale'/'stock_add' logi bor
+#   - 'is_active'  — soft-delete, BranchProductDeleteView o'zi 'product_delete' logini yozadi
+# Aks holda bitta amal uchun 2 marta (signal + view) log yozilib qolardi.
+SKIP_LOG_FIELDS = frozenset({'stock', 'is_active'})
 
 
 @receiver(post_save, sender=Product)
 def log_product_save(sender, instance, created, update_fields, **kwargs):
-    # Faqat stock yangilanganda (sotuv/xarid paytida) — log yozmaymiz
     if not created and update_fields:
         changed = frozenset(update_fields)
-        if changed <= STOCK_ONLY_FIELDS:
+        if changed <= SKIP_LOG_FIELDS:
             return
 
     ActivityLog.objects.create(
