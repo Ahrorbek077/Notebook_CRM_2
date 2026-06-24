@@ -27,7 +27,7 @@
         <div class="stat-card">
             <div class="stat-icon"><i class="fa fa-boxes"></i></div>
             <div class="stat-label">Umumiy qoldiq</div>
-            <div class="stat-value" id="totalStock">{{ product.stock }}</div>
+            <div class="stat-value" id="totalStock">{{ product.stock|floatformat:-3 }} {{ product.get_unit_type_display }}</div>
         </div>
         <div class="stat-card">
             <div class="stat-icon green"><i class="fa fa-layer-group"></i></div>
@@ -72,13 +72,13 @@
                     <div class="batch-nums">
                         <div class="bnum">
                             <span class="bnum-label">Qabul</span>
-                            <span class="bnum-val" id="received-{{ batch.id }}">{{ batch.quantity_received }}</span>
+                            <span class="bnum-val" id="received-{{ batch.id }}">{{ batch.quantity_received|floatformat:-3 }} {{ product.get_unit_type_display }}</span>
                         </div>
                         <div class="bnum">
                             <span class="bnum-label">Qoldiq</span>
                             <span class="bnum-val {% if batch.remaining_quantity == 0 %}zero{% elif batch.remaining_quantity < batch.quantity_received %}partial{% else %}full{% endif %}"
                                   id="remaining-{{ batch.id }}">
-                                {{ batch.remaining_quantity }}
+                                {{ batch.remaining_quantity|floatformat:-3 }} {{ product.get_unit_type_display }}
                             </span>
                         </div>
                         <div class="bnum">
@@ -89,6 +89,14 @@
                             <span class="bnum-label">{% trans 'Sotuv' %}</span>
                             <span class="bnum-val" style="color:var(--green)">{{ batch.selling_price|floatformat:0 }} so'm</span>
                         </div>
+                        {% if batch.box_quantity %}
+                        <div class="bnum">
+                            <span class="bnum-label"><i class="fa fa-box"></i> Karobka</span>
+                            <span class="bnum-val" style="color:var(--cyan)">
+                                {{ batch.box_quantity }} karobka × {{ batch.units_per_box|floatformat:-3 }} {{ product.get_unit_type_display }}
+                            </span>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                 <div class="batch-status">
@@ -126,7 +134,9 @@
                         data-id="{{ batch.id }}"
                         data-name="{{ product.name|escapejs }}"
                         data-remaining="{{ batch.remaining_quantity }}"
-                        data-cost="{{ batch.cost_price }}">
+                        data-cost="{{ batch.cost_price }}"
+                        data-box-enabled="{{ product.is_box_enabled|yesno:'true,false' }}"
+                        data-units-per-box="{{ product.units_per_box|default:'' }}">
                     <i class="fa fa-undo"></i> Kompaniyaga qaytarish
                 </button>
                 {% endif %}
@@ -163,15 +173,24 @@
         <div class="sheet-body">
             <input type="hidden" id="retBatchId">
             <input type="hidden" id="retCostPrice">
+            <input type="hidden" id="retMode" value="unit">
 
             <!-- Batch ma'lumoti -->
             <div style="background:var(--orange-d);border:1px solid rgba(251,146,60,.25);border-radius:var(--r);padding:10px 14px" id="retInfo"></div>
 
-            <div class="form-group">
+            <!-- Dona/kg rejimi -->
+            <div class="form-group" id="retUnitFields">
                 <label class="form-label">Qaytariladigan miqdor *</label>
-                <input type="number" class="form-control" id="retQty" placeholder="0" min="1"
-                       oninput="this.value = Math.min(Math.max(1, parseInt(this.value)||1), parseInt(this.max)||999999)">
+                <input type="number" class="form-control" id="retQty" placeholder="0" min="0.001"
+                       oninput="this.value = Math.min(Math.max(0, parseFloat(this.value)||0), parseFloat(this.max)||999999)">
                 <small style="color:var(--t3);font-size:.7rem" id="retMaxLabel"></small>
+            </div>
+
+            <!-- Karobka rejimi (faqat karobka-mahsulot uchun) -->
+            <div class="form-group" id="retBoxFields" style="display:none">
+                <label class="form-label">Necha karobka qaytarayapsiz? *</label>
+                <input type="number" class="form-control" id="retBoxQty" placeholder="0" min="1" step="1">
+                <small style="color:var(--t3);font-size:.7rem" id="retBoxMaxLabel"></small>
             </div>
 
             <!-- Hisoblanadigan summa -->
@@ -204,6 +223,14 @@
 
 <script>
 const CSRF = "{{ csrf_token }}";
+const UNIT_LABEL = "{{ product.get_unit_type_display }}";
+
+/* Miqdorni chiroyli ko'rsatish: "1.000" -> "1", "2.500" -> "2.5" */
+function fmtQty(val){
+    const n = parseFloat(val);
+    if (isNaN(n)) return '0';
+    return n % 1 === 0 ? n.toString() : n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+}
 
 /* Modal helpers */
 document.querySelectorAll('[data-close]').forEach(b =>
@@ -228,37 +255,64 @@ function showMsg(el, text, type) {
 }
 
 /* ── Return buttons ── */
-document.querySelectorAll('.return-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-        const id        = btn.dataset.id;
-        const name      = btn.dataset.name;
-        const remaining = parseInt(btn.dataset.remaining);
-        const cost      = parseFloat(btn.dataset.cost);
+function openReturnModalFor(btn){
+    const id        = btn.dataset.id;
+    const name      = btn.dataset.name;
+    const remaining = parseFloat(btn.dataset.remaining);
+    const cost      = parseFloat(btn.dataset.cost);
+    const isKg      = UNIT_LABEL === 'Kilogram';
+    const boxEnabled = btn.dataset.boxEnabled === 'true';
+    const unitsPerBox = parseFloat(btn.dataset.unitsPerBox || 0);
 
-        document.getElementById('retBatchId').value  = id;
-        document.getElementById('retCostPrice').value = cost;
+    document.getElementById('retBatchId').value  = id;
+    document.getElementById('retCostPrice').value = cost;
+    document.getElementById('retReason').value = '';
+    document.getElementById('retTotal').textContent = '0 so\'m';
+    document.getElementById('retInfo').innerHTML =
+        `<div style="font-weight:700;color:var(--t);margin-bottom:4px">
+            <i class="fa fa-box" style="color:var(--orange)"></i> ${name}
+        </div>
+        <div style="font-size:.78rem;color:var(--t2);display:flex;gap:16px;flex-wrap:wrap">
+            <span>Qoldiq: <b style="color:var(--amber)">${fmtQty(remaining)} ${UNIT_LABEL}</b></span>
+            <span>Tan narxi: <b style="font-family:var(--mono)">${cost.toLocaleString()} so'm</b></span>
+        </div>`;
+
+    if (boxEnabled && unitsPerBox > 0) {
+        // ── KAROBKA REJIMI ──────────────────────────────────────────────
+        document.getElementById('retMode').value = 'box';
+        document.getElementById('retUnitFields').style.display = 'none';
+        document.getElementById('retBoxFields').style.display  = 'block';
+        const maxBoxes = Math.floor(remaining / unitsPerBox);
+        document.getElementById('retBoxQty').value = '';
+        document.getElementById('retBoxQty').max   = maxBoxes;
+        document.getElementById('retBoxQty').dataset.unitsPerBox = unitsPerBox;
+        document.getElementById('retBoxMaxLabel').textContent =
+            `Maksimum: ${maxBoxes} karobka (${unitsPerBox} ${UNIT_LABEL.toLowerCase()}/karobka)`;
+    } else {
+        // ── DONA/KG REJIMI ───────────────────────────────────────────────
+        document.getElementById('retMode').value = 'unit';
+        document.getElementById('retUnitFields').style.display = 'block';
+        document.getElementById('retBoxFields').style.display  = 'none';
         document.getElementById('retQty').value = '';
         document.getElementById('retQty').max   = remaining;
-        document.getElementById('retMaxLabel').textContent = `Maksimum: ${remaining} ta`;
-        document.getElementById('retReason').value = '';
-        document.getElementById('retTotal').textContent = '0 so\'m';
-        document.getElementById('retInfo').innerHTML =
-            `<div style="font-weight:700;color:var(--t);margin-bottom:4px">
-                <i class="fa fa-box" style="color:var(--orange)"></i> ${name}
-            </div>
-            <div style="font-size:.78rem;color:var(--t2);display:flex;gap:16px;flex-wrap:wrap">
-                <span>Qoldiq: <b style="color:var(--amber)">${remaining} ta</b></span>
-                <span>Tan narxi: <b style="font-family:var(--mono)">${cost.toLocaleString()} so'm</b></span>
-            </div>`;
+        document.getElementById('retQty').step  = isKg ? '0.001' : '1';
+        document.getElementById('retMaxLabel').textContent = `Maksimum: ${fmtQty(remaining)} ${UNIT_LABEL}`;
+    }
 
-        openModal('returnModal');
-    });
-});
+    openModal('returnModal');
+}
 
 /* Live hisoblash */
 document.getElementById('retQty').addEventListener('input', function () {
-    const qty  = parseInt(this.value) || 0;
+    const qty  = parseFloat(this.value) || 0;
     const cost = parseFloat(document.getElementById('retCostPrice').value) || 0;
+    document.getElementById('retTotal').textContent = (qty * cost).toLocaleString() + ' so\'m';
+});
+document.getElementById('retBoxQty').addEventListener('input', function () {
+    const boxQty = parseFloat(this.value) || 0;
+    const unitsPerBox = parseFloat(this.dataset.unitsPerBox || 0);
+    const cost = parseFloat(document.getElementById('retCostPrice').value) || 0;
+    const qty = boxQty * unitsPerBox;
     document.getElementById('retTotal').textContent = (qty * cost).toLocaleString() + ' so\'m';
 });
 
@@ -267,15 +321,30 @@ document.getElementById('retSubmit').addEventListener('click', async () => {
     const btn      = document.getElementById('retSubmit');
     const msg      = document.getElementById('retMsg');
     const batchId  = document.getElementById('retBatchId').value;
-    const qty      = parseInt(document.getElementById('retQty').value);
-    const maxQty   = parseInt(document.getElementById('retQty').max);
+    const mode     = document.getElementById('retMode').value;
     const reason   = document.getElementById('retReason').value.trim();
 
-    if (!qty || qty < 1) {
-        showMsg(msg, 'Miqdorni kiriting!', 'error'); return;
-    }
-    if (qty > maxQty) {
-        showMsg(msg, `Maksimum ${maxQty} ta qaytarish mumkin!`, 'error'); return;
+    let qty;
+    if (mode === 'box') {
+        const boxQty = parseFloat(document.getElementById('retBoxQty').value);
+        const maxBox = parseFloat(document.getElementById('retBoxQty').max);
+        const unitsPerBox = parseFloat(document.getElementById('retBoxQty').dataset.unitsPerBox || 0);
+        if (!boxQty || boxQty <= 0) {
+            showMsg(msg, 'Karobka sonini kiriting!', 'error'); return;
+        }
+        if (boxQty > maxBox) {
+            showMsg(msg, `Maksimum ${maxBox} karobka qaytarish mumkin!`, 'error'); return;
+        }
+        qty = boxQty * unitsPerBox;   // backendga har doim eng kichik birlikda yuboramiz
+    } else {
+        qty = parseFloat(document.getElementById('retQty').value);
+        const maxQty = parseFloat(document.getElementById('retQty').max);
+        if (!qty || qty <= 0) {
+            showMsg(msg, 'Miqdorni kiriting!', 'error'); return;
+        }
+        if (qty > maxQty) {
+            showMsg(msg, `Maksimum ${fmtQty(maxQty)} ${UNIT_LABEL} qaytarish mumkin!`, 'error'); return;
+        }
     }
 
     btn.disabled = true;
@@ -297,38 +366,42 @@ document.getElementById('retSubmit').addEventListener('click', async () => {
             const advInfo = d.new_advance && parseFloat(d.new_advance) > 0
                 ? ` | Avans: ${parseFloat(d.new_advance).toLocaleString()} so'm`
                 : '';
-            toast(`Qaytarildi ✓  ${qty} ta · ${amount} so'm${debtInfo}${advInfo}`, 'success');
+            toast(`Qaytarildi ✓  ${fmtQty(qty)} ${UNIT_LABEL} · ${amount} so'm${debtInfo}${advInfo}`, 'success');
             closeModal('returnModal');
 
             /* DOM yangilaymiz — sahifani reload qilmasdan */
             const card = document.getElementById('batch-' + batchId);
             if (card) {
+                // Backend string qaytaradi (Decimal serialize) — songa aylantiramiz
+                const newRemaining = parseFloat(d.new_remaining);
+                const newReceived  = parseFloat(d.new_received);
+
                 /* Qoldiq / qabul raqamlarini yangilaymiz */
                 const remEl = document.getElementById('remaining-' + batchId);
                 const recEl = document.getElementById('received-' + batchId);
                 if (remEl) {
-                    remEl.textContent = d.new_remaining;
+                    remEl.textContent = fmtQty(newRemaining) + ' ' + UNIT_LABEL;
                     remEl.className = 'bnum-val ' + (
-                        d.new_remaining === 0 ? 'zero' :
-                        d.new_remaining < d.new_received ? 'partial' : 'full'
+                        newRemaining === 0 ? 'zero' :
+                        newRemaining < newReceived ? 'partial' : 'full'
                     );
                 }
-                if (recEl) recEl.textContent = d.new_received;
+                if (recEl) recEl.textContent = fmtQty(newReceived) + ' ' + UNIT_LABEL;
 
                 /* Progress bar */
                 const pFill = document.getElementById('progress-' + batchId);
                 const pPct  = document.getElementById('pct-' + batchId);
-                if (pFill && d.new_received > 0) {
-                    const pct = Math.round(d.new_remaining / d.new_received * 100);
+                if (pFill && newReceived > 0) {
+                    const pct = Math.round(newRemaining / newReceived * 100);
                     pFill.style.width = pct + '%';
-                    if (d.new_remaining === 0) pFill.classList.add('empty');
+                    if (newRemaining === 0) pFill.classList.add('empty');
                     if (pPct) pPct.textContent = pct + '% qolgan';
                 }
 
                 /* Status badge */
                 const statusEl = card.querySelector('.status-badge');
                 if (statusEl) {
-                    if (d.new_remaining === 0) {
+                    if (newRemaining === 0) {
                         statusEl.className = 'status-badge empty';
                         statusEl.textContent = 'Tugagan';
                     } else {
@@ -340,31 +413,30 @@ document.getElementById('retSubmit').addEventListener('click', async () => {
                 /* Return tugmasi data-remaining yangilaymiz */
                 const retBtn = card.querySelector('.return-btn');
                 if (retBtn) {
-                    if (d.new_remaining === 0) {
+                    if (newRemaining === 0) {
                         retBtn.remove();  /* qoldiq qolmadi */
                     } else {
-                        retBtn.dataset.remaining = d.new_remaining;
+                        retBtn.dataset.remaining = newRemaining;
                     }
                 }
 
                 /* Agar qoldiq 0 bo'lsa — O'chirish tugmasini ko'rsatamiz */
-                if (d.new_remaining === 0) {
+                if (newRemaining === 0) {
                     const actionsEl = document.getElementById('actions-' + batchId);
                     if (actionsEl) {
                         actionsEl.innerHTML +=
                             `<button class="ba-btn ba-btn-delete del-btn" data-id="${batchId}">
                                 <i class="fa fa-trash"></i> {% trans "O'chirish" %}
                              </button>`;
-                        /* Yangi del-btn ga listener bog'laymiz */
-                        actionsEl.querySelector('.del-btn')
-                            .addEventListener('click', handleDelete);
+                        /* Listener qo'shish kerak emas — #batchList ga event
+                           delegation orqali bog'langan, yangi tugma avtomatik ishlaydi */
                     }
                 }
             }
 
             /* Umumiy stok */
             const tsEl = document.getElementById('totalStock');
-            if (tsEl) tsEl.textContent = d.new_stock;
+            if (tsEl) tsEl.textContent = fmtQty(d.new_stock) + ' ' + UNIT_LABEL;
 
         } else {
             showMsg(msg, d.message || 'Xato yuz berdi!', 'error');
@@ -378,8 +450,8 @@ document.getElementById('retSubmit').addEventListener('click', async () => {
 });
 
 /* ── Delete batch ── */
-function handleDelete(e) {
-    const id = e.currentTarget.dataset.id;
+function handleDelete(btn) {
+    const id = btn.dataset.id;
     if (!confirm("Bu batchni o'chirishni tasdiqlaysizmi?")) return;
     const fd = new FormData();
     fd.append('csrfmiddlewaretoken', CSRF);
@@ -395,8 +467,16 @@ function handleDelete(e) {
         })
         .catch(() => toast('Tarmoq xatosi', 'error'));
 }
-document.querySelectorAll('.del-btn').forEach(b =>
-    b.addEventListener('click', handleDelete));
+
+/* Bitta event delegation listener — return-btn VA del-btn uchun
+   (del-btn runtime'da dinamik qo'shilsa ham avtomatik ishlaydi) */
+document.getElementById('batchList').addEventListener('click', (e) => {
+    const returnBtn = e.target.closest('.return-btn');
+    if (returnBtn) { openReturnModalFor(returnBtn); return; }
+
+    const delBtn = e.target.closest('.del-btn');
+    if (delBtn) { handleDelete(delBtn); return; }
+});
 </script>
 </body>
 </html>

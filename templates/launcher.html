@@ -33,6 +33,7 @@
             </div>
         </div>
         <div class="lh-right">
+            {% include 'partials/business_switcher.html' %}
             <form action="{% url 'set_language' %}" method="post" id="langForm" style="display:contents">
                 {% csrf_token %}
                 <input name="next" type="hidden" value="{{ request.path }}">
@@ -113,6 +114,13 @@
             <a href="{% url 'accounts:directory' %}" class="menu-tile">
                 <div class="tile-icon" style="background:var(--blue-d);color:var(--blue)"><i class="fa fa-map-marker-alt"></i></div>
                 <div><div class="tile-label">{% trans 'Viloyatlar' %}</div><div class="tile-sub">{% trans 'Hudud katalogi' %}</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>
+            {% endif %}
+            {% if request.user.is_superadmin %}
+            <a href="{% url 'business:business_list' %}" class="menu-tile">
+                <div class="tile-icon" style="background:var(--green-d,#0d3b2a);color:var(--green,#00e676)"><i class="fa fa-building"></i></div>
+                <div><div class="tile-label">{% trans 'Bizneslar' %}</div><div class="tile-sub">{% trans 'Aka & Ukalar' %}</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
             {% endif %}

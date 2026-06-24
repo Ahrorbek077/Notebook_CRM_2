@@ -25,7 +25,8 @@ class SaleService:
             products = {
                 p.id: p for p in
                 Product.objects.select_for_update().filter(
-                    id__in=[i['product_id'] for i in cart_items], is_active=True
+                    id__in=[i['product_id'] for i in cart_items],
+                    is_active=True, business=client.business,
                 )
             }
 
@@ -48,24 +49,24 @@ class SaleService:
                         cost_price_at_sale=f['cost_price'],
                     ))
 
-            sale = Sale.objects.create(client=client, user=user, total_amount=total_amount)
+            sale = Sale.objects.create(client=client, business=client.business, user=user, total_amount=total_amount)
             for si in sale_items:
                 si.sale = sale
             SaleItem.objects.bulk_create(sale_items, batch_size=500)
 
             ActivityLog.objects.create(
-                user=user, action_type='sale',
+                user=user, business=client.business, action_type='sale',
                 description=f"{client.name} — {total_amount:,.0f} so'm sotuv",
                 extra_data={
                     'sale_id': sale.id, 'client_id': client.id,
                     'client_name': client.name, 'total_amount': str(total_amount),
-                    'items': [{'product': si.product.name, 'quantity': si.quantity,
+                    'items': [{'product': si.product.name, 'quantity': str(si.quantity),
                                'price': str(si.price_at_sale)} for si in sale_items],
                 }
             )
 
             SaleService._add_to_client_debt(client, total_amount)
-            cache.delete('dashboard_full_data')
+            cache.delete(f'dashboard_full_data_{client.business_id}')
             on_commit(lambda: _refresh_mv())
             return sale
 
@@ -100,7 +101,7 @@ class SaleService:
                 sale_item = sale_items_map.get(item_data['sale_item_id'])
                 if not sale_item:
                     raise ValueError("SaleItem topilmadi")
-                qty = item_data['quantity']
+                qty = Decimal(str(item_data['quantity']))
                 if qty <= 0 or qty > sale_item.get_remaining_quantity():
                     raise ValueError("Qaytarish miqdori noto'g'ri")
                 if not sale_item.batch:
@@ -118,7 +119,7 @@ class SaleService:
                     returned_to_batch=sale_item.batch,
                 ))
                 returned_items_data.append({
-                    'product': sale_item.product.name, 'quantity': qty,
+                    'product': sale_item.product.name, 'quantity': str(qty),
                     'price': str(sale_item.price_at_sale),
                 })
 
@@ -126,7 +127,7 @@ class SaleService:
             SaleReturnItem.objects.bulk_create(return_item_objs)
 
             ActivityLog.objects.create(
-                user=user, action_type='sale_return',
+                user=user, business=sale.business, action_type='sale_return',
                 description=f"{sale.client.name} — {returned_amount:,.0f} so'm qaytarildi",
                 extra_data={
                     'return_id': sale_return.id, 'sale_id': sale.id,
@@ -142,7 +143,7 @@ class SaleService:
             if all(i.returned_quantity >= i.quantity for i in all_items):
                 sale.cancel(cancelled_by=user)
 
-            cache.delete('dashboard_full_data')
+            cache.delete(f'dashboard_full_data_{sale.business_id}')
             on_commit(lambda: _refresh_mv())
             return sale_return
 

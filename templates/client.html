@@ -102,7 +102,8 @@
              data-debt="{{ client.total_debt }}"
              data-advance="{{ client.advance_balance }}"
              data-lat="{{ client.latitude|default:'' }}"
-             data-lng="{{ client.longitude|default:'' }}">
+             data-lng="{{ client.longitude|default:'' }}"
+             data-container-total="{{ client.container_total|default:0 }}">
 
             <div class="card-main" onclick="window.location.href='/clients/client/{{ client.id }}/'">
                 <div class="client-avatar">{{ client.name|slice:":1"|upper }}</div>
@@ -118,6 +119,11 @@
                         {% if client.has_location %}
                         <span class="region-tag" style="color: var(--success-color, #28a745);">
                             <i class="fa fa-map-pin"></i> Xaritada
+                        </span>
+                        {% endif %}
+                        {% if client.container_total > 0 %}
+                        <span class="region-tag" style="color:#a855f7" title="Idishlar">
+                            <i class="fa fa-box-open"></i> {{ client.container_total }} ta
                         </span>
                         {% endif %}
                     </div>
@@ -146,6 +152,12 @@
                    onclick="event.stopPropagation()">
                     <i class="fa fa-comment-sms"></i><span>SMS</span>
                 </a>
+                <button class="ca-btn auto-sms-btn"
+                        data-id="{{ client.id }}"
+                        title="{% trans 'Avtomatik SMS yuborish (Eskiz.uz)' %}"
+                        onclick="event.stopPropagation()">
+                    <i class="fa fa-paper-plane"></i><span>{% trans 'Avto SMS' %}</span>
+                </button>
                 {% endif %}
                 <button class="ca-btn edit-btn"
                         data-id="{{ client.id }}"
@@ -402,6 +414,9 @@
 {% include "partials/i18n_js.html" %}
 
 <script src="{% static 'script/location_picker.js' %}"></script>
+<script>
+window.SMS_SEND_URL = "{% url 'sms:send-balance-sms' 0 %}";
+</script>
 <script src="{% static 'script/client.js' %}"></script>
 </body>
 </html>

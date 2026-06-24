@@ -11,9 +11,21 @@ from .models import StockBatch, StockAdjustment
 class StockService:
 
     @staticmethod
-    def add_stock(product, quantity: int, cost_price: Decimal,
-                  branch=None, user=None) -> StockBatch:
-        """Yangi batch yaratish — omborga kirim."""
+    def add_stock(product, quantity: Decimal, cost_price: Decimal,
+                  branch=None, user=None,
+                  box_quantity=None, units_per_box: Decimal = None) -> StockBatch:
+        """Yangi batch yaratish — omborga kirim.
+
+        quantity — ENG KICHIK birlikda (dona yoki kg), bu FIFO va hisob-kitob
+        uchun asosiy maydon. Agar karobkalab xarid qilingan bo'lsa,
+        box_quantity va units_per_box faqat TARIXIY ma'lumot sifatida
+        saqlanadi (chek/tarix ko'rsatish uchun), hisobga ta'sir qilmaydi.
+
+        Masalan: 2 karobka, har birida 15 kg, 1 kg = 12,500 so'm
+          → quantity=30, cost_price=12500, box_quantity=2, units_per_box=15
+        """
+        quantity = Decimal(str(quantity))
+        cost_price = Decimal(str(cost_price))
         if quantity <= 0 or cost_price <= 0:
             raise ValueError("Miqdor va narx musbat bo'lishi kerak")
         if not product.is_active:
@@ -22,11 +34,14 @@ class StockService:
         with transaction.atomic():
             batch = StockBatch.objects.create(
                 product=product,
+                business=product.business,
                 branch=branch,
                 quantity_received=quantity,
                 remaining_quantity=quantity,
                 cost_price=cost_price,
                 selling_price=product.price,   # snapshot
+                box_quantity=box_quantity,
+                units_per_box=Decimal(str(units_per_box)) if units_per_box else None,
                 created_by=user,
             )
             product.stock = F('stock') + quantity
@@ -34,7 +49,7 @@ class StockService:
             return batch
 
     @staticmethod
-    def adjust_stock(batch: StockBatch, quantity_change: int = 0,
+    def adjust_stock(batch: StockBatch, quantity_change: Decimal = 0,
                      new_cost_price: Decimal = None, user=None, reason="") -> StockAdjustment:
         """Batch tuzatish — faqat to'liq yangi (sarflanmagan) batch."""
         if batch.remaining_quantity != batch.quantity_received:
@@ -69,8 +84,9 @@ class StockService:
             return adjustment
 
     @staticmethod
-    def consume_fifo(product, quantity: int) -> list:
+    def consume_fifo(product, quantity: Decimal) -> list:
         """FIFO chiqim — sotuv uchun. [{'batch', 'quantity', 'cost_price'}, ...]"""
+        quantity = Decimal(str(quantity))
         if quantity <= 0:
             return []
         if not product.is_active:
@@ -100,7 +116,7 @@ class StockService:
             return result
 
     @staticmethod
-    def return_to_batch(batch: StockBatch, quantity: int, user=None, reason=""):
+    def return_to_batch(batch: StockBatch, quantity: Decimal, user=None, reason=""):
         """Sotuv qaytarilganda batchga qaytarish."""
         if quantity <= 0:
             return
@@ -119,7 +135,7 @@ class StockService:
             )
 
     @staticmethod
-    def return_purchase(batch: StockBatch, quantity: int, user=None, reason=""):
+    def return_purchase(batch: StockBatch, quantity: Decimal, user=None, reason=""):
         """
         Xarid qaytarish — sotib olingan mahsulotni kompaniyaga qaytarish.
 

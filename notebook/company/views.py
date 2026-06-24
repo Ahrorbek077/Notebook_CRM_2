@@ -20,20 +20,21 @@ from notebook.catalog.forms import ProductForm
 from notebook.inventory.models import StockBatch
 from notebook.inventory.services import StockService
 from notebook.activity.models import ActivityLog
+from notebook.business.mixins import BusinessRequiredMixin
 
 
 # ─── Web sahifalar ────────────────────────────────────────────────────────────
 
-class CompanyListView(LoginRequiredMixin, View):
+class CompanyListView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def get(self, request):
-        companies = Company.objects.prefetch_related('branches').order_by('name')
+        companies = Company.objects.filter(business=request.business).prefetch_related('branches').order_by('name')
         return render(request, 'company/company_list.html', {'companies': companies})
 
 
-class BranchDetailView(LoginRequiredMixin, View):
+class BranchDetailView(LoginRequiredMixin, BusinessRequiredMixin, View):
     """Filial sahifasi — filial mahsulotlari, sotib olish, CRUD."""
     def get(self, request, pk):
-        branch   = get_object_or_404(Branch, pk=pk, is_active=True)
+        branch   = get_object_or_404(Branch, pk=pk, is_active=True, company__business=request.business)
         search   = request.GET.get('search', '').strip()
         page_num = request.GET.get('page', 1)
 
@@ -45,7 +46,7 @@ class BranchDetailView(LoginRequiredMixin, View):
         ).order_by('-created_at').values('cost_price')[:1]
 
         qs = Product.objects.filter(
-            branch=branch, is_active=True
+            branch=branch, is_active=True, business=request.business
         ).select_related('category').annotate(
             annotated_cost_price=Coalesce(
                 Subquery(latest_batch_cost, output_field=DecimalField()),
@@ -63,7 +64,7 @@ class BranchDetailView(LoginRequiredMixin, View):
         except (EmptyPage, PageNotAnInteger):
             page_obj = paginator.page(1)
 
-        categories = Category.objects.filter(is_active=True)
+        categories = Category.objects.filter(is_active=True, business=request.business)
 
         # To'lovlar statistikasi — bitta aggregate query
         pay_agg = BranchPayment.objects.filter(branch=branch).aggregate(
@@ -90,7 +91,7 @@ class BranchDetailView(LoginRequiredMixin, View):
 
 # ─── Company AJAX ─────────────────────────────────────────────────────────────
 
-class CompanyCreateView(LoginRequiredMixin, View):
+class CompanyCreateView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request):
         try:
             data = json.loads(request.body)
@@ -98,7 +99,7 @@ class CompanyCreateView(LoginRequiredMixin, View):
             if not name:
                 return JsonResponse({'status': 'error', 'message': 'Nomi kiritilmagan'}, status=400)
             company = CompanyService.create_company(
-                name=name, phone=data.get('phone', ''),
+                name=name, business=request.business, phone=data.get('phone', ''),
                 address=data.get('address', ''), note=data.get('note', ''),
                 user=request.user,
             )
@@ -107,10 +108,10 @@ class CompanyCreateView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-class CompanyEditView(LoginRequiredMixin, View):
+class CompanyEditView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request, pk):
         try:
-            company = get_object_or_404(Company, pk=pk, is_active=True)
+            company = get_object_or_404(Company, pk=pk, is_active=True, business=request.business)
             data    = json.loads(request.body)
             fields  = {k: v for k, v in data.items() if k in ('name', 'phone', 'address', 'note')}
             CompanyService.update_company(company, fields, user=request.user)
@@ -119,10 +120,10 @@ class CompanyEditView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-class CompanyDeleteView(LoginRequiredMixin, View):
+class CompanyDeleteView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request, pk):
         try:
-            company = get_object_or_404(Company, pk=pk, is_active=True)
+            company = get_object_or_404(Company, pk=pk, is_active=True, business=request.business)
             CompanyService.delete_company(company, user=request.user)
             return JsonResponse({'status': 'success'})
         except Exception as e:
@@ -131,7 +132,7 @@ class CompanyDeleteView(LoginRequiredMixin, View):
 
 # ─── Branch AJAX ──────────────────────────────────────────────────────────────
 
-class BranchCreateView(LoginRequiredMixin, View):
+class BranchCreateView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request):
         try:
             data       = json.loads(request.body)
@@ -139,7 +140,7 @@ class BranchCreateView(LoginRequiredMixin, View):
             name       = data.get('name', '').strip()
             if not company_id or not name:
                 return JsonResponse({'status': 'error', 'message': "company_id va name kerak"}, status=400)
-            company = get_object_or_404(Company, pk=company_id, is_active=True)
+            company = get_object_or_404(Company, pk=company_id, is_active=True, business=request.business)
             branch  = CompanyService.create_branch(
                 company=company, name=name,
                 phone=data.get('phone', ''), address=data.get('address', ''),
@@ -154,10 +155,10 @@ class BranchCreateView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-class BranchEditView(LoginRequiredMixin, View):
+class BranchEditView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request, pk):
         try:
-            branch = get_object_or_404(Branch, pk=pk, is_active=True)
+            branch = get_object_or_404(Branch, pk=pk, is_active=True, company__business=request.business)
             data   = json.loads(request.body)
             fields = {k: v for k, v in data.items() if k in ('name', 'phone', 'address', 'note')}
             CompanyService.update_branch(branch, fields, user=request.user)
@@ -166,21 +167,21 @@ class BranchEditView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-class BranchDeleteView(LoginRequiredMixin, View):
+class BranchDeleteView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request, pk):
         try:
-            branch = get_object_or_404(Branch, pk=pk, is_active=True)
+            branch = get_object_or_404(Branch, pk=pk, is_active=True, company__business=request.business)
             CompanyService.delete_branch(branch, user=request.user)
             return JsonResponse({'status': 'success'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-class BranchPayView(LoginRequiredMixin, View):
+class BranchPayView(LoginRequiredMixin, BusinessRequiredMixin, View):
     """Biz filialga to'laymiz."""
     def post(self, request, pk):
         try:
-            branch = get_object_or_404(Branch, pk=pk, is_active=True)
+            branch = get_object_or_404(Branch, pk=pk, is_active=True, company__business=request.business)
             data   = json.loads(request.body)
             amount = Decimal(str(data.get('amount', 0)))
             bp = CompanyService.pay_to_branch(
@@ -204,7 +205,7 @@ class BranchPayView(LoginRequiredMixin, View):
 
 # ─── Branch Product CRUD ──────────────────────────────────────────────────────
 
-class BranchProductCreateView(LoginRequiredMixin, View):
+class BranchProductCreateView(LoginRequiredMixin, BusinessRequiredMixin, View):
     """Filialga yangi mahsulot qo'shish.
     
     Faqat mahsulot katalogga qo'shiladi — stock 0 qoladi.
@@ -213,8 +214,8 @@ class BranchProductCreateView(LoginRequiredMixin, View):
     """
     def post(self, request, branch_pk):
         try:
-            branch = get_object_or_404(Branch, pk=branch_pk, is_active=True)
-            form   = ProductForm(request.POST, request.FILES)
+            branch = get_object_or_404(Branch, pk=branch_pk, is_active=True, company__business=request.business)
+            form   = ProductForm(request.POST, request.FILES, business=request.business)
             if form.is_valid():
                 # ── Tan narxini validatsiya (stock uchun default) ──────────
                 cost_price_str = request.POST.get('cost_price', '').strip()
@@ -225,24 +226,45 @@ class BranchProductCreateView(LoginRequiredMixin, View):
                 except (InvalidOperation, ValueError):
                     return JsonResponse({'status': 'error', 'message': "Tan narxi to'g'ri kiritilmagan"}, status=400)
 
+                # ── Karobka validatsiyasi ──────────────────────────────────
+                is_box_enabled = request.POST.get('is_box_enabled') == 'true'
+                if is_box_enabled:
+                    try:
+                        units_per_box = Decimal(request.POST.get('units_per_box', '0'))
+                        if units_per_box <= 0:
+                            raise ValueError
+                    except (InvalidOperation, ValueError):
+                        return JsonResponse({'status': 'error', 'message': "Karobka yoqilgan bo'lsa, 1 karobkadagi miqdorni to'g'ri kiriting"}, status=400)
+                else:
+                    units_per_box = None
+
                 product = form.save(commit=False)
                 product.branch           = branch
+                product.business         = request.business
                 product.created_by       = request.user
                 product.default_cost_price = cost_price   # yangi maydon
+                product.is_box_enabled   = is_box_enabled
+                product.units_per_box    = units_per_box
                 product.save()
                 # ── Stock qo'shilmaydi — faqat katalogga qo'shildi ────────
 
                 ActivityLog.objects.create(
-                    user=request.user, action_type='product_create',
-                    description=f"Mahsulot katalogga qo'shildi: {product.name}, tan narxi: {cost_price:,.0f} so'm (filial: {branch.name})",
-                    extra_data={'product_id': product.id, 'branch_id': branch.id, 'cost_price': str(cost_price)}
+                    user=request.user, business=request.business, action_type='product_create',
+                    description=f"Mahsulot katalogga qo'shildi: {product.name} ({product.get_unit_type_display()}), tan narxi: {cost_price:,.0f} so'm (filial: {branch.name})",
+                    extra_data={'product_id': product.id, 'name': product.name, 'branch_id': branch.id,
+                                'cost_price': str(cost_price), 'unit_type': product.unit_type,
+                                'unit_label': product.get_unit_type_display()}
                 )
                 return JsonResponse({
                     'status': 'success',
                     'product': {
                         'id': product.id, 'name': product.name,
-                        'price': str(product.price), 'stock': product.stock,
+                        'price': str(product.price), 'stock': str(product.stock),
                         'cost_price': str(cost_price),
+                        'unit_type': product.unit_type,
+                        'unit_label': product.get_unit_type_display(),
+                        'is_box_enabled': product.is_box_enabled,
+                        'units_per_box': str(product.units_per_box) if product.units_per_box else None,
                         'category': product.category.name,
                         'image': product.image.url if product.image else None,
                     }
@@ -253,13 +275,13 @@ class BranchProductCreateView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-class BranchProductUpdateView(LoginRequiredMixin, View):
+class BranchProductUpdateView(LoginRequiredMixin, BusinessRequiredMixin, View):
     """Filial mahsulotini yangilash."""
     def post(self, request, pk):
         import os
         from decimal import InvalidOperation as DIE
         try:
-            product = get_object_or_404(Product, pk=pk, is_active=True)
+            product = get_object_or_404(Product, pk=pk, is_active=True, business=request.business)
             name       = request.POST.get('name', '').strip()
             price      = request.POST.get('price', '')
             cat        = request.POST.get('category', '')
@@ -290,9 +312,10 @@ class BranchProductUpdateView(LoginRequiredMixin, View):
                     pass
 
             ActivityLog.objects.create(
-                user=request.user, action_type='product_update',
+                user=request.user, business=request.business, action_type='product_update',
                 description=f"Mahsulot yangilandi: {product.name}" + (f", tan narxi: {new_cost:,.0f} so'm" if new_cost else ""),
-                extra_data={'product_id': product.id, 'new_cost_price': str(new_cost) if new_cost else None}
+                extra_data={'product_id': product.id, 'name': product.name,
+                            'new_cost_price': str(new_cost) if new_cost else None}
             )
             return JsonResponse({
                 'status': 'success',
@@ -310,17 +333,17 @@ class BranchProductUpdateView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-class BranchProductDeleteView(LoginRequiredMixin, View):
+class BranchProductDeleteView(LoginRequiredMixin, BusinessRequiredMixin, View):
     """Mahsulotni soft-delete qilish."""
     def post(self, request, pk):
         try:
-            product = get_object_or_404(Product, pk=pk, is_active=True)
+            product = get_object_or_404(Product, pk=pk, is_active=True, business=request.business)
             product.is_active = False
             product.save(update_fields=['is_active'])
             ActivityLog.objects.create(
-                user=request.user, action_type='product_delete',
+                user=request.user, business=request.business, action_type='product_delete',
                 description=f"Mahsulot o'chirildi: {product.name}",
-                extra_data={'product_id': product.id}
+                extra_data={'product_id': product.id, 'name': product.name}
             )
             return JsonResponse({'status': 'success'})
         except Exception as e:
@@ -329,7 +352,7 @@ class BranchProductDeleteView(LoginRequiredMixin, View):
 
 # ─── Batch Return (xarid qaytarish) ──────────────────────────────────────────
 
-class BatchReturnView(LoginRequiredMixin, View):
+class BatchReturnView(LoginRequiredMixin, BusinessRequiredMixin, View):
     """
     Xarid qaytarish — batch ichidagi qolgan mahsulotni kompaniyaga qaytarish.
       - stock kamayadi
@@ -337,9 +360,12 @@ class BatchReturnView(LoginRequiredMixin, View):
     """
     def post(self, request, batch_id):
         try:
-            batch    = get_object_or_404(StockBatch, pk=batch_id, is_active=True)
+            batch    = get_object_or_404(StockBatch, pk=batch_id, is_active=True, business=request.business)
             data     = json.loads(request.body)
-            quantity = int(data.get('quantity', 0))
+            try:
+                quantity = Decimal(str(data.get('quantity', 0)))
+            except (InvalidOperation, ValueError, TypeError):
+                return JsonResponse({'status': 'error', 'message': "Miqdor noto'g'ri"}, status=400)
             reason   = data.get('reason', '').strip()
 
             if quantity <= 0:
@@ -367,9 +393,9 @@ class BatchReturnView(LoginRequiredMixin, View):
             return JsonResponse({
                 'status':          'success',
                 'returned_amount': str(returned_amount),
-                'new_remaining':   batch.remaining_quantity,
-                'new_received':    batch.quantity_received,
-                'new_stock':       batch.product.stock,
+                'new_remaining':   str(batch.remaining_quantity),
+                'new_received':    str(batch.quantity_received),
+                'new_stock':       str(batch.product.stock),
                 'new_debt':        new_debt,
                 'new_advance':     new_advance,
             })
@@ -380,13 +406,53 @@ class BatchReturnView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-class BranchProductPurchaseView(LoginRequiredMixin, View):
-    """Mahsulotni sotib olish — faqat miqdor kiritiladi, tan narxi oxirgi batchdan olinadi."""
+class BranchProductPurchaseView(LoginRequiredMixin, BusinessRequiredMixin, View):
+    """Mahsulotni sotib olish — ikki rejim:
+
+      1) Dona/kg rejimi (oldingi kabi):
+         { "mode": "unit", "quantity": 10, "cost_price": 700 }
+         → 10 dona, 1 donasi 700 so'm
+
+      2) Karobka rejimi (yangi):
+         { "mode": "box", "box_quantity": 2, "cost_price": 700 }
+         → units_per_box MAHSULOTDAN avtomatik olinadi (Product.units_per_box)
+         → 2 karobka × (masalan 15) dona = 30 dona, 1 donasi 700 so'm
+         (cost_price har doim ENG KICHIK birlik narxi, karobka narxi emas!)
+
+      Ikkalasida ham StockBatch.quantity_received har doim eng kichik
+      birlikda (dona/kg) saqlanadi — FIFO, dashboard, return o'zgarishsiz.
+    """
     def post(self, request, pk):
         try:
-            product  = get_object_or_404(Product, pk=pk, is_active=True)
-            data     = json.loads(request.body)
-            quantity = int(data.get('quantity', 0))
+            product = get_object_or_404(Product, pk=pk, is_active=True, business=request.business)
+            data    = json.loads(request.body)
+            mode    = data.get('mode', 'unit')   # 'unit' | 'box'
+
+            box_quantity  = None
+            units_per_box = None
+
+            if mode == 'box':
+                # ── Karobka rejimi: units_per_box MAHSULOTDAN olinadi ──────
+                if not product.is_box_enabled or not product.units_per_box:
+                    return JsonResponse({'status': 'error', 'message': "Bu mahsulot uchun karobka sozlanmagan. Mahsulotni Edit qiling"}, status=400)
+
+                try:
+                    box_quantity = int(data.get('box_quantity', 0))
+                except (ValueError, TypeError):
+                    return JsonResponse({'status': 'error', 'message': "Karobka soni noto'g'ri"}, status=400)
+
+                if box_quantity <= 0:
+                    return JsonResponse({'status': 'error', 'message': "Karobka soni 0 dan katta bo'lishi kerak"}, status=400)
+
+                units_per_box = product.units_per_box   # ← Product dan, operator kiritmaydi
+
+                quantity = Decimal(box_quantity) * units_per_box
+            else:
+                # ── Dona/kg rejimi (oldingi kabi) ────────────────────────────
+                try:
+                    quantity = Decimal(str(data.get('quantity', 0)))
+                except (InvalidOperation, ValueError, TypeError):
+                    return JsonResponse({'status': 'error', 'message': "Miqdor noto'g'ri"}, status=400)
 
             # Tan narxini: 1) JSON dan (edit holat), 2) oxirgi batch dan olamiz
             cost_price_raw = data.get('cost_price')
@@ -411,6 +477,8 @@ class BranchProductPurchaseView(LoginRequiredMixin, View):
                 cost_price=cost_price,
                 branch=product.branch,
                 user=request.user,
+                box_quantity=box_quantity,
+                units_per_box=units_per_box,
             )
             product.refresh_from_db()
 
@@ -422,31 +490,41 @@ class BranchProductPurchaseView(LoginRequiredMixin, View):
                     user=request.user,
                 )
                 product.branch.refresh_from_db()
-                product.branch.refresh_from_db()
                 new_debt    = str(product.branch.total_debt)
                 new_advance = str(product.branch.advance_balance)
             else:
                 new_debt    = '0'
                 new_advance = '0'
 
+            unit_label = product.get_unit_type_display()
+            if mode == 'box':
+                desc = (f"Sotib olindi: {product.name} — {box_quantity} karobka × "
+                        f"{units_per_box} {unit_label} = {quantity} {unit_label}, "
+                        f"1 {unit_label} tan narxi: {cost_price:,.0f} so'm")
+            else:
+                desc = f"Sotib olindi: {product.name} × {quantity} {unit_label}, tan narx: {cost_price:,.0f} so'm"
+
             ActivityLog.objects.create(
-                user=request.user, action_type='stock_add',
-                description=f"Sotib olindi: {product.name} × {quantity} dona, tan narx: {cost_price:,.0f} so'm",
+                user=request.user, business=request.business, action_type='stock_add',
+                description=desc,
                 extra_data={
-                    'product_id': product.id, 'batch_id': batch.id,
-                    'quantity': quantity, 'cost_price': str(cost_price),
+                    'product_id': product.id, 'name': product.name, 'batch_id': batch.id,
+                    'quantity': str(quantity), 'unit_label': unit_label, 'cost_price': str(cost_price),
                     'total_cost': str(total_cost),
                     'branch_id': product.branch_id,
+                    'mode': mode,
+                    'box_quantity': box_quantity, 'units_per_box': str(units_per_box) if units_per_box else None,
                 }
             )
 
             return JsonResponse({
                 'status':     'success',
-                'new_stock':  product.stock,
+                'new_stock':  str(product.stock),
                 'batch_id':   batch.id,
                 'new_debt':   new_debt,
                 'new_advance':new_advance,
                 'total_cost': str(total_cost),
+                'quantity':   str(quantity),
             })
         except (InvalidOperation, ValueError) as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
@@ -454,7 +532,7 @@ class BranchProductPurchaseView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-class BranchPaymentsApiView(LoginRequiredMixin, View):
+class BranchPaymentsApiView(LoginRequiredMixin, BusinessRequiredMixin, View):
     """
     AJAX: branch to'lovlari tarixi — offset asosida load more.
     GET /company/api/branch/<pk>/payments/?offset=10&limit=10
@@ -462,7 +540,7 @@ class BranchPaymentsApiView(LoginRequiredMixin, View):
     PAGE_SIZE = 10
 
     def get(self, request, pk):
-        branch = get_object_or_404(Branch, pk=pk, is_active=True)
+        branch = get_object_or_404(Branch, pk=pk, is_active=True, company__business=request.business)
         try:
             offset = max(int(request.GET.get('offset', 0)), 0)
         except ValueError:

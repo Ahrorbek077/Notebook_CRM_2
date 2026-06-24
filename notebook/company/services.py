@@ -26,13 +26,13 @@ def _sync_company_balances(company_id: int):
 class CompanyService:
 
     @staticmethod
-    def create_company(name, phone="", address="", note="", user=None) -> Company:
+    def create_company(name, business=None, phone="", address="", note="", user=None) -> Company:
         with transaction.atomic():
             c = Company.objects.create(
-                name=name, phone=phone, address=address, note=note, created_by=user
+                name=name, business=business, phone=phone, address=address, note=note, created_by=user
             )
             ActivityLog.objects.create(
-                user=user, action_type='company_create',
+                user=user, business=c.business, action_type='company_create',
                 description=f"Kompaniya qo'shildi: {name}",
                 extra_data={'company_id': c.id, 'name': name}
             )
@@ -44,7 +44,7 @@ class CompanyService:
             setattr(company, k, v)
         company.save()
         ActivityLog.objects.create(
-            user=user, action_type='company_update',
+            user=user, business=company.business, action_type='company_update',
             description=f"Kompaniya yangilandi: {company.name}",
             extra_data={'company_id': company.id, **data}
         )
@@ -55,7 +55,7 @@ class CompanyService:
         company.is_active = False
         company.save(update_fields=['is_active'])
         ActivityLog.objects.create(
-            user=user, action_type='company_delete',
+            user=user, business=company.business, action_type='company_delete',
             description=f"Kompaniya o'chirildi: {company.name}",
             extra_data={'company_id': company.id}
         )
@@ -68,7 +68,7 @@ class CompanyService:
                 address=address, note=note, created_by=user
             )
             ActivityLog.objects.create(
-                user=user, action_type='branch_create',
+                user=user, business=company.business, action_type='branch_create',
                 description=f"Filial qo'shildi: {company.name} — {name}",
                 extra_data={'branch_id': b.id, 'company_id': company.id, 'name': name}
             )
@@ -80,7 +80,7 @@ class CompanyService:
             setattr(branch, k, v)
         branch.save()
         ActivityLog.objects.create(
-            user=user, action_type='branch_update',
+            user=user, business=branch.company.business, action_type='branch_update',
             description=f"Filial yangilandi: {branch}",
             extra_data={'branch_id': branch.id, **data}
         )
@@ -91,7 +91,7 @@ class CompanyService:
         branch.is_active = False
         branch.save(update_fields=['is_active'])
         ActivityLog.objects.create(
-            user=user, action_type='branch_delete',
+            user=user, business=branch.company.business, action_type='branch_delete',
             description=f"Filial o'chirildi: {branch}",
             extra_data={'branch_id': branch.id}
         )
@@ -156,10 +156,10 @@ class CompanyService:
 
             type_label = {'cash': 'naqd', 'transfer': "o'tkazma", 'discount': 'chegirma'}.get(payment_type, payment_type)
             ActivityLog.objects.create(
-                user=user, action_type='branch_payment',
+                user=user, business=branch.company.business, action_type='branch_payment',
                 description=f"{branch} — {amount:,.0f} so'm {type_label} ({payment_type})",
                 extra_data={
-                    'branch_payment_id': bp.id, 'branch_id': branch.id,
+                    'branch_payment_id': bp.id, 'branch_id': branch.id, 'branch_name': str(branch),
                     'amount': str(amount), 'payment_type': payment_type,
                     'new_debt': str(branch.total_debt),
                     'new_advance': str(branch.advance_balance),
@@ -193,10 +193,10 @@ class CompanyService:
             _sync_company_balances(branch.company_id)
 
             ActivityLog.objects.create(
-                user=user, action_type='stock_add',
+                user=user, business=branch.company.business, action_type='stock_add',
                 description=f"{branch} — {amount:,.0f} so'm xarid (qarz yoki avansdan)",
                 extra_data={
-                    'branch_id': branch.id,
+                    'branch_id': branch.id, 'branch_name': str(branch),
                     'amount': str(amount),
                     'new_debt': str(branch.total_debt),
                     'new_advance': str(branch.advance_balance),
@@ -229,10 +229,10 @@ class CompanyService:
             _sync_company_balances(branch.company_id)
 
             ActivityLog.objects.create(
-                user=user, action_type='stock_return',
+                user=user, business=branch.company.business, action_type='stock_return',
                 description=f"{branch} — {amount:,.0f} so'm qaytarildi",
                 extra_data={
-                    'branch_id': branch.id,
+                    'branch_id': branch.id, 'branch_name': str(branch),
                     'amount': str(amount),
                     'new_debt': str(branch.total_debt),
                     'new_advance': str(branch.advance_balance),

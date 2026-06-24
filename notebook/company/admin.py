@@ -3,7 +3,8 @@ from .models import Company, Branch, BranchPayment
 
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
-    list_display = ['name', 'total_debt', 'is_active', 'created_at']
+    list_display = ['name', 'business', 'total_debt', 'is_active', 'created_at']
+    list_filter = ['business']
 
 @admin.register(Branch)
 class BranchAdmin(admin.ModelAdmin):

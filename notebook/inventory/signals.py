@@ -15,13 +15,16 @@ def log_stock_add(sender, instance, created, **kwargs):
     product_name = instance.product.name  # 1 query, faqat create da
     ActivityLog.objects.create(
         user=instance.created_by,
+        business=instance.product.business,
         action_type='stock_add',
         description=f"{product_name} — {instance.quantity_received} ta kirim @ {instance.cost_price}",
         extra_data={
             'batch_id':     instance.id,
             'product_id':   instance.product_id,
             'product':      product_name,
-            'quantity':     instance.quantity_received,
+            'unit_label':   instance.product.get_unit_type_display(),
+            # ── Decimal → str: JSONField xom Decimal'ni serialize qilolmaydi ──
+            'quantity':     str(instance.quantity_received),
             'cost_price':   str(instance.cost_price),
             'selling_price':str(instance.selling_price),
             'branch':       str(instance.branch) if instance.branch else None,
@@ -39,13 +42,16 @@ def log_stock_adjust(sender, instance, created, **kwargs):
     product_name = batch.product.name  # 1 query
     ActivityLog.objects.create(
         user=instance.user,
+        business=batch.product.business,
         action_type='stock_adjust',
         description=f"{product_name} — batch #{batch.id} tuzatildi",
         extra_data={
             'batch_id':        batch.id,
             'product':         product_name,
+            'unit_label':      batch.product.get_unit_type_display(),
             'adjustment_type': instance.adjustment_type,
-            'quantity_change': instance.quantity_change,
+            # ── Decimal → str: JSONField xom Decimal'ni serialize qilolmaydi ──
+            'quantity_change': str(instance.quantity_change) if instance.quantity_change is not None else None,
             'reason':          instance.reason,
         }
     )

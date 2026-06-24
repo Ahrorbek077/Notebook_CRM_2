@@ -172,18 +172,91 @@ function renderPagination(d) {
 
 function goPage(p){ currentPage=p; loadHistory(); window.scrollTo(0,0); }
 
+/* ── Miqdorni chiroyli ko'rsatish: "1.000" -> "1", "2.500" -> "2.5" ── */
+function fmtQty(val){
+    const n = parseFloat(val);
+    if (isNaN(n)) return val;
+    return n % 1 === 0 ? n.toString() : n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+}
+function fmtMoney(val){
+    const n = parseFloat(val);
+    if (isNaN(n)) return val;
+    return n.toLocaleString('uz-UZ') + " so'm";
+}
+
+/* Ko'rsatilmaydigan (texnik) kalitlar — ID'lar, mode kabi ichki narsalar */
+const HIDDEN_KEYS = new Set([
+    'sale_id','client_id','return_id','batch_id','product_id','branch_id',
+    'company_id','payment_id','refund_id','branch_payment_id','mode',
+]);
+
+/* Kalit nomlarini o'zbekchaga tarjima qilish */
+const KEY_LABELS = {
+    client_name:'Mijoz', total_amount:'Jami summa', total:'Jami summa',
+    amount:'Summa', reason:'Sabab', note:'Izoh', name:'Nomi',
+    price:'Narx', cost_price:'Tan narxi', new_cost_price:'Yangi tan narxi',
+    stock:'Qoldiq', quantity:'Miqdor', unit_label:'Birlik',
+    branch_name:'Filial', new_debt:'Yangi qarz', new_advance:'Yangi avans',
+    payment_type:"To'lov turi", total_cost:"Jami xarajat", box_quantity:"Karobka soni",
+    units_per_box:'1 karobkada', unit_type:'Birlik turi', container_type:'Idish turi',
+};
+
+/* Pul/summa bo'lgan kalitlar — fmtMoney bilan formatlanadi */
+const MONEY_KEYS = new Set([
+    'total_amount','total','amount','price','cost_price','new_cost_price',
+    'new_debt','new_advance','total_cost','subtotal',
+]);
+/* Miqdor (dona/kg) bo'lgan kalitlar — fmtQty bilan formatlanadi */
+const QTY_KEYS = new Set(['quantity','stock','box_quantity','units_per_box']);
+
+function fmtValue(key, val){
+    if (val === null || val === undefined || val === '') return '—';
+    if (MONEY_KEYS.has(key)) return fmtMoney(val);
+    if (QTY_KEYS.has(key))   return fmtQty(val);
+    return val;
+}
+
+/* "items" massivini chiroyli jadval qilib ko'rsatish (sotuv/qaytarish tafsiloti) */
+function renderItemsTable(items){
+    if (!Array.isArray(items) || !items.length) return '';
+    let rows = items.map(it => {
+        const productName = it.product || it.product_name || '—';
+        const qty  = fmtQty(it.quantity);
+        const unit = it.unit_label || '';
+        const price = it.price ? fmtMoney(it.price) : '';
+        return `<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--b);font-size:.82rem">
+            <span style="color:var(--t)">${productName}</span>
+            <span style="font-family:var(--mono);color:var(--t2)">${qty} ${unit}${price ? ' × ' + price : ''}</span>
+        </div>`;
+    }).join('');
+    return `<div style="margin-top:6px">
+        <div style="font-size:.75rem;color:var(--t2);font-weight:700;margin-bottom:4px">MAHSULOTLAR</div>
+        ${rows}
+    </div>`;
+}
+
 function showDetail(item) {
     document.getElementById('detailTitle').textContent = item.action_label||item.type;
     let html='<div class="card-list">';
-    if(item.extra_data && typeof item.extra_data==='object') {
-        Object.entries(item.extra_data).forEach(([k,v]) => {
-            html+=`<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--b);font-size:.85rem">
-                <span style="color:var(--t2)">${k}</span>
-                <span style="font-family:var(--mono);color:var(--t)">${v}</span>
+    const ed = item.extra_data;
+
+    if (ed && typeof ed === 'object') {
+        // ── items massivini alohida, chiroyli jadval qilib ko'rsatamiz ──
+        if (ed.items) {
+            html += renderItemsTable(ed.items);
+        }
+        // ── Qolgan oddiy kalit-qiymatlarni ko'rsatamiz (items, ID'lar tashqari) ──
+        Object.entries(ed).forEach(([k, v]) => {
+            if (k === 'items' || HIDDEN_KEYS.has(k)) return;  // bularni alohida/umuman ko'rsatmaymiz
+            const label = KEY_LABELS[k] || k;
+            const value = fmtValue(k, v);
+            html += `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--b);font-size:.85rem">
+                <span style="color:var(--t2)">${label}</span>
+                <span style="font-family:var(--mono);color:var(--t)">${value}</span>
             </div>`;
         });
     } else {
-        html+=`<div style="color:var(--t2);font-size:.85rem">${JSON.stringify(item.extra_data||{},null,2)}</div>`;
+        html += `<div style="color:var(--t2);font-size:.85rem">Qo'shimcha ma'lumot yo'q</div>`;
     }
     html+='</div>';
     document.getElementById('detailBody').innerHTML=html;

@@ -124,6 +124,14 @@ class ClientManager {
                </span>`
             : '';
 
+        // Idishlar (container) badge — faqat 0 dan katta bo'lsa
+        const containerTotal = parseInt(c.container_total || 0);
+        const containerTag = containerTotal > 0
+            ? `<span class="region-tag" style="color:#a855f7" title="Idishlar">
+                 <i class="fa fa-box-open"></i> ${containerTotal} ta
+               </span>`
+            : '';
+
         const initial = (c.name || '?')[0].toUpperCase();
 
         return `
@@ -136,7 +144,8 @@ class ClientManager {
              data-debt="${debt}"
              data-advance="${advance}"
              data-lat="${c.latitude  || ''}"
-             data-lng="${c.longitude || ''}">
+             data-lng="${c.longitude || ''}"
+             data-container-total="${containerTotal}">
 
             <div class="card-main" onclick="window.location.href='/clients/client/${c.id}/'">
                 <div class="client-avatar">${initial}</div>
@@ -146,6 +155,7 @@ class ClientManager {
                         <span><i class="fa fa-phone"></i> ${c.phone}</span>
                         ${regionTag}
                         ${mapTag}
+                        ${containerTag}
                     </div>
                 </div>
                 <div class="client-balance">
@@ -167,7 +177,12 @@ class ClientManager {
                    )}"
                    onclick="event.stopPropagation()">
                     <i class="fa fa-comment-sms"></i><span>SMS</span>
-                </a>` : ''}
+                </a>
+                <button class="ca-btn auto-sms-btn" data-id="${c.id}"
+                        title="Avtomatik SMS yuborish (Eskiz.uz)"
+                        onclick="event.stopPropagation()">
+                    <i class="fa fa-paper-plane"></i><span>Avto SMS</span>
+                </button>` : ''}
                 <button class="ca-btn edit-btn"
                         data-id="${c.id}"
                         data-name="${c.name || ''}"
@@ -364,9 +379,10 @@ class ClientManager {
         // Client list — event delegation
         if (this.clientList) {
             this.clientList.addEventListener('click', e => {
-                const viewBtn   = e.target.closest('.view-btn');
-                const editBtn   = e.target.closest('.edit-btn');
-                const deleteBtn = e.target.closest('.delete-btn');
+                const viewBtn    = e.target.closest('.view-btn');
+                const editBtn    = e.target.closest('.edit-btn');
+                const deleteBtn  = e.target.closest('.delete-btn');
+                const autoSmsBtn = e.target.closest('.auto-sms-btn');
 
                 if (viewBtn) {
                     window.location.href = `/clients/client/${viewBtn.dataset.id}/`;
@@ -378,6 +394,10 @@ class ClientManager {
                 }
                 if (deleteBtn) {
                     this.openDeleteModal(deleteBtn.dataset);
+                    return;
+                }
+                if (autoSmsBtn) {
+                    this.sendAutoSms(autoSmsBtn);
                     return;
                 }
             });
@@ -392,6 +412,36 @@ class ClientManager {
         this.addModal?.addEventListener('show.bs.modal', () => {
             document.getElementById('addClientForm')?.reset();
         });
+    }
+
+    // ==================== AVTOMATIK SMS (Eskiz.uz) ====================
+    async sendAutoSms(btn) {
+        if (btn.disabled) return;
+        const clientId   = btn.dataset.id;
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i><span>Yuborilmoqda...</span>';
+
+        try {
+            const url  = window.SMS_SEND_URL.replace('0', clientId);
+            const resp = await fetch(url, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': this.getCSRF() },
+            });
+            const data = await resp.json();
+            if (resp.ok && data.status === 'success') {
+                btn.innerHTML = '<i class="fa fa-check"></i><span>Yuborildi</span>';
+                setTimeout(() => { btn.innerHTML = originalHtml; btn.disabled = false; }, 2500);
+            } else {
+                alert(data.message || 'SMS yuborilmadi');
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            }
+        } catch {
+            alert('Server bilan bog\'lanishda xatolik — SMS yuborilmadi');
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
     }
 
     // ==================== MODAL HELPERS ====================

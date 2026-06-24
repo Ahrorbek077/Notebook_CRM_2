@@ -9,6 +9,13 @@ class User(AbstractUser):
         ("staff",      "Xodim"),
     )
     role = models.CharField(max_length=12, choices=ROLE_CHOICES, default="staff")
+    business = models.ForeignKey(
+        'business.Business', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='members',
+        verbose_name="Biznes",
+        help_text="Foydalanuvchi qaysi biznesga tegishli (aka/uka). "
+                  "Superadmin ham o'z biznesiga ega, lekin boshqalarga 'almashishi' mumkin."
+    )
     is_active = models.BooleanField(default=True)   # soft delete uchun
     fired_at = models.DateTimeField(null=True, blank=True)
     fired_by = models.ForeignKey(

@@ -4,6 +4,7 @@
 #   2. SaleReceiptView  — chek ma'lumotlarini JSON qaytaradi
 
 from notebook.catalog.models import Product, Category
+from notebook.company.models import Branch
 from notebook.clients.models import Client, Region
 from notebook.sales.models import Sale, SaleItem, SaleReturn, SaleReturnItem
 from notebook.payments.models import PaymentRefund
@@ -12,22 +13,36 @@ from django.views.generic import ListView, CreateView, View, DetailView
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-from django.db.models import Q, Sum, Prefetch, F, ExpressionWrapper, DecimalField
+from django.db.models import Q, Sum, Prefetch, F, ExpressionWrapper, DecimalField, OuterRef, Subquery, IntegerField
 from django.contrib.auth.mixins import LoginRequiredMixin
 from decimal import Decimal, InvalidOperation
 from django.db.models.functions import Coalesce
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
+from notebook.business.mixins import BusinessRequiredMixin
 
 
-class ClientListView(LoginRequiredMixin, ListView):
+class ClientListView(LoginRequiredMixin, BusinessRequiredMixin, ListView):
     model = Client
     template_name = "client.html"
     context_object_name = "clients"
     paginate_by = 100
 
     def get_queryset(self):
-        qs = Client.objects.select_related('region').order_by("-created_at")
+        from notebook.containers.models import ClientContainer
+        # ── Har mijoz uchun umumiy idish sonini bitta Subquery bilan olamiz ──
+        # (N+1 emas — barcha mijoz uchun bitta qo'shimcha SELECT)
+        container_total_sq = ClientContainer.objects.filter(
+            client=OuterRef('pk')
+        ).values('client').annotate(
+            total=Sum('quantity')
+        ).values('total')
+
+        qs = Client.objects.filter(business=self.request.business).select_related('region').annotate(
+            container_total=Coalesce(
+                Subquery(container_total_sq, output_field=IntegerField()), 0
+            )
+        ).order_by("-created_at")
         search    = self.request.GET.get("search", "").strip()
         region_id = self.request.GET.get("region", "").strip()
         balance   = self.request.GET.get("balance", "").strip()  # debt | advance | clear
@@ -46,7 +61,7 @@ class ClientListView(LoginRequiredMixin, ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['form'] = ClientForm()
-        context['regions'] = Region.objects.filter(is_active=True)
+        context['regions'] = Region.objects.filter(is_active=True, business=self.request.business)
         context['selected_region'] = self.request.GET.get("region", "")
         context['selected_balance'] = self.request.GET.get("balance", "")
         return context
@@ -87,6 +102,7 @@ class ClientListView(LoginRequiredMixin, ListView):
                 "latitude":  float(c.latitude)  if c.latitude  else None,
                 "longitude": float(c.longitude) if c.longitude else None,
                 "has_location": c.has_location,
+                "container_total": c.container_total,
             }
             for c in page_obj
         ]
@@ -105,11 +121,12 @@ class ClientListView(LoginRequiredMixin, ListView):
 
 
 # ====================== CREATE ======================
-class ClientCreateView(LoginRequiredMixin, CreateView):
+class ClientCreateView(LoginRequiredMixin, BusinessRequiredMixin, CreateView):
     model = Client
     form_class = ClientForm
 
     def form_valid(self, form):
+        form.instance.business = self.request.business
         form.save()
         return JsonResponse({"status": "created"})
 
@@ -122,11 +139,11 @@ class ClientCreateView(LoginRequiredMixin, CreateView):
 
 
 # ====================== UPDATE ======================
-class ClientUpdateView(LoginRequiredMixin, View):
+class ClientUpdateView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request):
         client_id = request.POST.get("client_id")
         try:
-            client = Client.all_objects.get(id=client_id)
+            client = Client.all_objects.get(id=client_id, business=request.business)
         except Client.DoesNotExist:
             return JsonResponse({"status": "error", "message": "Client topilmadi"}, status=404)
 
@@ -166,10 +183,10 @@ class ClientUpdateView(LoginRequiredMixin, View):
 
 
 # ====================== DELETE ======================
-class ClientDeleteView(LoginRequiredMixin, View):
+class ClientDeleteView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request):
         client_id = request.POST.get("client_id")
-        client = get_object_or_404(Client.all_objects, pk=client_id)
+        client = get_object_or_404(Client.all_objects, pk=client_id, business=request.business)
         if client.is_active:
             client.is_active = False
             client.save(update_fields=['is_active'])
@@ -179,13 +196,13 @@ class ClientDeleteView(LoginRequiredMixin, View):
 
 
 # ====================== DETAIL ======================
-class ClientDetailView(LoginRequiredMixin, DetailView):
+class ClientDetailView(LoginRequiredMixin, BusinessRequiredMixin, DetailView):
     model = Client
     template_name = "client_detail.html"
     context_object_name = "client"
 
     def get_queryset(self):
-        return Client.objects.select_related('region')
+        return Client.objects.filter(business=self.request.business).select_related('region')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -234,19 +251,20 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
         for sale in sales:
             items_list = sale.items.all()
             serialized_items = []
-            item_count = 0
             for item in items_list:
-                item_count += item.quantity
                 serialized_items.append({
                     'id': item.id,
                     'product': {'name': item.product.name},
-                    'quantity': item.quantity,
-                    'returned_quantity': item.returned_quantity,
-                    'remaining': item.get_remaining_quantity(),
+                    'quantity': str(item.quantity),
+                    'unit_label': item.product.get_unit_type_display(),
+                    'returned_quantity': str(item.returned_quantity),
+                    'remaining': str(item.get_remaining_quantity()),
                     'price_at_sale': float(item.price_at_sale),
                     'subtotal': float(item.price_at_sale * item.quantity),
                     'returned_subtotal': float(item.price_at_sale * item.returned_quantity),
                 })
+            # Dona va kg ni qo'shib bo'lmaydi — mahsulot TURLARI sonini ko'rsatamiz
+            product_types_count = len(serialized_items)
             history.append({
                 'date': sale.created_at,
                 'type': 'sale',
@@ -255,7 +273,7 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
                 'badge_color': 'bg-danger',
                 'amount': float(sale.total_amount),
                 'is_positive': False,
-                'details': f"{item_count} ta mahsulot",
+                'details': f"{product_types_count} xil mahsulot",
                 'items': serialized_items,
                 'serialized_items': serialized_items,
                 'sale_id': sale.id,
@@ -334,8 +352,9 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
             'total_sold': total_sold,
             'total_paid': total_paid,
             'calculated_debt': client.total_debt,
-            'products': Product.objects.filter(stock__gt=0).only('id', 'name', 'stock').order_by('name'),
-            'categories': Category.objects.filter(is_active=True).only('id', 'name').order_by('name'),
+            'products': Product.objects.filter(stock__gt=0, business=self.request.business).only('id', 'name', 'stock').order_by('name'),
+            'categories': Category.objects.filter(is_active=True, business=self.request.business).only('id', 'name').order_by('name'),
+            'branches': Branch.objects.filter(is_active=True, company__business=self.request.business).only('id', 'name').order_by('name'),
             # ── Map ─────────────────────────────────────────────────────────
             'google_maps_api_key': '',   # settings.GOOGLE_MAPS_API_KEY
         })
@@ -348,21 +367,22 @@ class ClientDetailView(LoginRequiredMixin, DetailView):
 #   — Browser print (CSS @media print) uchun HTML modal
 #   — Web Bluetooth API + ESC/POS uchun raw bytes
 @method_decorator(login_required, name='dispatch')
-class SaleReceiptView(View):
+class SaleReceiptView(BusinessRequiredMixin, View):
     def get(self, request, sale_id):
         sale = get_object_or_404(
             Sale.objects.select_related('client', 'user')
                         .prefetch_related('items__product'),
-            id=sale_id
+            id=sale_id, business=request.business
         )
 
         items = []
         for item in sale.items.all():
             items.append({
-                'name':     item.product.name,
-                'qty':      item.quantity,
-                'price':    float(item.price_at_sale),
-                'subtotal': float(item.price_at_sale * item.quantity),
+                'name':       item.product.name,
+                'qty':        str(item.quantity),
+                'unit_label': item.product.get_unit_type_display(),
+                'price':      float(item.price_at_sale),
+                'subtotal':   float(item.price_at_sale * item.quantity),
             })
 
         receipt_data = {
@@ -380,20 +400,22 @@ class SaleReceiptView(View):
 
 
 # ====================== REGION ======================
-class RegionSaveView(LoginRequiredMixin, View):
+class RegionSaveView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request):
         region_id = request.POST.get("id")
-        region = get_object_or_404(Region, pk=region_id) if region_id else None
+        region = get_object_or_404(Region, pk=region_id, business=request.business) if region_id else None
         form = RegionForm(request.POST, instance=region)
         if form.is_valid():
-            obj = form.save()
+            obj = form.save(commit=False)
+            obj.business = request.business
+            obj.save()
             return JsonResponse({"status": "success", "id": obj.id, "name": obj.name, "order": obj.order})
         return JsonResponse({"status": "error", "errors": form.errors}, status=400)
 
 
-class RegionDeleteView(LoginRequiredMixin, View):
+class RegionDeleteView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request, pk):
-        region = get_object_or_404(Region, pk=pk)
+        region = get_object_or_404(Region, pk=pk, business=request.business)
         if region.clients.exists():
             return JsonResponse({"status": "error", "message": "Bu region ishlatilgan!"}, status=400)
         region.is_active = False

@@ -12,6 +12,12 @@ DEBUG         = os.environ.get('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
 GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 
+# ── Eskiz.uz SMS ──────────────────────────────────────────────────────────────
+ESKIZ_EMAIL    = os.environ.get('ESKIZ_EMAIL', '')
+ESKIZ_PASSWORD = os.environ.get('ESKIZ_PASSWORD', '')
+ESKIZ_FROM     = os.environ.get('ESKIZ_FROM', '4546')
+ESKIZ_BASE_URL = os.environ.get('ESKIZ_BASE_URL', 'https://notify.eskiz.uz/api')
+
 CSRF_TRUSTED_ORIGINS = ['https://web-production-a6fe2.up.railway.app']
 
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
@@ -48,6 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     # ── Notebook ─────────────────────────────────────────────────────────────
+    'notebook.business',
     'notebook.accounts',
     'notebook.company',
     'notebook.catalog',
@@ -58,6 +65,8 @@ INSTALLED_APPS = [
     'notebook.activity',
     'notebook.dashboard',
     'notebook.expenses',
+    'notebook.containers',
+    'notebook.sms',
     # ── Third-party ──────────────────────────────────────────────────────────
     'django_celery_beat',
     'django_celery_results',
@@ -74,6 +83,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'notebook.business.middleware.CurrentBusinessMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -90,6 +100,7 @@ TEMPLATES = [{
         'django.contrib.auth.context_processors.auth',
         'django.contrib.messages.context_processors.messages',
         'django.template.context_processors.i18n',
+        'notebook.business.context_processors.business_context',
     ]},
 }]
 

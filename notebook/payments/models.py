@@ -8,6 +8,10 @@ from notebook.core.managers import NotCancelledManager
 
 class Payment(models.Model):
     client          = models.ForeignKey('clients.Client', on_delete=models.CASCADE, related_name='payments')
+    business        = models.ForeignKey(
+        'business.Business', on_delete=models.CASCADE,
+        related_name='payments', null=True, blank=True, verbose_name="Biznes"
+    )
     amount          = models.DecimalField(max_digits=12, decimal_places=2)
     user            = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     note            = models.CharField(max_length=255, blank=True)

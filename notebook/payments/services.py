@@ -17,7 +17,7 @@ class PaymentService:
 
         with transaction.atomic():
             client = Client.objects.select_for_update().get(pk=client.pk)
-            payment = Payment.objects.create(client=client, amount=amount, user=user, note=note)
+            payment = Payment.objects.create(client=client, business=client.business, amount=amount, user=user, note=note)
 
             if client.total_debt >= amount:
                 client.total_debt -= amount
@@ -28,12 +28,12 @@ class PaymentService:
             client.save(update_fields=['total_debt', 'advance_balance'])
 
             ActivityLog.objects.create(
-                user=user, action_type='payment',
+                user=user, business=client.business, action_type='payment',
                 description=f"{client.name} — {amount:,.0f} so'm to'lov",
                 extra_data={'payment_id': payment.id, 'client_id': client.id,
                             'client_name': client.name, 'amount': str(amount), 'note': note}
             )
-            cache.delete('dashboard_full_data')
+            cache.delete(f'dashboard_full_data_{client.business_id}')
             on_commit(lambda: _refresh_mv())
             return payment
 
@@ -63,12 +63,12 @@ class PaymentService:
             client.save(update_fields=['total_debt', 'advance_balance'])
 
             ActivityLog.objects.create(
-                user=user, action_type='payment_refund',
+                user=user, business=client.business, action_type='payment_refund',
                 description=f"{client.name} — {amount:,.0f} so'm to'lov qaytarildi",
                 extra_data={'refund_id': None, 'payment_id': payment.id,
                             'client_name': client.name, 'amount': str(amount), 'reason': reason}
             )
-            cache.delete('dashboard_full_data')
+            cache.delete(f'dashboard_full_data_{client.business_id}')
             on_commit(lambda: _refresh_mv())
             return payment
 

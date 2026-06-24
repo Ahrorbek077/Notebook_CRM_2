@@ -1,39 +1,33 @@
-# notebook/company/forms.py
+# notebook/catalog/forms.py
 from django import forms
-from .models import Company, Branch
+from .models import Product, Category
 
 
-class CompanyForm(forms.ModelForm):
+class ProductForm(forms.ModelForm):
     class Meta:
-        model  = Company
-        fields = ['name', 'phone', 'address', 'note']
+        model  = Product
+        fields = ['name', 'category', 'price', 'unit_type', 'image']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Rasm majburiy emas — bo'sh yuborilsa xato chiqmaydi
+        self.fields['image'].required = False
         widgets = {
-            'name':    forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Kompaniya nomi"}),
-            'phone':   forms.TextInput(attrs={'class': 'form-control'}),
-            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'note':    forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
+            'name':      forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Mahsulot nomi'}),
+            'category':  forms.Select(attrs={'class': 'form-control'}),
+            'price':     forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Sotuv narxi'}),
+            'unit_type': forms.Select(attrs={'class': 'form-control'}),
+            'image':     forms.FileInput(attrs={'class': 'form-control'}),
         }
 
-    def clean_name(self):
-        name = self.cleaned_data.get('name', '').strip()
-        if not name:
-            raise forms.ValidationError("Kompaniya nomi kiritilishi shart")
-        return name
 
-
-class BranchForm(forms.ModelForm):
+class CategoryForm(forms.ModelForm):
     class Meta:
-        model  = Branch
-        fields = ['name', 'phone', 'address', 'note']
-        widgets = {
-            'name':    forms.TextInput(attrs={'class': 'form-control', 'placeholder': "Filial nomi"}),
-            'phone':   forms.TextInput(attrs={'class': 'form-control'}),
-            'address': forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-            'note':    forms.Textarea(attrs={'class': 'form-control', 'rows': 2}),
-        }
+        model  = Category
+        fields = ['name']
 
     def clean_name(self):
-        name = self.cleaned_data.get('name', '').strip()
-        if not name:
-            raise forms.ValidationError("Filial nomi kiritilishi shart")
+        name = self.cleaned_data['name'].strip()
+        if Category.all_objects.filter(name__iexact=name).exclude(pk=self.instance.pk).exists():
+            raise forms.ValidationError("Bunday kategoriya allaqachon mavjud!")
         return name

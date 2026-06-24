@@ -263,6 +263,21 @@
         </button>
     </div>
 
+    <!-- IDISH (CONTAINER) KARTA -->
+    <div style="margin:0 12px 12px;background:var(--bg-card);border:1px solid var(--b);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer"
+         id="containerSummaryBtn">
+        <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:36px;height:36px;border-radius:8px;background:rgba(168,85,247,.12);color:#a855f7;display:flex;align-items:center;justify-content:center">
+                <i class="fa fa-box-open"></i>
+            </div>
+            <div>
+                <div style="font-size:.78rem;color:var(--t2);font-weight:600">{% trans "Idishlar" %}</div>
+                <div style="font-family:var(--mono);font-weight:700;font-size:1rem;color:var(--t)" id="containerTotalVal">— ta</div>
+            </div>
+        </div>
+        <i class="fa fa-chevron-right" style="color:var(--t3)"></i>
+    </div>
+
     <!-- HISTORY SECTION -->
     <div class="section-hdr">
         <span class="section-title">{% trans "To'lov va Sotuv tarixi" %}</span>
@@ -315,12 +330,12 @@
                             {{ si.product.name }}
                             {% if si.returned_quantity > 0 %}
                             <span style="font-size:.65rem;background:var(--amber-d);color:var(--amber);padding:1px 5px;border-radius:4px;margin-left:4px">
-                                -{{ si.returned_quantity }} qaytarildi
+                                -{{ si.returned_quantity|floatformat:-3 }} qaytarildi
                             </span>
                             {% endif %}
                         </span>
                         <span class="dv {% if si.returned_quantity >= si.quantity %}text-muted{% endif %}" style="{% if si.returned_quantity >= si.quantity %}opacity:.4;text-decoration:line-through{% endif %}">
-                            {{ si.quantity }} × {{ si.price_at_sale|floatformat:0 }} so'm
+                            {{ si.quantity|floatformat:-3 }} {{ si.product.get_unit_type_display }} × {{ si.price_at_sale|floatformat:0 }} so'm
                         </span>
                     </div>
                     {% endfor %}
@@ -337,7 +352,7 @@
                     {% for ri in item.items %}
                     <div class="detail-row">
                         <span class="dk">{{ ri.product_name }}</span>
-                        <span class="dv" style="color:var(--orange)">-{{ ri.quantity }} × {{ ri.price|floatformat:0 }} = {{ ri.subtotal|floatformat:0 }} so'm</span>
+                        <span class="dv" style="color:var(--orange)">-{{ ri.quantity|floatformat:-3 }} × {{ ri.price|floatformat:0 }} = {{ ri.subtotal|floatformat:0 }} so'm</span>
                     </div>
                     {% endfor %}
 
@@ -619,6 +634,71 @@
     </div>
 </div>
 
+<!-- ── MODAL: Idishlar ── -->
+<div class="modal-veil d-none" id="containerModal">
+    <div class="modal-sheet">
+        <div class="sheet-handle"></div>
+        <div class="sheet-head">
+            <div class="sheet-title">{% trans "IDISHLAR" %}</div>
+            <button class="sheet-close" data-close="containerModal"><i class="fa fa-times"></i></button>
+        </div>
+        <div class="sheet-body">
+            <!-- Mijozdagi idishlar ro'yxati -->
+            <div id="containerList" style="display:flex;flex-direction:column;gap:6px">
+                <div class="loading-wrap"><div class="spinner"></div></div>
+            </div>
+
+            <div style="height:1px;background:var(--b);margin:6px 0"></div>
+
+            <!-- Ber / Qaytar forma -->
+            <div class="form-row" style="display:flex;gap:8px">
+                <button type="button" class="btn cn-action-btn active" id="cnActionGive" data-action="given"
+                        style="flex:1;height:36px;background:rgba(0,230,118,.12);border:1px solid rgba(0,230,118,.3);color:var(--green);font-weight:700;border-radius:var(--r)">
+                    <i class="fa fa-arrow-up"></i> {% trans "Berish" %}
+                </button>
+                <button type="button" class="btn cn-action-btn" id="cnActionReturn" data-action="returned"
+                        style="flex:1;height:36px;background:var(--bg-el);border:1px solid var(--b);color:var(--t2);font-weight:700;border-radius:var(--r)">
+                    <i class="fa fa-arrow-down"></i> {% trans "Qaytarish" %}
+                </button>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">{% trans "Filial" %} *</label>
+                <select class="form-control" id="cnBranch">
+                    <option value="">— tanlang —</option>
+                    {% for b in branches %}
+                    <option value="{{ b.id }}">{{ b.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-row" style="display:flex;gap:8px">
+                <div class="form-group" style="flex:2">
+                    <label class="form-label">{% trans "Idish turi" %} *</label>
+                    <select class="form-control" id="cnType">
+                        <option value="">— tanlang —</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1">
+                    <label class="form-label">{% trans "Soni" %} *</label>
+                    <input type="number" class="form-control" id="cnQty" placeholder="0" min="1" step="1">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">{% trans "Izoh" %} (ixtiyoriy)</label>
+                <input type="text" class="form-control" id="cnNote" placeholder="...">
+            </div>
+
+            <div id="cnMsg" class="form-msg d-none"></div>
+        </div>
+        <div class="sheet-actions">
+            <button class="btn btn-secondary" data-close="containerModal">{% trans "Yopish" %}</button>
+            <button class="btn btn-primary" id="cnSubmit"><i class="fa fa-check"></i> {% trans "Saqlash" %}</button>
+        </div>
+    </div>
+</div>
+
 <!-- FABs -->
 <div class="cd-fab">
     <button class="cd-fab-btn fab-pay" id="fabPay" title="To'lov"><i class="fa fa-credit-card"></i></button>
@@ -641,6 +721,13 @@
 <script>
 const CSRF      = "{{ csrf_token }}";
 const CLIENT_ID = {{ client.id }};
+
+/* Miqdorni chiroyli ko'rsatish: "1.000" -> "1", "2.500" -> "2.5" */
+function fmtQty(val){
+    const n = parseFloat(val);
+    if (isNaN(n)) return '0';
+    return n % 1 === 0 ? n.toString() : n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+}
 const URLS = {
     getFiltered:  "{% url 'catalog:products-filtered' %}",
     addToCart:    "{% url 'catalog:cart-add' 0 %}",
@@ -651,6 +738,10 @@ const URLS = {
     createPay:    "{% url 'catalog:payment-create' 0 %}",
     payRefund:    "{% url 'catalog:payment-refund' 0 %}",
     clientUpdate: "{% url 'clients:client_update' %}",
+    containerTypes:   "{% url 'containers:type-list' %}",
+    containerSummary: "{% url 'containers:client-summary' 0 %}",
+    containerGive:    "{% url 'containers:give' 0 %}",
+    containerReturn:  "{% url 'containers:return' 0 %}",
 };
 
 /* ── Helpers ── */
@@ -811,22 +902,52 @@ function loadProducts(page=1) {
         } else {
             let html = '<div class="card-list" style="padding:8px 12px">';
             d.products.forEach(p => {
-                html += `<div class="batch-card" style="overflow:visible">
-                    <div class="batch-main" style="padding:10px 12px">
-                        <div style="flex:1">
-                            <div style="font-weight:700;font-size:.9rem;color:var(--t)">${p.name}</div>
-                            <div style="font-size:.75rem;color:var(--t2);margin-top:2px">${p.category||''} · Qoldiq: <span style="color:var(--green);font-weight:700">${p.stock} ta</span></div>
-                            <div style="font-family:var(--mono);font-size:.82rem;color:var(--amber);margin-top:2px">${Number(p.price).toLocaleString()} so'm</div>
+                const unitLabel = p.unit_label || 'dona';
+                const isKg = p.unit_type === 'kg';
+                const boxEnabled = p.is_box_enabled;
+                const unitsPerBox = parseFloat(p.units_per_box || 0);
+
+                if (boxEnabled) {
+                    // ── Karobka-mahsulot: faqat "Necha karobka" kiritiladi ──
+                    const boxStock = unitsPerBox > 0 ? Math.floor(parseFloat(p.stock) / unitsPerBox) : 0;
+                    const boxCostInfo = `${unitsPerBox} ${unitLabel.toLowerCase()} / karobka`;
+                    html += `<div class="batch-card" style="overflow:visible">
+                        <div class="batch-main" style="padding:10px 12px">
+                            <div style="flex:1">
+                                <div style="font-weight:700;font-size:.9rem;color:var(--t)">${p.name} <span style="font-size:.65rem;background:var(--bg-el);padding:1px 6px;border-radius:4px;color:var(--cyan)">KAROBKA</span></div>
+                                <div style="font-size:.75rem;color:var(--t2);margin-top:2px">${p.category||''} · Qoldiq: <span style="color:var(--green);font-weight:700">${boxStock} karobka</span> (${boxCostInfo})</div>
+                                <div style="font-family:var(--mono);font-size:.82rem;color:var(--amber);margin-top:2px">${(Number(p.price)*unitsPerBox).toLocaleString()} so'm / karobka</div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px">
+                                <input type="number" id="qty-${p.id}" value="1" min="1" max="${boxStock}" step="1" data-box-mode="true" data-units-per-box="${unitsPerBox}"
+                                    style="width:62px;height:36px;background:var(--bg-el);border:1px solid var(--b);border-radius:8px;color:var(--t);text-align:center;font-family:var(--mono);font-size:.85rem;outline:none">
+                                <button class="ba-btn ba-btn-history" style="height:36px;padding:0 12px" onclick="addToCart(${p.id})">
+                                    <i class="fa fa-plus"></i>
+                                </button>
+                            </div>
                         </div>
-                        <div style="display:flex;align-items:center;gap:6px">
-                            <input type="number" id="qty-${p.id}" value="1" min="1" max="${p.stock}"
-                                style="width:56px;height:36px;background:var(--bg-el);border:1px solid var(--b);border-radius:8px;color:var(--t);text-align:center;font-family:var(--mono);font-size:.85rem;outline:none">
-                            <button class="ba-btn ba-btn-history" style="height:36px;padding:0 12px" onclick="addToCart(${p.id})">
-                                <i class="fa fa-plus"></i>
-                            </button>
+                    </div>`;
+                } else {
+                    // ── Oddiy dona/kg mahsulot ──────────────────────────────
+                    const qtyStep = isKg ? '0.001' : '1';
+                    const qtyMin  = isKg ? '0.001' : '1';
+                    html += `<div class="batch-card" style="overflow:visible">
+                        <div class="batch-main" style="padding:10px 12px">
+                            <div style="flex:1">
+                                <div style="font-weight:700;font-size:.9rem;color:var(--t)">${p.name}</div>
+                                <div style="font-size:.75rem;color:var(--t2);margin-top:2px">${p.category||''} · Qoldiq: <span style="color:var(--green);font-weight:700">${fmtQty(p.stock)} ${unitLabel}</span></div>
+                                <div style="font-family:var(--mono);font-size:.82rem;color:var(--amber);margin-top:2px">${Number(p.price).toLocaleString()} so'm / ${unitLabel}</div>
+                            </div>
+                            <div style="display:flex;align-items:center;gap:6px">
+                                <input type="number" id="qty-${p.id}" value="1" min="${qtyMin}" max="${p.stock}" step="${qtyStep}" data-box-mode="false"
+                                    style="width:62px;height:36px;background:var(--bg-el);border:1px solid var(--b);border-radius:8px;color:var(--t);text-align:center;font-family:var(--mono);font-size:.85rem;outline:none">
+                                <button class="ba-btn ba-btn-history" style="height:36px;padding:0 12px" onclick="addToCart(${p.id})">
+                                    <i class="fa fa-plus"></i>
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                </div>`;
+                    </div>`;
+                }
             });
             html += '</div>';
             document.getElementById('prodList').innerHTML = html;
@@ -851,8 +972,21 @@ document.getElementById('fabSell').addEventListener('click', () => { openModal('
 
 /* ── Cart ── */
 async function addToCart(productId) {
-    const qty = parseInt(document.getElementById('qty-'+productId)?.value) || 1;
-    const d = await api(url(URLS.addToCart, CLIENT_ID), {product_id:productId, quantity:qty, client_id:CLIENT_ID});
+    const input = document.getElementById('qty-'+productId);
+    const rawQty = parseFloat(input?.value) || 1;
+    const isBoxMode = input?.dataset?.boxMode === 'true';
+    const unitsPerBox = parseFloat(input?.dataset?.unitsPerBox || 0);
+
+    // Karobka rejimida: foydalanuvchi "necha karobka" kiritadi,
+    // lekin serverga ENG KICHIK birlikda (dona/kg) yuboramiz.
+    const quantity = isBoxMode ? (rawQty * unitsPerBox) : rawQty;
+
+    const payload = {product_id:productId, quantity:quantity, client_id:CLIENT_ID};
+    if (isBoxMode) {
+        payload.box_quantity  = rawQty;
+        payload.units_per_box = unitsPerBox;
+    }
+    const d = await api(url(URLS.addToCart, CLIENT_ID), payload);
     if (d.status==='success') { toast('Savatchaga qo\'shildi ✓','success'); updateCartBadge(d.cart_count||0); }
     else toast(d.message||'Xato!','error');
 }
@@ -877,7 +1011,12 @@ async function loadCart() {
     let sum=0, html='';
     d.cart.forEach(item => {
         const price=parseFloat(item.price), sub=price*item.quantity; sum+=sub;
-        html+=`<div class="batch-card"><div class="batch-main" style="padding:10px 12px"><div style="flex:1"><div style="font-weight:700;font-size:.88rem;color:var(--t)">${item.name}</div><div style="font-size:.75rem;color:var(--t2);font-family:var(--mono)">${item.quantity} × ${price.toLocaleString()} so'm</div></div><div style="font-family:var(--mono);font-weight:700;color:var(--green)">${sub.toLocaleString()} so'm</div></div></div>`;
+        const unitLabel = item.unit_label || 'dona';
+        // Karobka bilan qo'shilgan bo'lsa — "2 karobka (30 dona)" deb ko'rsatamiz
+        const qtyDisplay = item.box_quantity
+            ? `${item.box_quantity} karobka (${fmtQty(item.quantity)} ${unitLabel})`
+            : `${fmtQty(item.quantity)} ${unitLabel}`;
+        html+=`<div class="batch-card"><div class="batch-main" style="padding:10px 12px"><div style="flex:1"><div style="font-weight:700;font-size:.88rem;color:var(--t)">${item.name}</div><div style="font-size:.75rem;color:var(--t2);font-family:var(--mono)">${qtyDisplay} × ${price.toLocaleString()} so'm</div></div><div style="font-family:var(--mono);font-weight:700;color:var(--green)">${sub.toLocaleString()} so'm</div></div></div>`;
     });
     items.innerHTML = html;
     total.textContent = sum.toLocaleString() + ' so\'m';
@@ -929,7 +1068,10 @@ function openReturn(saleId) {
         const items=JSON.parse(script.textContent); let html='';
         items.forEach(item => {
             const rem=item.quantity-(item.returned_quantity||0); if(rem<=0)return;
-            html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--b)"><div><div style="font-size:.85rem;font-weight:700;color:var(--t)">${item.product.name}</div><div style="font-size:.72rem;color:var(--t2)">Qolgan: ${rem} ta</div></div><input type="number" class="ret-qty" data-id="${item.id}" value="0" min="0" max="${rem}" oninput="this.value=Math.min(${rem},Math.max(0,parseInt(this.value)||0))" style="width:60px;height:34px;background:var(--bg-el);border:1px solid var(--b);border-radius:8px;color:var(--t);text-align:center;font-family:var(--mono);outline:none"></div>`;
+            const unitLabel = item.product.unit_label || 'dona';
+            const isKg = item.product.unit_type === 'kg';
+            const step = isKg ? '0.001' : '1';
+            html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--b)"><div><div style="font-size:.85rem;font-weight:700;color:var(--t)">${item.product.name}</div><div style="font-size:.72rem;color:var(--t2)">Qolgan: ${fmtQty(rem)} ${unitLabel}</div></div><input type="number" class="ret-qty" data-id="${item.id}" value="0" min="0" max="${rem}" step="${step}" oninput="this.value=Math.min(${rem},Math.max(0,parseFloat(this.value)||0))" style="width:60px;height:34px;background:var(--bg-el);border:1px solid var(--b);border-radius:8px;color:var(--t);text-align:center;font-family:var(--mono);outline:none"></div>`;
         });
         document.getElementById('retItemsList').innerHTML=html||'<div style="color:var(--t3);font-size:.82rem">Qaytarish mumkin bo\'lgan mahsulot yo\'q</div>';
     }
@@ -940,7 +1082,7 @@ document.getElementById('retConfirm').addEventListener('click', async () => {
     const payload={reason:document.getElementById('retReason').value.trim()};
     if (returnType==='full') { payload.full_return=true; }
     else {
-        const items=[]; document.querySelectorAll('.ret-qty').forEach(inp=>{const qty=parseInt(inp.value)||0; if(qty>0)items.push({sale_item_id:parseInt(inp.dataset.id),quantity:qty});});
+        const items=[]; document.querySelectorAll('.ret-qty').forEach(inp=>{const qty=parseFloat(inp.value)||0; if(qty>0)items.push({sale_item_id:parseInt(inp.dataset.id),quantity:qty});});
         if(!items.length){showMsg(msg,'Hech qanday miqdor kiritilmadi!','error');return;}
         payload.items=items;
     }
@@ -975,6 +1117,108 @@ document.getElementById('refundConfirm').addEventListener('click', async () => {
 
 /* ── History pagination ── */
 function loadHistory(page) { window.scrollTo(0,0); window.location.href=`?history_page=${page}`; }
+
+/* ── Containers (idishlar) ── */
+let containerTypesCache = null;
+let currentCnAction = 'given';
+
+async function loadContainerTypes() {
+    if (containerTypesCache) return containerTypesCache;
+    const d = await fetch(URLS.containerTypes).then(r => r.json());
+    containerTypesCache = d.types || [];
+    return containerTypesCache;
+}
+
+async function populateContainerTypeSelect() {
+    const types = await loadContainerTypes();
+    const sel = document.getElementById('cnType');
+    sel.innerHTML = '<option value="">— tanlang —</option>' +
+        types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+}
+
+async function loadContainerSummary() {
+    const d = await fetch(url(URLS.containerSummary, CLIENT_ID)).then(r => r.json());
+    const list = document.getElementById('containerList');
+    const totalEl = document.getElementById('containerTotalVal');
+
+    if (totalEl) totalEl.textContent = `${d.total || 0} ta`;
+
+    if (!d.items || !d.items.length) {
+        list.innerHTML = '<div style="color:var(--t3);font-size:.82rem;text-align:center;padding:12px 0">Hozircha idish yo\'q</div>';
+        return;
+    }
+    list.innerHTML = d.items.map(item => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg-el);border-radius:8px">
+            <span style="font-size:.85rem;color:var(--t)">${item.container_type__name}</span>
+            <span style="font-family:var(--mono);font-weight:700;color:#a855f7">${item.quantity} ta</span>
+        </div>
+    `).join('');
+}
+
+function setCnAction(action) {
+    currentCnAction = action;
+    document.getElementById('cnActionGive').classList.toggle('active', action === 'given');
+    document.getElementById('cnActionReturn').classList.toggle('active', action === 'returned');
+
+    const giveBtn = document.getElementById('cnActionGive');
+    const retBtn  = document.getElementById('cnActionReturn');
+    if (action === 'given') {
+        giveBtn.style.background = 'rgba(0,230,118,.12)'; giveBtn.style.borderColor = 'rgba(0,230,118,.3)'; giveBtn.style.color = 'var(--green)';
+        retBtn.style.background  = 'var(--bg-el)';         retBtn.style.borderColor  = 'var(--b)';           retBtn.style.color  = 'var(--t2)';
+    } else {
+        retBtn.style.background  = 'rgba(168,85,247,.12)'; retBtn.style.borderColor  = 'rgba(168,85,247,.3)'; retBtn.style.color  = '#a855f7';
+        giveBtn.style.background = 'var(--bg-el)';         giveBtn.style.borderColor = 'var(--b)';           giveBtn.style.color = 'var(--t2)';
+    }
+}
+
+document.getElementById('cnActionGive').addEventListener('click', () => setCnAction('given'));
+document.getElementById('cnActionReturn').addEventListener('click', () => setCnAction('returned'));
+
+document.getElementById('containerSummaryBtn').addEventListener('click', async () => {
+    openModal('containerModal');
+    setCnAction('given');
+    document.getElementById('cnQty').value = '';
+    document.getElementById('cnNote').value = '';
+    await populateContainerTypeSelect();
+    await loadContainerSummary();
+});
+
+document.getElementById('cnSubmit').addEventListener('click', async () => {
+    const btn = document.getElementById('cnSubmit');
+    const msg = document.getElementById('cnMsg');
+    const branchId = document.getElementById('cnBranch').value;
+    const typeId   = document.getElementById('cnType').value;
+    const qty      = parseInt(document.getElementById('cnQty').value);
+    const note     = document.getElementById('cnNote').value.trim();
+
+    if (!branchId) { showMsg(msg, 'Filialni tanlang!', 'error'); return; }
+    if (!typeId)   { showMsg(msg, 'Idish turini tanlang!', 'error'); return; }
+    if (!qty || qty <= 0) { showMsg(msg, 'Sonini kiriting!', 'error'); return; }
+
+    btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+    const endpoint = currentCnAction === 'given' ? URLS.containerGive : URLS.containerReturn;
+    const d = await api(url(endpoint, CLIENT_ID), {
+        branch_id: branchId, container_type_id: typeId, quantity: qty, note: note,
+    });
+
+    if (d.status === 'success') {
+        const label = currentCnAction === 'given' ? 'berildi' : 'qaytarildi';
+        toast(`Idish ${label} ✓`, 'success');
+        document.getElementById('cnQty').value = '';
+        document.getElementById('cnNote').value = '';
+        await loadContainerSummary();
+    } else {
+        showMsg(msg, d.message || 'Xato!', 'error');
+    }
+    btn.disabled = false; btn.innerHTML = '<i class="fa fa-check"></i> Saqlash';
+});
+
+/* Sahifa ochilganda umumiy idish sonini ko'rsatamiz */
+fetch(url(URLS.containerSummary, CLIENT_ID)).then(r => r.json()).then(d => {
+    const el = document.getElementById('containerTotalVal');
+    if (el) el.textContent = `${d.total || 0} ta`;
+}).catch(() => {});
 
 /* ── Init ── */
 fetch(url(URLS.getCart,CLIENT_ID)).then(r=>r.json()).then(d=>updateCartBadge(d.item_count||d.cart?.length||0)).catch(()=>{});

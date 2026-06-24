@@ -87,7 +87,7 @@
                             <span>{{ product.category.name }}</span>
                         </div>
                         <div class="product-meta-item">
-                            Stock: <span class="val stock-num {% if product.stock == 0 %}zero{% elif product.stock < 5 %}low{% endif %}">{{ product.stock }}</span> ta
+                            Stock: <span class="val stock-num {% if product.stock == 0 %}zero{% elif product.stock < 5 %}low{% endif %}">{{ product.stock|floatformat:-3 }}</span> {{ product.get_unit_type_display }}
                         </div>
                         <div class="product-meta-item">
                             <span class="val" style="font-family:var(--mono);color:var(--green)">{{ product.price|floatformat:0 }} so'm</span>
@@ -171,7 +171,7 @@ searchInput.value = "{{ request.GET.search }}";
 const cards = document.querySelectorAll('.product-card');
 let inStock=0, low=0;
 cards.forEach(c => {
-    const s = parseInt(c.dataset.stock) || 0;
+    const s = parseFloat(c.dataset.stock) || 0;
     if(s > 0) inStock++;
     if(s > 0 && s < 5) low++;
 });

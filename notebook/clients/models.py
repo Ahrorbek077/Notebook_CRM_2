@@ -8,7 +8,12 @@ from notebook.core.managers import SoftDeleteManager
 
 
 class Region(models.Model):
-    name      = models.CharField(max_length=100, unique=True, verbose_name="Nomi")
+    business  = models.ForeignKey(
+        'business.Business', on_delete=models.CASCADE,
+        related_name='regions', verbose_name="Biznes",
+        null=True, blank=True,  # ── eski yozuvlar uchun migratsiya vaqtida; backfill'dan keyin har doim to'ldirilgan bo'ladi
+    )
+    name      = models.CharField(max_length=100, verbose_name="Nomi")
     is_active = models.BooleanField(default=True)
     order     = models.PositiveSmallIntegerField(default=0)
 
@@ -17,6 +22,7 @@ class Region(models.Model):
 
     class Meta:
         ordering = ['order', 'name']
+        unique_together = [('business', 'name')]
         verbose_name = "Viloyat"
         verbose_name_plural = "Viloyatlar"
 
@@ -25,6 +31,11 @@ class Region(models.Model):
 
 
 class Client(models.Model):
+    business        = models.ForeignKey(
+        'business.Business', on_delete=models.CASCADE,
+        related_name='clients', verbose_name="Biznes",
+        null=True, blank=True,  # ── eski yozuvlar uchun migratsiya vaqtida; backfill'dan keyin har doim to'ldirilgan bo'ladi
+    )
     name            = models.CharField(max_length=200, verbose_name="Ismi")
     phone           = models.CharField(max_length=20, verbose_name="Telefon")
     address         = models.TextField(blank=True, verbose_name="Manzil")

@@ -42,7 +42,9 @@ def logout_view(request):
 @method_decorator(superadmin_required, name='dispatch')
 class StaffListView(View):
     def get(self, request):
-        users  = User.objects.exclude(role='superadmin').select_related('fired_by').order_by('is_active', '-created_at')
+        users  = User.objects.exclude(role='superadmin').filter(
+            business=request.business
+        ).select_related('fired_by').order_by('is_active', '-created_at')
         return render(request, 'accounts/staff.html', {
             'active_users': users.filter(is_active=True),
             'fired_users':  users.filter(is_active=False),
@@ -56,6 +58,7 @@ class StaffCreateView(View):
         if form.is_valid():
             user = form.save(commit=False)
             user.set_password(form.cleaned_data['password'])
+            user.business = request.business
             user.save()
             return JsonResponse({'status': 'created', 'id': user.id, 'username': user.username,
                                  'role': user.get_role_display(), 'phone': user.phone})
@@ -65,7 +68,7 @@ class StaffCreateView(View):
 @method_decorator(superadmin_required, name='dispatch')
 class StaffEditView(View):
     def post(self, request, user_id):
-        user = get_object_or_404(User, id=user_id)
+        user = get_object_or_404(User, id=user_id, business=request.business)
         form = UserEditForm(request.POST, instance=user)
         if form.is_valid():
             form.save()
@@ -77,7 +80,7 @@ class StaffEditView(View):
 @method_decorator(superadmin_required, name='dispatch')
 class StaffFireView(View):
     def post(self, request, user_id):
-        user = get_object_or_404(User, id=user_id)
+        user = get_object_or_404(User, id=user_id, business=request.business)
         if user.is_superadmin:
             return JsonResponse({'status': 'error', 'message': "Super adminni ishdan bo'yb bo'lmaydi!"}, status=403)
         action = request.POST.get('action', 'fire')
@@ -126,8 +129,8 @@ class DirectoryView(View):
         from notebook.catalog.models import Category
         from notebook.clients.models import Region
         return render(request, 'accounts/directory.html', {
-            'categories': Category.all_objects.all(),
-            'regions':    Region.objects.all(),
+            'categories': Category.all_objects.filter(business=request.business),
+            'regions':    Region.objects.filter(business=request.business),
         })
 
 

@@ -5,12 +5,14 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.db.models import Q, Count
 from notebook.core.mixins import AdminRequiredMixin
+from notebook.business.mixins import BusinessRequiredMixin
 from notebook.activity.models import ActivityLog
 
-SALE_ACTION_TYPES  = ['sale','sale_return','payment','payment_refund','client_create','client_update','client_delete']
+SALE_ACTION_TYPES  = ['sale','sale_return','payment','payment_refund','client_create','client_update','client_delete',
+                      'container_given','container_returned']
 STOCK_ACTION_TYPES = ['company_create','company_update','company_delete','branch_create','branch_update',
                       'branch_delete','branch_payment','product_create','product_update','product_delete',
-                      'stock_add','stock_adjust','stock_delete','stock_return']
+                      'stock_add','stock_adjust','stock_delete','stock_return','container_stock_add']
 
 ACTION_CLASS_MAP = {
     'sale':('badge-sale','fa-shopping-cart'), 'sale_return':('badge-return','fa-undo'),
@@ -25,26 +27,28 @@ ACTION_CLASS_MAP = {
     'product_delete':('badge-delete','fa-trash'), 'stock_add':('badge-stock','fa-boxes'),
     'stock_adjust':('badge-adjust','fa-sliders-h'), 'stock_delete':('badge-delete','fa-trash'),
     'stock_return':('badge-return','fa-undo-alt'),
+    'container_given':('badge-payment','fa-box-open'), 'container_returned':('badge-return','fa-box'),
+    'container_stock_add':('badge-stock','fa-boxes-stacked'),
 }
 
 
-class LauncherView(LoginRequiredMixin, TemplateView):
+class LauncherView(LoginRequiredMixin, BusinessRequiredMixin, TemplateView):
     template_name = 'launcher.html'
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         from notebook.clients.models import Region
         from notebook.catalog.models import Category
-        ctx['regions']    = Region.objects.all()
-        ctx['categories'] = Category.objects.all().order_by('name')
+        ctx['regions']    = Region.objects.filter(business=self.request.business)
+        ctx['categories'] = Category.objects.filter(business=self.request.business).order_by('name')
         return ctx
 
 
-class DashboardView(AdminRequiredMixin, LoginRequiredMixin, TemplateView):
+class DashboardView(AdminRequiredMixin, LoginRequiredMixin, BusinessRequiredMixin, TemplateView):
     template_name = 'dashboard.html'
 
 
-class BaseHistoryView(AdminRequiredMixin, LoginRequiredMixin, ListView):
+class BaseHistoryView(AdminRequiredMixin, LoginRequiredMixin, BusinessRequiredMixin, ListView):
     model               = ActivityLog
     context_object_name = 'logs'
     paginate_by         = 30
@@ -52,7 +56,8 @@ class BaseHistoryView(AdminRequiredMixin, LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         qs = ActivityLog.objects.select_related('user')\
-               .filter(action_type__in=self.action_type_filter).order_by('-created_at')
+               .filter(action_type__in=self.action_type_filter, business=self.request.business)\
+               .order_by('-created_at')
         search = self.request.GET.get('search', '').strip()
         at     = self.request.GET.get('action_type', '').strip()
         df     = self.request.GET.get('date_from', '').strip()
@@ -88,7 +93,7 @@ class BaseHistoryView(AdminRequiredMixin, LoginRequiredMixin, ListView):
                          'action_class': cls, 'action_icon': icon,
                          'description': log.description, 'extra_data': log.extra_data or {}})
         counts = {r['action_type']: r['c'] for r in
-                  ActivityLog.objects.filter(action_type__in=self.action_type_filter)
+                  ActivityLog.objects.filter(action_type__in=self.action_type_filter, business=self.request.business)
                                      .values('action_type').annotate(c=Count('id'))}
         return JsonResponse({'logs': logs, 'page': page_obj.number,
                              'total_pages': paginator.num_pages, 'has_next': page_obj.has_next(),

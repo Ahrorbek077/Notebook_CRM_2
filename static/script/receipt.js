@@ -55,6 +55,13 @@ const ReceiptManager = (() => {
     return Number(num).toLocaleString('uz-UZ') + " so'm";
   }
 
+  // ── Miqdor formati: "1.000" -> "1", "2.500" -> "2.5" ───────────────────────
+  function fmtQty(val) {
+    const n = parseFloat(val);
+    if (isNaN(n)) return '0';
+    return n % 1 === 0 ? n.toString() : n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
   // ── Ma'lumot yuklash ──────────────────────────────────────────────────────
   async function fetchReceipt(saleId) {
     const resp = await fetch(`/clients/receipt/${saleId}/`, {
@@ -104,7 +111,7 @@ const ReceiptManager = (() => {
       const nameLine = `${item.name}`;
       // Uzun nomlar uchun qisqartirish
       const shortName = nameLine.length > 28 ? nameLine.substring(0, 26) + '..' : nameLine;
-      const qtyPrice  = `${item.qty}x${fmt(item.price)}`;
+      const qtyPrice  = `${fmtQty(item.qty)}x${fmt(item.price)}`;
       push(twoCol(shortName, fmt(item.subtotal)) + '\n');
       push(`  ${qtyPrice}\n`);
     });
@@ -146,7 +153,7 @@ const ReceiptManager = (() => {
     const itemsHtml = receipt.items.map(item => `
       <tr>
         <td>${item.name}</td>
-        <td class="text-center">${item.qty}</td>
+        <td class="text-center">${fmtQty(item.qty)}</td>
         <td class="text-end">${Number(item.price).toLocaleString('uz-UZ')}</td>
         <td class="text-end">${Number(item.subtotal).toLocaleString('uz-UZ')}</td>
       </tr>
@@ -196,7 +203,7 @@ const ReceiptManager = (() => {
           <div style="display:flex;justify-content:space-between;padding:5px 0;
                       font-size:.8rem;border-bottom:1px solid var(--b,rgba(255,255,255,.04))">
             <span style="flex:2;color:var(--t,#fff);padding-right:6px">${item.name}</span>
-            <span style="flex:1;text-align:center;color:var(--t2,#aaa)">${item.qty}</span>
+            <span style="flex:1;text-align:center;color:var(--t2,#aaa)">${fmtQty(item.qty)}</span>
             <span style="flex:1;text-align:right;color:var(--t2,#aaa)">${Number(item.price).toLocaleString('uz-UZ')}</span>
             <span style="flex:1;text-align:right;color:var(--amber,#ffab00);font-weight:700">${Number(item.subtotal).toLocaleString('uz-UZ')}</span>
           </div>
@@ -370,7 +377,7 @@ const ReceiptManager = (() => {
         y += 3.5;
         doc.setFontSize(7);
         doc.setTextColor(100);
-        doc.text(`  ${item.qty} x ${Number(item.price).toLocaleString('uz-UZ')} so'm`, lm, y);
+        doc.text(`  ${fmtQty(item.qty)} x ${Number(item.price).toLocaleString('uz-UZ')} so'm`, lm, y);
         doc.setTextColor(0);
         doc.setFontSize(8);
         y += 3.5;

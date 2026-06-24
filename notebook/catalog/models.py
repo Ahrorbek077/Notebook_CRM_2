@@ -10,6 +10,11 @@ from notebook.core.utils import smart_slug
 
 
 class Category(models.Model):
+    business  = models.ForeignKey(
+        'business.Business', on_delete=models.CASCADE,
+        related_name='categories', verbose_name="Biznes",
+        null=True, blank=True,  # eski yozuvlar uchun migratsiya vaqtida
+    )
     name      = models.CharField(max_length=100, verbose_name="Nomi")
     is_active = models.BooleanField(default=True)
 
@@ -32,7 +37,19 @@ class Category(models.Model):
 
 
 class Product(models.Model):
+    UNIT_DONA = 'dona'
+    UNIT_KG   = 'kg'
+    UNIT_CHOICES = [
+        (UNIT_DONA, 'Dona'),
+        (UNIT_KG,   'Kilogram'),
+    ]
+
     name     = models.CharField(max_length=200, verbose_name="Nomi")
+    business = models.ForeignKey(
+        'business.Business', on_delete=models.CASCADE,
+        related_name='products', verbose_name="Biznes",
+        null=True, blank=True,  # eski yozuvlar uchun migratsiya vaqtida
+    )
     category = models.ForeignKey(
         Category, on_delete=models.PROTECT,
         related_name='products', verbose_name="Kategoriya"
@@ -42,7 +59,22 @@ class Product(models.Model):
         null=True, blank=True,
         related_name='products', verbose_name="Filial"
     )
-    slug  = models.SlugField(max_length=256, unique=True, blank=True, allow_unicode=True)
+    unit_type = models.CharField(
+        max_length=10, choices=UNIT_CHOICES, default=UNIT_DONA,
+        verbose_name="O'lchov birligi",
+        help_text="Mahsulot dona yoki kilogramda sotiladimi"
+    )
+    is_box_enabled = models.BooleanField(
+        default=False,
+        verbose_name="Karobkalab sotiladi/olinadi",
+        help_text="Yoqilsa, xarid va sotuvda 'Karobkalab' rejimi ham ko'rinadi"
+    )
+    units_per_box = models.DecimalField(
+        max_digits=10, decimal_places=3, null=True, blank=True,
+        verbose_name="1 karobkadagi miqdor",
+        help_text="1 karobkada nechta dona/kg bo'ladi (doimiy, mahsulot uchun bir marta belgilanadi)"
+    )
+    slug  = models.SlugField(max_length=256, blank=True, allow_unicode=True)
     image = ResizedImageField(
         size=[756, 741], crop=['middle', 'center'],
         upload_to='products/%Y/%m',
@@ -58,7 +90,10 @@ class Product(models.Model):
         verbose_name="Standart tan narxi",
         help_text="Yaratishda kiritilgan tan narxi — Sotib olish modalida default sifatida ko'rsatiladi"
     )
-    stock = models.PositiveIntegerField(default=0, editable=False)
+    stock = models.DecimalField(
+        max_digits=10, decimal_places=3, default=0, editable=False,
+        verbose_name="Qoldiq", help_text="Dona yoki kg (unit_type ga qarab)"
+    )
 
     is_active  = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -73,6 +108,7 @@ class Product(models.Model):
     class Meta:
         verbose_name        = "Mahsulot"
         verbose_name_plural = "Mahsulotlar"
+        unique_together     = [('business', 'slug')]
 
     def save(self, *args, **kwargs):
         # Slug faqat yaratishda yoki bo'sh bo'lsa generatsiya qilinadi
@@ -80,7 +116,7 @@ class Product(models.Model):
             base = smart_slug(self.name)   # ← Kirill, Lotin, unicode — barchasi ishlaydi
             slug = base
             n    = 1
-            while Product.all_objects.filter(slug=slug).exists():
+            while Product.all_objects.filter(business=self.business, slug=slug).exclude(pk=self.pk).exists():
                 slug = f"{base}-{n}"
                 n   += 1
             self.slug = slug

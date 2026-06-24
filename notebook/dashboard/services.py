@@ -2,16 +2,14 @@
 """
 DashboardService — Materialized View lar asosida statistika.
 
+ENDI HAR BIR METOD business_id BILAN ISHLAYDI — har biznes faqat
+o'zining sotuv/to'lov/mahsulot raqamlarini ko'radi.
+
 Hisob mantigi:
   total_sales   = Sotilgan narx × (qty - returned_qty)  [sotuv narxi]
   total_expense = Tan narx     × (qty - returned_qty)  [cost_price_at_sale]
   total_profit  = total_payments - total_expense        [real naqd foyda]
   gross_profit  = total_sales - total_expense           [potensial foyda (qarz+naqd)]
-
-Return bo'lganda:
-  returned_quantity MV SQL da HISOBGA OLINGAN:
-    SUM(si.price_at_sale * (si.quantity - si.returned_quantity))
-  — ya'ni qaytarilgan mahsulot avtomatik chiqarib tashlanadi.
 """
 from django.db import connection
 from django.core.cache import cache
@@ -22,32 +20,28 @@ class DashboardService:
     CACHE_TIMEOUT = 300  # 5 daqiqa
 
     @staticmethod
-    def get_dashboard_data() -> dict:
-        cache_key = 'dashboard_full_data'
+    def get_dashboard_data(business_id) -> dict:
+        cache_key = f'dashboard_full_data_{business_id}'
         data = cache.get(cache_key)
         if data is None:
             data = {
-                'today':  DashboardService._period_stats('today'),
-                'week':   DashboardService._period_stats('week'),
-                'month':  DashboardService._period_stats('month'),
-                'year':   DashboardService._period_stats('year'),
+                'today':  DashboardService._period_stats(business_id, 'today'),
+                'week':   DashboardService._period_stats(business_id, 'week'),
+                'month':  DashboardService._period_stats(business_id, 'month'),
+                'year':   DashboardService._period_stats(business_id, 'year'),
                 'chart': {
-                    'weekly':  DashboardService._weekly_chart(),
-                    'monthly': DashboardService._monthly_chart(),
-                    'yearly':  DashboardService._yearly_chart(),
+                    'weekly':  DashboardService._weekly_chart(business_id),
+                    'monthly': DashboardService._monthly_chart(business_id),
+                    'yearly':  DashboardService._yearly_chart(business_id),
                 },
-                'top_products': DashboardService._top_products(),
+                'top_products': DashboardService._top_products(business_id),
             }
             cache.set(cache_key, data, timeout=DashboardService.CACHE_TIMEOUT)
         return data
 
     # ── Period stats (today / week / month / year) ─────────────────────────
     @staticmethod
-    def _period_stats(period: str) -> dict:
-        """
-        Bitta universal method — period bo'yicha statistika.
-        Materialized View (dashboard_summary_mv) daily data dan aggragate qiladi.
-        """
+    def _period_stats(business_id, period: str) -> dict:
         period_sql = {
             'today': "date = CURRENT_DATE",
             'week':  "date >= date_trunc('week', CURRENT_DATE)",
@@ -65,24 +59,24 @@ class DashboardService:
                     COALESCE(SUM(total_profit),   0),
                     COALESCE(SUM(gross_profit),   0)
                 FROM dashboard_summary_mv
-                WHERE {where};
-            """)
+                WHERE business_id = %s AND {where};
+            """, [business_id])
             row = c.fetchone()
 
         if not row or row[0] is None:
             return {'sale': 0, 'expense': 0, 'payment': 0,
                     'profit': 0, 'gross_profit': 0}
         return {
-            'sale':         float(row[0]),  # Umumiy sotuv (qaytarishlar ayirilgan)
-            'expense':      float(row[1]),  # Tan narxi xarajat
-            'payment':      float(row[2]),  # Naqd kelgan to'lovlar
-            'profit':       float(row[3]),  # Real foyda: payment - expense
-            'gross_profit': float(row[4]),  # Brutto foyda: sale - expense
+            'sale':         float(row[0]),
+            'expense':      float(row[1]),
+            'payment':      float(row[2]),
+            'profit':       float(row[3]),
+            'gross_profit': float(row[4]),
         }
 
     # ── Charts ──────────────────────────────────────────────────────────────
     @staticmethod
-    def _weekly_chart() -> dict:
+    def _weekly_chart(business_id) -> dict:
         """So'nggi 7 kun — kunlik grafik."""
         with connection.cursor() as c:
             c.execute("""
@@ -93,9 +87,9 @@ class DashboardService:
                     COALESCE(total_payments, 0),
                     COALESCE(total_profit,   0)
                 FROM dashboard_summary_mv
-                WHERE date >= CURRENT_DATE - INTERVAL '6 days'
+                WHERE business_id = %s AND date >= CURRENT_DATE - INTERVAL '6 days'
                 ORDER BY date ASC;
-            """)
+            """, [business_id])
             rows = c.fetchall()
         return {
             'labels':   [r[0] for r in rows],
@@ -106,7 +100,7 @@ class DashboardService:
         }
 
     @staticmethod
-    def _monthly_chart() -> dict:
+    def _monthly_chart(business_id) -> dict:
         """Joriy yil oylik grafik."""
         with connection.cursor() as c:
             c.execute("""
@@ -117,9 +111,9 @@ class DashboardService:
                     COALESCE(total_payments, 0),
                     COALESCE(total_profit,   0)
                 FROM monthly_summary_mv
-                WHERE month >= date_trunc('year', CURRENT_DATE)
+                WHERE business_id = %s AND month >= date_trunc('year', CURRENT_DATE)
                 ORDER BY month ASC;
-            """)
+            """, [business_id])
             rows = c.fetchall()
         return {
             'labels':   [r[0] for r in rows],
@@ -130,7 +124,7 @@ class DashboardService:
         }
 
     @staticmethod
-    def _yearly_chart() -> dict:
+    def _yearly_chart(business_id) -> dict:
         """Barcha yillar grafigi."""
         with connection.cursor() as c:
             c.execute("""
@@ -141,8 +135,9 @@ class DashboardService:
                     COALESCE(total_payments, 0),
                     COALESCE(total_profit,   0)
                 FROM yearly_summary_mv
+                WHERE business_id = %s
                 ORDER BY year ASC;
-            """)
+            """, [business_id])
             rows = c.fetchall()
         return {
             'labels':   [str(r[0]) for r in rows],
@@ -154,11 +149,7 @@ class DashboardService:
 
     # ── Top Products ────────────────────────────────────────────────────────
     @staticmethod
-    def _top_products(limit: int = 10) -> list:
-        """
-        Eng ko'p sotilgan mahsulotlar.
-        total_sold — qaytarishlar hisobga olingan (quantity - returned_quantity).
-        """
+    def _top_products(business_id, limit: int = 10) -> list:
         with connection.cursor() as c:
             c.execute("""
                 SELECT
@@ -168,10 +159,10 @@ class DashboardService:
                     COALESCE(total_revenue, 0),
                     COALESCE(total_profit,  0)
                 FROM top_products_mv
-                WHERE total_sold > 0
+                WHERE business_id = %s AND total_sold > 0
                 ORDER BY total_sold DESC
                 LIMIT %s;
-            """, [limit])
+            """, [business_id, limit])
             rows = c.fetchall()
         return [
             {

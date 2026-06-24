@@ -116,7 +116,7 @@
         </div>
         <div class="stat-card">
             <div class="stat-icon green"><i class="fa fa-layer-group"></i></div>
-            <div class="stat-label">Umumiy stok</div>
+            <div class="stat-label">Stokda bor</div>
             <div class="stat-value" id="totalStock">—</div>
         </div>
         <div class="stat-card">
@@ -210,6 +210,32 @@
         {% endif %}
     </div>
 
+    <!-- IDISHLAR (CONTAINERS) -->
+    <div class="section-hdr" style="margin-top:4px">
+        <span class="section-title">{% trans "Idishlar ombori" %}</span>
+        <button class="act-btn" id="toggleContainers" style="font-size:.75rem;padding:4px 10px">
+            <i class="fa fa-box-open"></i> Ko'rsatish
+        </button>
+    </div>
+    <div id="containersBlock" style="display:none;padding:0 12px 8px">
+        <div id="branchContainerList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+            <div class="loading-wrap"><div class="spinner"></div></div>
+        </div>
+        <div style="display:flex;gap:8px">
+            <select class="form-control" id="bcType" style="flex:2">
+                <option value="">— idish turi —</option>
+            </select>
+            <input type="number" class="form-control" id="bcQty" placeholder="Soni" min="1" step="1" style="flex:1">
+            <button class="btn btn-primary" id="bcAddBtn" style="flex-shrink:0;height:38px;padding:0 14px">
+                <i class="fa fa-plus"></i>
+            </button>
+        </div>
+        <small style="color:var(--t3);font-size:.7rem;display:block;margin-top:4px">
+            Yangi idish kelganda shu yerdan omborga qo'shiladi (mijozga berish — Mijoz sahifasidan)
+        </small>
+        <div id="bcMsg" class="form-msg d-none" style="margin-top:6px"></div>
+    </div>
+
     <!-- SEARCH -->
     <div class="toolbar">
         <form method="get" style="flex:1;display:flex;gap:8px">
@@ -252,6 +278,9 @@
                     <div class="bp-meta">
                         <div class="bp-meta-item">{{ product.category.name }}</div>
                         <div class="bp-meta-item">
+                            <span class="v" style="background:var(--bg-el);padding:1px 6px;border-radius:4px;font-size:.68rem">{{ product.get_unit_type_display }}</span>
+                        </div>
+                        <div class="bp-meta-item">
                             Sotuv: <span class="v green bp-price">{{ product.price|floatformat:0 }} so'm</span>
                         </div>
                         <div class="bp-meta-item">
@@ -259,7 +288,7 @@
                         </div>
                         <div class="bp-meta-item">
                             Stok: <span class="v {% if product.stock == 0 %}red{% elif product.stock < 5 %}amber{% else %}green{% endif %}">
-                                {{ product.stock }} ta
+                                {{ product.stock|floatformat:-2 }} {{ product.get_unit_type_display }}
                             </span>
                         </div>
                     </div>
@@ -276,6 +305,10 @@
                     data-id="{{ product.id }}"
                     data-name="{{ product.name|escapejs }}"
                     data-price="{{ product.price }}"
+                    data-unit-type="{{ product.unit_type }}"
+                    data-unit-label="{{ product.get_unit_type_display }}"
+                    data-box-enabled="{{ product.is_box_enabled|yesno:'true,false' }}"
+                    data-units-per-box="{{ product.units_per_box|default:'' }}"
                     data-cost-price="{{ product.annotated_cost_price }}">
                     <i class="fa fa-shopping-cart"></i> Sotib olish
                 </button>
@@ -364,17 +397,39 @@
                     </select>
                 </div>
                 <div class="form-group">
+                    <label class="form-label">O'lchov birligi *</label>
+                    <select class="form-control" id="apUnitType">
+                        <option value="dona">Dona</option>
+                        <option value="kg">Kilogram</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
                     <label class="form-label">Sotuv narxi *</label>
                     <input type="number" class="form-control" id="apPrice" placeholder="0" min="0" step="0.01">
                 </div>
+                <div class="form-group">
+                    <label class="form-label" style="display:flex;align-items:center;gap:6px">
+                        Tan narxi *
+                        <span style="font-size:.65rem;background:var(--amber-d);color:var(--amber);padding:1px 6px;border-radius:4px;font-weight:700">XARID NARXI</span>
+                    </label>
+                    <input type="number" class="form-control" id="apCostPrice" placeholder="Tan narxi..." min="0.01" step="0.01">
+                </div>
             </div>
-            <div class="form-group">
-                <label class="form-label" style="display:flex;align-items:center;gap:6px">
-                    Tan narxi *
-                    <span style="font-size:.65rem;background:var(--amber-d);color:var(--amber);padding:1px 6px;border-radius:4px;font-weight:700">XARID NARXI</span>
+            <small style="color:var(--t3);font-size:.7rem;display:block;margin-top:-8px;margin-bottom:8px" id="apCostHint">Narxlar 1 dona uchun. 1 dona omborga kirim sifatida qo'shiladi</small>
+
+            <!-- Karobka sozlamasi -->
+            <div class="form-group" style="background:var(--bg-el);border:1px solid var(--b);border-radius:var(--r);padding:10px 12px">
+                <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin:0">
+                    <input type="checkbox" id="apBoxEnabled" style="width:16px;height:16px">
+                    <span style="font-size:.85rem;font-weight:600">Bu mahsulot karobkalab ham sotiladi/olinadi</span>
                 </label>
-                <input type="number" class="form-control" id="apCostPrice" placeholder="Kompaniyaga to'lanadigan narx..." min="0.01" step="0.01">
-                <small style="color:var(--t3);font-size:.7rem">1 dona omborga kirim sifatida qo'shiladi</small>
+                <div id="apUnitsPerBoxWrap" style="display:none;margin-top:8px">
+                    <label class="form-label" id="apUnitsPerBoxLabel">1 karobkada nechta dona?</label>
+                    <input type="number" class="form-control" id="apUnitsPerBox" placeholder="masalan: 17" min="0.001" step="0.001">
+                    <small style="color:var(--t3);font-size:.7rem">Bu qiymat doimiy — keyin xarid va sotuvda avtomatik ishlatiladi</small>
+                </div>
             </div>
             <div class="form-group">
                 <label class="form-label">{% trans 'Rasm (ixtiyoriy)' %}</label>
@@ -459,29 +514,56 @@
         </div>
         <div class="sheet-body">
             <input type="hidden" id="pmProductId">
+            <input type="hidden" id="pmUnitType" value="dona">
+            <input type="hidden" id="pmMode" value="unit">
             <!-- mahsulot info -->
             <div style="background:var(--green-d);border:1px solid var(--green-b);border-radius:var(--r);padding:10px 14px" id="pmProductInfo"></div>
 
-            <div style="margin-top:8px">
-                <div class="form-group">
-                    <label class="form-label">Miqdor (dona) *</label>
-                    <input type="number" class="form-control" id="pmQty" placeholder="0" min="1" value="1">
+            <!-- ── DONA/KG rejimi (karobka YO'Q mahsulot uchun) ── -->
+            <div id="pmUnitFields">
+                <div class="form-group" style="margin-top:10px">
+                    <label class="form-label" id="pmQtyLabel">Miqdor (dona) *</label>
+                    <input type="number" class="form-control" id="pmQty" placeholder="0" min="0.001" step="0.001" value="1">
                     <small style="color:var(--t3);font-size:.7rem">Mahsulotning tan narxi mahsulot kartasida belgilangan</small>
                 </div>
             </div>
 
+            <!-- ── KAROBKA rejimi (faqat karobka YOQILGAN mahsulot uchun) ── -->
+            <div id="pmBoxFields" style="display:none">
+                <div class="form-group" style="margin-top:10px">
+                    <label class="form-label">Necha karobka? *</label>
+                    <input type="number" class="form-control" id="pmBoxQty" placeholder="0" min="1" step="1" value="1">
+                </div>
+                <!-- Karobka tarkibi — faqat ko'rsatish, o'zgartirib bo'lmaydi -->
+                <div style="background:var(--bg-el);border:1px solid var(--b);border-radius:var(--r);padding:10px 14px;margin-top:6px">
+                    <div style="font-size:.72rem;color:var(--t2);margin-bottom:6px">1 karobka tarkibi:</div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                        <span style="font-size:.78rem;color:var(--t2)">Ichida:</span>
+                        <span style="font-family:var(--mono);font-size:.85rem;font-weight:700" id="pmBoxContents">— dona</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+                        <span style="font-size:.78rem;color:var(--t2)">1 karobka tan narxi:</span>
+                        <span style="font-family:var(--mono);font-size:.85rem;color:var(--amber);font-weight:700" id="pmBoxCost">—</span>
+                    </div>
+                    <div style="display:flex;justify-content:space-between">
+                        <span style="font-size:.78rem;color:var(--t2)">1 karobka sotuv narxi:</span>
+                        <span style="font-family:var(--mono);font-size:.85rem;color:var(--green);font-weight:700" id="pmBoxPrice">—</span>
+                    </div>
+                </div>
+            </div>
+
             <!-- Narxlar ko'rsatish (faqat info) -->
-            <div style="background:var(--bg-el);border:1px solid var(--b);border-radius:var(--r);padding:10px 14px">
+            <div style="background:var(--bg-el);border:1px solid var(--b);border-radius:var(--r);padding:10px 14px;margin-top:8px">
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                    <span style="font-size:.78rem;color:var(--t2)">Tan narxi (mahsulot kartasidagi):</span>
+                    <span style="font-size:.78rem;color:var(--t2)" id="pmCostLabel">Tan narxi (1 dona):</span>
                     <span style="font-family:var(--mono);font-size:.88rem;color:var(--amber);font-weight:700" id="pmCostDisplay">—</span>
                 </div>
                 <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                    <span style="font-size:.78rem;color:var(--t2)">Jami xarajat (tan narx × miqdor):</span>
+                    <span style="font-size:.78rem;color:var(--t2)">Jami xarajat:</span>
                     <span style="font-family:var(--mono);font-size:.95rem;color:var(--amber);font-weight:700" id="pmTotal">0 so'm</span>
                 </div>
                 <div style="display:flex;justify-content:space-between">
-                    <span style="font-size:.78rem;color:var(--t2)">Kutilgan foyda (1 dona):</span>
+                    <span style="font-size:.78rem;color:var(--t2)" id="pmProfitLabel">Kutilgan foyda (1 dona):</span>
                     <span style="font-family:var(--mono);font-size:.88rem;font-weight:700" id="pmProfit">0 so'm</span>
                 </div>
             </div>
@@ -506,6 +588,13 @@
 <script>
 const CSRF = "{{ csrf_token }}";
 const BRANCH_ID = {{ branch.id }};
+
+/* Miqdorni chiroyli ko'rsatish: "1.000" -> "1", "2.500" -> "2.5" */
+function fmtQty(val){
+    const n = parseFloat(val);
+    if (isNaN(n)) return '0';
+    return n % 1 === 0 ? n.toString() : n.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
+}
 
 /* Toggle accordion */
 function toggleBP(id) {
@@ -541,18 +630,37 @@ document.getElementById('apImage').addEventListener('change',function(){
     const r=new FileReader();r.onload=e=>{document.getElementById('apImgWrap').innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:100px;border-radius:10px">`;};r.readAsDataURL(this.files[0]);
 });
 
+/* Karobka checkbox toggle */
+document.getElementById('apBoxEnabled').addEventListener('change',function(){
+    document.getElementById('apUnitsPerBoxWrap').style.display = this.checked ? 'block' : 'none';
+});
+/* unit_type o'zgarganda label yangilanadi */
+document.getElementById('apUnitType').addEventListener('change',function(){
+    const label = this.value === 'kg' ? 'kg' : 'dona';
+    document.getElementById('apUnitsPerBoxLabel').textContent = `1 karobkada nechta ${label}?`;
+});
+
 document.getElementById('apSubmit').addEventListener('click',async()=>{
     const btn=document.getElementById('apSubmit'),msg=document.getElementById('apMsg');
     const name=document.getElementById('apName').value.trim();
     const cat=document.getElementById('apCategory').value;
     const price=document.getElementById('apPrice').value;
+    const unitType=document.getElementById('apUnitType').value;
     const costPrice=document.getElementById('apCostPrice').value;
+    const boxEnabled=document.getElementById('apBoxEnabled').checked;
+    const unitsPerBox=document.getElementById('apUnitsPerBox').value;
     if(!name||!cat||!price){showMsg(msg,'Nomi, kategoriya va narx majburiy!','error');return;}
     if(!costPrice||parseFloat(costPrice)<=0){showMsg(msg,'Tan narxini kiriting!','error');return;}
+    if(boxEnabled && (!unitsPerBox || parseFloat(unitsPerBox)<=0)){
+        showMsg(msg,"Karobka yoqilgan bo'lsa, 1 karobkadagi miqdorni kiriting!",'error');return;
+    }
     btn.disabled=true;btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
     const fd=new FormData();
     fd.append('csrfmiddlewaretoken',CSRF);
     fd.append('name',name);fd.append('category',cat);fd.append('price',price);
+    fd.append('unit_type',unitType);
+    fd.append('is_box_enabled',boxEnabled?'true':'false');
+    if(boxEnabled) fd.append('units_per_box',unitsPerBox);
     fd.append('cost_price',costPrice);fd.append('initial_quantity','1');
     const img=document.getElementById('apImage');
     if(img&&img.files[0])fd.append('image',img.files[0]);
@@ -572,29 +680,40 @@ document.getElementById('apSubmit').addEventListener('click',async()=>{
 });
 
 /* ── Edit Product ── */
-document.querySelectorAll('.edit-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-        const currentCost=parseFloat(btn.dataset.costPrice||0);
-        document.getElementById('epId').value=btn.dataset.id;
-        document.getElementById('epName').value=btn.dataset.name;
-        document.getElementById('epPrice').value=btn.dataset.price;
-        document.getElementById('epCategory').value=btn.dataset.category;
-        // Tan narxini ko'rsatamiz - placeholder sifatida joriy narh
-        const epCost=document.getElementById('epCostPrice');
-        epCost.value='';  // Bo'sh - foydalanuvchi o'chirib yangi kiritadi
-        epCost.placeholder=currentCost>0?currentCost.toLocaleString()+' (joriy)':'0';
-        const hint=document.getElementById('epCostPriceHint');
-        if(hint) hint.textContent=currentCost>0?'Joriy: '+currentCost.toLocaleString():'';
-        document.getElementById('epImgWrap').innerHTML='<div class="img-upload-icon"><i class="fa fa-image"></i></div><div class="img-upload-text">O\'zgartirish uchun bosing</div><input type="file" id="epImage" accept="image/*" style="display:none">';
-        document.getElementById('epImgWrap').addEventListener('click',()=>document.getElementById('epImage').click());
-        document.getElementById('epImage').addEventListener('change',function(){
-            if(!this.files[0])return;
-            const r=new FileReader();r.onload=e=>{document.getElementById('epImgWrap').innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:100px;border-radius:10px">`;};r.readAsDataURL(this.files[0]);
-        });
-        openModal('editProductModal');
+function openEditModalFor(btn){
+    const currentCost=parseFloat(btn.dataset.costPrice||0);
+    document.getElementById('epId').value=btn.dataset.id;
+    document.getElementById('epName').value=btn.dataset.name;
+    document.getElementById('epPrice').value=btn.dataset.price;
+    document.getElementById('epCategory').value=btn.dataset.category;
+    // Tan narxini ko'rsatamiz - placeholder sifatida joriy narh
+    const epCost=document.getElementById('epCostPrice');
+    epCost.value='';  // Bo'sh - foydalanuvchi o'chirib yangi kiritadi
+    epCost.placeholder=currentCost>0?currentCost.toLocaleString()+' (joriy)':'0';
+    const hint=document.getElementById('epCostPriceHint');
+    if(hint) hint.textContent=currentCost>0?'Joriy: '+currentCost.toLocaleString():'';
+    document.getElementById('epImgWrap').innerHTML='<div class="img-upload-icon"><i class="fa fa-image"></i></div><div class="img-upload-text">O\'zgartirish uchun bosing</div><input type="file" id="epImage" accept="image/*" style="display:none">';
+    document.getElementById('epImage').addEventListener('change',function(){
+        if(!this.files[0])return;
+        const r=new FileReader();r.onload=e=>{document.getElementById('epImgWrap').innerHTML=`<img src="${e.target.result}" style="max-width:100%;max-height:100px;border-radius:10px">`;};r.readAsDataURL(this.files[0]);
     });
-});
+    openModal('editProductModal');
+}
 document.getElementById('epImgWrap').addEventListener('click',()=>document.getElementById('epImage').click());
+
+/* ── Event delegation: edit/delete/purchase tugmalari uchun BITTA listener ──
+   30+ ta mahsulot bo'lsa ham faqat 1 ta listener — har bir kartaga alohida
+   listener qo'shish o'rniga, klik #productList ga "ko'tarilganda" ushlanadi. */
+document.getElementById('productList').addEventListener('click', (e) => {
+    const editBtn = e.target.closest('.edit-btn');
+    if (editBtn) { openEditModalFor(editBtn); return; }
+
+    const deleteBtn = e.target.closest('.delete-btn');
+    if (deleteBtn) { deleteProductFor(deleteBtn); return; }
+
+    const purchaseBtn = e.target.closest('.purchase-btn');
+    if (purchaseBtn) { openPurchaseModalFor(purchaseBtn); return; }
+});
 
 document.getElementById('epSubmit').addEventListener('click',async()=>{
     const btn=document.getElementById('epSubmit'),msg=document.getElementById('epMsg');
@@ -641,77 +760,152 @@ document.getElementById('epSubmit').addEventListener('click',async()=>{
 });
 
 /* ── Delete Product ── */
-document.querySelectorAll('.delete-btn').forEach(btn=>{
-    btn.addEventListener('click',async()=>{
-        if(!confirm(`"${btn.dataset.name}" mahsulotini o'chirishni tasdiqlaysizmi?`))return;
-        const fd=new FormData();fd.append('csrfmiddlewaretoken',CSRF);
-        try{
-            const res=await fetch(`/company/api/product/${btn.dataset.id}/delete/`,{method:'POST',body:fd});
-            const d=await res.json();
-            if(d.status==='success'){toast("O'chirildi",'success');document.getElementById('bpc-'+btn.dataset.id).remove();}
-            else toast(d.message||'Xato!','error');
-        }catch{toast('Tarmoq xatosi','error');}
-    });
-});
+async function deleteProductFor(btn){
+    if(!confirm(`"${btn.dataset.name}" mahsulotini o'chirishni tasdiqlaysizmi?`))return;
+    const fd=new FormData();fd.append('csrfmiddlewaretoken',CSRF);
+    try{
+        const res=await fetch(`/company/api/product/${btn.dataset.id}/delete/`,{method:'POST',body:fd});
+        const d=await res.json();
+        if(d.status==='success'){toast("O'chirildi",'success');document.getElementById('bpc-'+btn.dataset.id).remove();}
+        else toast(d.message||'Xato!','error');
+    }catch{toast('Tarmoq xatosi','error');}
+}
 
 /* ── Purchase Modal ── */
-document.querySelectorAll('.purchase-btn').forEach(btn=>{
-    btn.addEventListener('click',()=>{
-        const id=btn.dataset.id, name=btn.dataset.name, price=btn.dataset.price;
-        const costPrice=parseFloat(btn.dataset.costPrice||0);
-        document.getElementById('pmProductId').value=id;
-        document.getElementById('pmProductInfo').innerHTML=
-            `<div style="font-weight:700;color:var(--t);margin-bottom:4px"><i class="fa fa-box" style="color:var(--green)"></i> ${name}</div>`+
-            `<div style="font-size:.78rem;color:var(--t2)">Sotuv narxi: <span style="font-family:var(--mono);color:var(--green)">${parseFloat(price).toLocaleString()} so'm</span></div>`;
-        document.getElementById('pmQty').value='1';
-        // Tan narxini ko'rsatamiz
-        const costDisp=document.getElementById('pmCostDisplay');
-        if(costDisp) costDisp.textContent=costPrice>0?costPrice.toLocaleString()+' so\'m':'Belgilanmagan';
-        // pmCost hidden field - backend uchun
-        if(!document.getElementById('pmCostHidden')){
-            const h=document.createElement('input');h.type='hidden';h.id='pmCostHidden';
-            document.getElementById('pmProductId').parentNode.appendChild(h);
-        }
-        document.getElementById('pmCostHidden').value=costPrice;
-        updateTotalPurchase();
-        openModal('purchaseModal');
-    });
-});
+function openPurchaseModalFor(btn){
+    const id=btn.dataset.id, name=btn.dataset.name, price=parseFloat(btn.dataset.price);
+    const unitType=btn.dataset.unitType||'dona';
+    const unitLabel=btn.dataset.unitLabel||'Dona';
+    const costPrice=parseFloat(btn.dataset.costPrice||0);
+    const boxEnabled=btn.dataset.boxEnabled==='true';
+    const unitsPerBox=parseFloat(btn.dataset.unitsPerBox||0);
 
-/* Jami hisob - live (faqat qty kiritiladi, cost mahsulotdan olinadi) */
+    document.getElementById('pmProductId').value=id;
+    document.getElementById('pmUnitType').value=unitType;
+    // pmCost hidden field - backend uchun
+    if(!document.getElementById('pmCostHidden')){
+        const h=document.createElement('input');h.type='hidden';h.id='pmCostHidden';
+        document.getElementById('pmProductId').parentNode.appendChild(h);
+    }
+    document.getElementById('pmCostHidden').value=costPrice;
+
+    document.getElementById('pmProductInfo').innerHTML=
+        `<div style="font-weight:700;color:var(--t);margin-bottom:4px"><i class="fa fa-box" style="color:var(--green)"></i> ${name}</div>`+
+        `<div style="font-size:.78rem;color:var(--t2)">Sotuv narxi: <span style="font-family:var(--mono);color:var(--green)">${price.toLocaleString()} so'm</span> / ${unitLabel}</div>`;
+
+    if(boxEnabled){
+        // ── KAROBKA REJIMI: faqat shu mahsulot uchun, toggle YO'Q ──────
+        document.getElementById('pmMode').value='box';
+        document.getElementById('pmUnitFields').style.display='none';
+        document.getElementById('pmBoxFields').style.display='block';
+        document.getElementById('pmBoxQty').value='1';
+
+        const boxCostPrice = costPrice * unitsPerBox;   // 1 karobka tan narxi
+        const boxSellPrice = price * unitsPerBox;        // 1 karobka sotuv narxi
+
+        document.getElementById('pmBoxContents').textContent = `${unitsPerBox} ${unitLabel.toLowerCase()}`;
+        document.getElementById('pmBoxCost').textContent  = boxCostPrice.toLocaleString()+" so'm";
+        document.getElementById('pmBoxPrice').textContent = boxSellPrice.toLocaleString()+" so'm";
+
+        document.getElementById('pmCostLabel').textContent = '1 karobka tan narxi:';
+        document.getElementById('pmProfitLabel').textContent = 'Kutilgan foyda (1 karobka):';
+        const costDisp=document.getElementById('pmCostDisplay');
+        if(costDisp) costDisp.textContent = boxCostPrice.toLocaleString()+" so'm";
+    } else {
+        // ── DONA/KG REJIMI ──────────────────────────────────────────────
+        document.getElementById('pmMode').value='unit';
+        document.getElementById('pmUnitFields').style.display='block';
+        document.getElementById('pmBoxFields').style.display='none';
+        document.getElementById('pmQty').value='1';
+
+        document.getElementById('pmQtyLabel').textContent = `Miqdor (${unitLabel.toLowerCase()}) *`;
+        document.getElementById('pmCostLabel').textContent = `Tan narxi (1 ${unitLabel.toLowerCase()}):`;
+        document.getElementById('pmProfitLabel').textContent = `Kutilgan foyda (1 ${unitLabel.toLowerCase()}):`;
+        const costDisp=document.getElementById('pmCostDisplay');
+        if(costDisp) costDisp.textContent=costPrice>0?costPrice.toLocaleString()+" so'm":'Belgilanmagan';
+    }
+
+    updateTotalPurchase();
+    openModal('purchaseModal');
+}
+
+/* Jami hisob - live. pmMode ga qarab (dona/kg yoki karobka) miqdorni hisoblaymiz */
+function getCurrentMode(){
+    return document.getElementById('pmMode').value;
+}
+function getCurrentQuantity(){
+    const btn=document.querySelector('.purchase-btn[data-id="'+document.getElementById('pmProductId').value+'"]');
+    if(getCurrentMode()==='box'){
+        const boxQty=parseFloat(document.getElementById('pmBoxQty').value)||0;
+        const unitsPerBox=parseFloat(btn?.dataset?.unitsPerBox||0);
+        return boxQty*unitsPerBox;
+    }
+    return parseFloat(document.getElementById('pmQty').value)||0;
+}
 function updateTotalPurchase(){
-    const qty=parseFloat(document.getElementById('pmQty').value)||0;
+    const mode=getCurrentMode();
+    const btn=document.querySelector('.purchase-btn[data-id="'+document.getElementById('pmProductId').value+'"]');
     const costHidden=document.getElementById('pmCostHidden');
-    const cost=costHidden?parseFloat(costHidden.value)||0:0;
-    const sellPrice=parseFloat(document.querySelector('.purchase-btn[data-id="'+document.getElementById('pmProductId').value+'"]')?.dataset?.price||0);
-    document.getElementById('pmTotal').textContent=(qty*cost).toLocaleString()+' so\'m';
-    const profitEl=document.getElementById('pmProfit');
-    if(profitEl && cost > 0){
-        const profit = sellPrice - cost;
-        profitEl.textContent = profit.toLocaleString()+' so\'m';
-        profitEl.style.color = profit > 0 ? 'var(--green)' : profit < 0 ? 'var(--red)' : 'var(--t2)';
+    const costPerUnit=costHidden?parseFloat(costHidden.value)||0:0;
+    const sellPerUnit=parseFloat(btn?.dataset?.price||0);
+    const unitLabel=(btn?.dataset?.unitLabel||'dona').toLowerCase();
+
+    if(mode==='box'){
+        const boxQty=parseFloat(document.getElementById('pmBoxQty').value)||0;
+        const unitsPerBox=parseFloat(btn?.dataset?.unitsPerBox||0);
+        const totalUnits=boxQty*unitsPerBox;
+        const totalCost=totalUnits*costPerUnit;
+        const boxProfit=(sellPerUnit-costPerUnit)*unitsPerBox;
+        document.getElementById('pmTotal').textContent=totalCost.toLocaleString()+" so'm";
+        const profitEl=document.getElementById('pmProfit');
+        if(profitEl){
+            profitEl.textContent=boxProfit.toLocaleString()+" so'm";
+            profitEl.style.color = boxProfit > 0 ? 'var(--green)' : boxProfit < 0 ? 'var(--red)' : 'var(--t2)';
+        }
+    } else {
+        const qty=parseFloat(document.getElementById('pmQty').value)||0;
+        document.getElementById('pmTotal').textContent=(qty*costPerUnit).toLocaleString()+" so'm";
+        const profitEl=document.getElementById('pmProfit');
+        if(profitEl && costPerUnit > 0){
+            const profit = sellPerUnit - costPerUnit;
+            profitEl.textContent = profit.toLocaleString()+" so'm";
+            profitEl.style.color = profit > 0 ? 'var(--green)' : profit < 0 ? 'var(--red)' : 'var(--t2)';
+        }
     }
 }
 document.getElementById('pmQty').addEventListener('input',updateTotalPurchase);
+document.getElementById('pmBoxQty').addEventListener('input',updateTotalPurchase);
 
 document.getElementById('pmSubmit').addEventListener('click',async()=>{
     const btn=document.getElementById('pmSubmit'),msg=document.getElementById('pmMsg');
     const id=document.getElementById('pmProductId').value;
-    const qty=parseInt(document.getElementById('pmQty').value);
+    const mode=getCurrentMode();
     const costHidden=document.getElementById('pmCostHidden');
     const cost=costHidden?parseFloat(costHidden.value)||0:0;
-    if(!qty||qty<1){showMsg(msg,'Miqdorni kiriting!','error');return;}
+
+    let payload={mode, cost_price:cost};
+    if(mode==='box'){
+        const boxQty=parseInt(document.getElementById('pmBoxQty').value);
+        if(!boxQty||boxQty<1){showMsg(msg,'Karobka sonini kiriting!','error');return;}
+        payload.box_quantity=boxQty;
+        // units_per_box backend tomonidan Product.units_per_box dan avtomatik olinadi
+    } else {
+        const qty=parseFloat(document.getElementById('pmQty').value);
+        if(!qty||qty<=0){showMsg(msg,'Miqdorni kiriting!','error');return;}
+        payload.quantity=qty;
+    }
     if(!cost||cost<=0){showMsg(msg,"Bu mahsulotning tan narxi belgilanmagan. Edit qilib tan narxini kiriting!",'error');return;}
+
     btn.disabled=true;btn.innerHTML='<i class="fa fa-spinner fa-spin"></i>';
     try{
         const res=await fetch(`/company/api/product/${id}/purchase/`,{
             method:'POST',
             headers:{'Content-Type':'application/json','X-CSRFToken':CSRF},
-            body:JSON.stringify({quantity:qty,cost_price:cost})
+            body:JSON.stringify(payload)
         });
         const d=await res.json();
         if(d.status==='success'){
-            toast(`Sotib olindi! Stok: ${d.new_stock} ta | Jami: ${parseFloat(d.total_cost).toLocaleString()} so'm`,'success');
+            toast(`Sotib olindi! Stok: ${fmtQty(d.new_stock)} | Jami: ${parseFloat(d.total_cost).toLocaleString()} so'm`,'success');
             closeModal('purchaseModal');
             // Qarz va avans yangilaymiz
             if(d.new_debt !== null){
@@ -724,7 +918,7 @@ document.getElementById('pmSubmit').addEventListener('click',async()=>{
             }
             // DOM update - stock raqamini yangilaymiz
             const stockEl=document.getElementById('stock-'+id);
-            if(stockEl) stockEl.textContent=d.new_stock;
+            if(stockEl) stockEl.textContent=fmtQty(d.new_stock);
             const card=document.getElementById('bpc-'+id);
             if(card){
                 card.dataset.stock=d.new_stock;
@@ -733,8 +927,10 @@ document.getElementById('pmSubmit').addEventListener('click',async()=>{
                     if(m.textContent.includes('Stok:')){
                         const v=m.querySelector('.v');
                         if(v){
-                            v.textContent=d.new_stock+' ta';
-                            v.className='v '+(d.new_stock===0?'red':d.new_stock<5?'amber':'green');
+                            const newStock=parseFloat(d.new_stock);
+                            const unitLabel=card.querySelector('.purchase-btn')?.dataset?.unitLabel||'dona';
+                            v.textContent=fmtQty(newStock)+' '+unitLabel;
+                            v.className='v '+(newStock===0?'red':newStock<5?'amber':'green');
                         }
                     }
                 });
@@ -744,10 +940,10 @@ document.getElementById('pmSubmit').addEventListener('click',async()=>{
     btn.disabled=false;btn.innerHTML='<i class="fa fa-shopping-cart"></i> Sotib olish';
 });
 
-/* Jami stok */
-let ts=0;
-document.querySelectorAll('.bp-card').forEach(c=>ts+=parseInt(c.dataset.stock)||0);
-document.getElementById('totalStock').textContent=ts;
+/* Stokda bor mahsulotlar soni (dona+kg aralashtirib yig'indi chiqarish noto'g'ri bo'lardi) */
+let inStockCount=0;
+document.querySelectorAll('.bp-card').forEach(c=>{ if((parseFloat(c.dataset.stock)||0) > 0) inStockCount++; });
+document.getElementById('totalStock').textContent=inStockCount;
 
 /* To'lovlar tarixi toggle + load more */
 const PAYMENTS_URL = `/company/api/branch/${BRANCH_ID}/payments/`;
@@ -830,6 +1026,80 @@ document.getElementById('togglePayHistory').addEventListener('click', function (
     this.innerHTML = isOpen
         ? '<i class="fa fa-history"></i> Tarix'
         : '<i class="fa fa-times"></i> Yopish';
+});
+
+/* ── Idishlar (Containers) ── */
+const CONTAINERS_TYPES_URL = "{% url 'containers:type-list' %}";
+const CONTAINERS_STOCK_URL = `/containers/branch/${BRANCH_ID}/stock/`;
+let containersLoaded = false;
+
+document.getElementById('toggleContainers').addEventListener('click', async function () {
+    const block = document.getElementById('containersBlock');
+    const isOpen = block.style.display !== 'none';
+    block.style.display = isOpen ? 'none' : 'block';
+    this.innerHTML = isOpen
+        ? '<i class="fa fa-box-open"></i> Ko\'rsatish'
+        : '<i class="fa fa-times"></i> Yopish';
+
+    if (!isOpen && !containersLoaded) {
+        containersLoaded = true;
+        await populateBcTypeSelect();
+        await loadBranchContainers();
+    }
+});
+
+async function populateBcTypeSelect() {
+    const d = await fetch(CONTAINERS_TYPES_URL).then(r => r.json());
+    const sel = document.getElementById('bcType');
+    sel.innerHTML = '<option value="">— idish turi —</option>' +
+        (d.types || []).map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+}
+
+async function loadBranchContainers() {
+    const d = await fetch(CONTAINERS_STOCK_URL).then(r => r.json());
+    const list = document.getElementById('branchContainerList');
+
+    if (!d.items || !d.items.length) {
+        list.innerHTML = '<div style="color:var(--t3);font-size:.82rem;text-align:center;padding:8px 0">Omborda hali idish yo\'q</div>';
+        return;
+    }
+    list.innerHTML = d.items.map(item => `
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--bg-el);border-radius:8px">
+            <span style="font-size:.85rem;color:var(--t)">${item.container_type__name}</span>
+            <span style="font-family:var(--mono);font-weight:700;color:#a855f7">${item.quantity} ta</span>
+        </div>
+    `).join('');
+}
+
+document.getElementById('bcAddBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('bcAddBtn');
+    const msg = document.getElementById('bcMsg');
+    const typeId = document.getElementById('bcType').value;
+    const qty = parseInt(document.getElementById('bcQty').value);
+
+    if (!typeId) { showMsg(msg, 'Idish turini tanlang!', 'error'); return; }
+    if (!qty || qty <= 0) { showMsg(msg, 'Sonini kiriting!', 'error'); return; }
+
+    btn.disabled = true; btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>';
+
+    try {
+        const res = await fetch(CONTAINERS_STOCK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': CSRF },
+            body: JSON.stringify({ container_type_id: typeId, quantity: qty })
+        });
+        const d = await res.json();
+        if (d.status === 'success') {
+            toast(`Omborga qo'shildi: +${qty} ta`, 'success');
+            document.getElementById('bcQty').value = '';
+            await loadBranchContainers();
+        } else {
+            showMsg(msg, d.message || 'Xato!', 'error');
+        }
+    } catch {
+        showMsg(msg, 'Tarmoq xatosi', 'error');
+    }
+    btn.disabled = false; btn.innerHTML = '<i class="fa fa-plus"></i>';
 });
 </script>
 </body>

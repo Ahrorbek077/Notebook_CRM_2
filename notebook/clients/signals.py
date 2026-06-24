@@ -18,6 +18,7 @@ def log_client_save(sender, instance, created, update_fields, **kwargs):
 
     ActivityLog.objects.create(
         user=getattr(instance, '_current_user', None),
+        business=instance.business,
         action_type='client_create' if created else 'client_update',
         description=f"{'Yangi mijoz' if created else 'Mijoz yangilandi'}: {instance.name}",
         extra_data={

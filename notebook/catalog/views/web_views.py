@@ -10,20 +10,21 @@ from django.views import View
 from django.views.generic import ListView, CreateView, TemplateView
 from django.urls import reverse_lazy
 from notebook.core.mixins import AdminRequiredMixin
+from notebook.business.mixins import BusinessRequiredMixin
 from notebook.inventory.services import StockService
 from notebook.inventory.models import StockBatch
 from ..models import Product, Category
 from ..forms import ProductForm, CategoryForm
 
 
-class ProductListView(LoginRequiredMixin, ListView):
+class ProductListView(LoginRequiredMixin, BusinessRequiredMixin, ListView):
     model               = Product
     template_name       = 'inventory.html'
     context_object_name = 'products'
     paginate_by         = 20
 
     def get_queryset(self):
-        qs = Product.objects.select_related('category').order_by('-created_at')
+        qs = Product.objects.filter(business=self.request.business).select_related('category').order_by('-created_at')
         search = self.request.GET.get('search', '').strip()
         if search:
             qs = qs.filter(Q(name__icontains=search) | Q(slug__icontains=search))
@@ -31,9 +32,9 @@ class ProductListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
-        ctx['form'] = ProductForm()
+        ctx['form'] = ProductForm(business=self.request.business)
         # Jami sotuv qiymati: price * stock — bitta aggregate query
-        result = Product.objects.filter(stock__gt=0).aggregate(
+        result = Product.objects.filter(stock__gt=0, business=self.request.business).aggregate(
             total_value=Sum(
                 ExpressionWrapper(F('price') * F('stock'), output_field=DecimalField())
             )
@@ -43,7 +44,7 @@ class ProductListView(LoginRequiredMixin, ListView):
         # Jami tan narxi: StockBatch.remaining_quantity * cost_price
         # Bu FIFO bo'yicha eng to'g'ri hisob — har batch o'z narxida
         batch_result = StockBatch.objects.filter(
-            is_active=True, remaining_quantity__gt=0
+            is_active=True, remaining_quantity__gt=0, business=self.request.business
         ).aggregate(
             total_cost=Sum(
                 ExpressionWrapper(
@@ -77,21 +78,33 @@ class ProductListView(LoginRequiredMixin, ListView):
         })
 
 
-class ProductCreateView(LoginRequiredMixin, CreateView):
+class ProductCreateView(LoginRequiredMixin, BusinessRequiredMixin, CreateView):
     model      = Product
     form_class = ProductForm
     success_url = reverse_lazy('catalog:product_list')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['business'] = self.request.business
+        return kwargs
+
     def form_valid(self, form):
+        form.instance.business = self.request.business
         form.save()
         return super().form_valid(form)
 
 
-class ProductLauncherCreateView(LoginRequiredMixin, CreateView):
+class ProductLauncherCreateView(LoginRequiredMixin, BusinessRequiredMixin, CreateView):
     model      = Product
     form_class = ProductForm
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['business'] = self.request.business
+        return kwargs
+
     def form_valid(self, form):
+        form.instance.business = self.request.business
         p = form.save()
         return JsonResponse({'status': 'created', 'id': p.id, 'name': p.name, 'price': float(p.price)})
 
@@ -99,10 +112,10 @@ class ProductLauncherCreateView(LoginRequiredMixin, CreateView):
         return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
 
 
-class ProductUpdateView(LoginRequiredMixin, View):
+class ProductUpdateView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request):
         try:
-            product = get_object_or_404(Product, id=request.POST.get('product_id'))
+            product = get_object_or_404(Product, id=request.POST.get('product_id'), business=request.business)
             product.name = request.POST.get('name', product.name)
             price = request.POST.get('price')
             if price:
@@ -121,9 +134,9 @@ class ProductUpdateView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-class ProductDeleteView(LoginRequiredMixin, View):
+class ProductDeleteView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request):
-        product = get_object_or_404(Product.all_objects, pk=request.POST.get('product_id'))
+        product = get_object_or_404(Product.all_objects, pk=request.POST.get('product_id'), business=request.business)
         if product.is_active:
             product.is_active = False
             product.save(update_fields=['is_active'])
@@ -131,34 +144,37 @@ class ProductDeleteView(LoginRequiredMixin, View):
         return JsonResponse({'status': 'error', 'message': "Allaqachon o'chirilgan"}, status=400)
 
 
-class AddStockView(LoginRequiredMixin, View):
+class AddStockView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request, product_id):
         try:
-            product    = get_object_or_404(Product, id=product_id)
-            quantity   = int(request.POST.get('quantity', 0))
+            product    = get_object_or_404(Product, id=product_id, business=request.business)
+            try:
+                quantity = Decimal(request.POST.get('quantity', '0'))
+            except InvalidOperation:
+                return JsonResponse({'status': 'error', 'message': "Miqdor noto'g'ri"}, status=400)
             cost_price = Decimal(request.POST.get('cost_price', '0'))
             if quantity <= 0 or cost_price <= 0:
                 return JsonResponse({'status': 'error', 'message': "Miqdor va narx musbat bo'lishi kerak!"}, status=400)
             StockService.add_stock(product=product, quantity=quantity, cost_price=cost_price, user=request.user)
             product.refresh_from_db()
-            return JsonResponse({'status': 'success', 'new_stock': product.stock, 'product_id': product.id})
+            return JsonResponse({'status': 'success', 'new_stock': str(product.stock), 'product_id': product.id})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-class ProductBatchView(LoginRequiredMixin, TemplateView):
+class ProductBatchView(LoginRequiredMixin, BusinessRequiredMixin, TemplateView):
     template_name = 'batch_page.html'
 
     def get_context_data(self, **kwargs):
         ctx     = super().get_context_data(**kwargs)
-        product = get_object_or_404(Product, id=self.kwargs['product_id'])
+        product = get_object_or_404(Product, id=self.kwargs['product_id'], business=self.request.business)
         ctx.update({'product': product, 'batches': StockBatch.objects.filter(product=product).order_by('-created_at')})
         return ctx
 
 
-class BatchAdjustmentsView(LoginRequiredMixin, View):
+class BatchAdjustmentsView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def get(self, request, batch_id):
-        batch       = get_object_or_404(StockBatch, id=batch_id)
+        batch       = get_object_or_404(StockBatch, id=batch_id, business=request.business)
         adjustments = batch.adjustments.select_related('user').order_by('-created_at')
         return JsonResponse({'status': 'success', 'adjustments': [
             {'adjustment_type': a.adjustment_type, 'quantity_change': a.quantity_change,
@@ -168,9 +184,9 @@ class BatchAdjustmentsView(LoginRequiredMixin, View):
         ]})
 
 
-class BatchDeleteView(LoginRequiredMixin, View):
+class BatchDeleteView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request, batch_id):
-        batch = get_object_or_404(StockBatch, id=batch_id)
+        batch = get_object_or_404(StockBatch, id=batch_id, business=request.business)
         try:
             batch.soft_delete()
             return JsonResponse({'status': 'success'})
@@ -178,20 +194,22 @@ class BatchDeleteView(LoginRequiredMixin, View):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-class CategorySaveView(LoginRequiredMixin, View):
+class CategorySaveView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request):
         category_id = request.POST.get('id')
-        instance    = get_object_or_404(Category, pk=category_id) if category_id else None
-        form        = CategoryForm(request.POST, instance=instance)
+        instance    = get_object_or_404(Category, pk=category_id, business=request.business) if category_id else None
+        form        = CategoryForm(request.POST, instance=instance, business=request.business)
         if form.is_valid():
-            obj = form.save()
+            obj = form.save(commit=False)
+            obj.business = request.business
+            obj.save()
             return JsonResponse({'status': 'success', 'id': obj.id, 'name': obj.name})
         return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
 
 
-class CategoryDeleteView(LoginRequiredMixin, View):
+class CategoryDeleteView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request, pk):
-        category = get_object_or_404(Category, pk=pk)
+        category = get_object_or_404(Category, pk=pk, business=request.business)
         if category.products.exists():
             return JsonResponse({'status': 'error', 'message': "Bu kategoriya ishlatilgan!"}, status=400)
         category.is_active = False

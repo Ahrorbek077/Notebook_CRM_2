@@ -35,9 +35,15 @@ def refresh_materialized_views(self):
     if errors:
         raise RuntimeError("MV refresh xatoliklari:\n" + "\n".join(errors))
 
-    # Cache ni tozalaymiz — yangi ma'lumotlar yuklansin
-    cache.delete('dashboard_full_data')
+    # Cache ni tozalaymiz — har bir biznes uchun alohida key (yangi ma'lumotlar yuklansin)
+    _clear_dashboard_cache()
     return "OK"
+
+
+def _clear_dashboard_cache():
+    from notebook.business.models import Business
+    for biz_id in Business.objects.values_list('id', flat=True):
+        cache.delete(f'dashboard_full_data_{biz_id}')
 
 
 def refresh_mv_sync():
@@ -49,7 +55,8 @@ def refresh_mv_sync():
         with connection.cursor() as cursor:
             for view in MATERIALIZED_VIEWS:
                 cursor.execute(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {view};")
-        cache.delete('dashboard_full_data')
+        cache.delete('dashboard_full_data')  # eski kalit (mavjud bo'lsa)
+        _clear_dashboard_cache()
         logger.info("MV lar sinxron yangilandi")
     except Exception as e:
         logger.warning("MV refresh xatolik (normal holatda Celery ishlatilsin): %s", e)

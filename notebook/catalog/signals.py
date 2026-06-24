@@ -18,12 +18,14 @@ def log_product_save(sender, instance, created, update_fields, **kwargs):
 
     ActivityLog.objects.create(
         user=getattr(instance, '_current_user', None),
+        business=instance.business,
         action_type='product_create' if created else 'product_update',
         description=f"{'Yangi mahsulot' if created else 'Mahsulot yangilandi'}: {instance.name}",
         extra_data={
             'product_id': instance.id,
             'name':       instance.name,
             'price':      str(instance.price),
-            'stock':      instance.stock,
+            'stock':      str(instance.stock),
+            'unit_label': instance.get_unit_type_display(),
         }
     )

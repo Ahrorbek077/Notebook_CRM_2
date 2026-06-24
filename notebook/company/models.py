@@ -5,6 +5,11 @@ from notebook.core.managers import SoftDeleteManager
 
 
 class Company(models.Model):
+    business        = models.ForeignKey(
+        'business.Business', on_delete=models.CASCADE,
+        related_name='companies', verbose_name="Biznes",
+        null=True, blank=True,  # eski yozuvlar uchun migratsiya vaqtida
+    )
     name            = models.CharField(max_length=200, verbose_name="Nomi")
     phone           = models.CharField(max_length=20, blank=True)
     address         = models.TextField(blank=True)

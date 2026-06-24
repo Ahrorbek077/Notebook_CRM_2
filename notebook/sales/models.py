@@ -14,6 +14,10 @@ class Sale(models.Model):
     ]
 
     client       = models.ForeignKey('clients.Client', on_delete=models.PROTECT, related_name='sales')
+    business     = models.ForeignKey(
+        'business.Business', on_delete=models.CASCADE,
+        related_name='sales', null=True, blank=True, verbose_name="Biznes"
+    )
     user         = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True)
     total_amount = models.DecimalField(max_digits=12, decimal_places=2)
     created_at   = models.DateTimeField(auto_now_add=True)
@@ -62,10 +66,10 @@ class SaleItem(models.Model):
         'inventory.StockBatch', on_delete=models.SET_NULL,
         null=True, blank=True, related_name='sale_items'
     )
-    quantity           = models.PositiveIntegerField()
+    quantity           = models.DecimalField(max_digits=10, decimal_places=3)
     price_at_sale      = models.DecimalField(max_digits=10, decimal_places=2)
     cost_price_at_sale = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    returned_quantity  = models.PositiveIntegerField(default=0)
+    returned_quantity  = models.DecimalField(max_digits=10, decimal_places=3, default=0)
 
     class Meta:
         indexes = [models.Index(fields=['sale'])]
@@ -97,7 +101,7 @@ class SaleReturn(models.Model):
 class SaleReturnItem(models.Model):
     sale_return       = models.ForeignKey(SaleReturn, on_delete=models.CASCADE, related_name='items')
     sale_item         = models.ForeignKey(SaleItem, on_delete=models.CASCADE)
-    returned_quantity = models.PositiveIntegerField()
+    returned_quantity = models.DecimalField(max_digits=10, decimal_places=3)
     returned_to_batch = models.ForeignKey(
         'inventory.StockBatch', on_delete=models.SET_NULL, null=True
     )

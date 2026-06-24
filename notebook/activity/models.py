@@ -32,10 +32,19 @@ class ActivityLog(models.Model):
         ('client_create', "Mijoz qo'shildi"),
         ('client_update', "Mijoz yangilandi"),
         ('client_delete', "Mijoz o'chirildi"),
+        # Containers (idishlar)
+        ('container_given',    "Idish berildi"),
+        ('container_returned', "Idish qaytarildi"),
+        ('container_stock_add',"Idish omborga qo'shildi"),
     ]
 
     user        = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True
+    )
+    business    = models.ForeignKey(
+        'business.Business', on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='activity_logs',
+        verbose_name="Biznes"
     )
     action_type = models.CharField(max_length=30, choices=ACTION_CHOICES)
     description = models.CharField(max_length=255)
