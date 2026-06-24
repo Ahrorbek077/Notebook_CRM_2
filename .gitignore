@@ -1,14 +1,38 @@
-.env
+# Python
 __pycache__/
 *.pyc
 *.pyo
+*.egg-info/
+
+# Django
 staticfiles/
 media/
+
+# Virtual environment
 .venv/
 venv/
-*.egg-info/
-.DS_Store
+
+# Database
+*.sqlite3
 celerybeat-schedule
 celerybeat-schedule.db
-*.sqlite3
+
+# Environment variables (MAXFIY MA'LUMOTLAR!)
+.env
+.env.local
+.env.*.local
+
+# Local settings (MAXFIY!)
 settings_local.py
+local_settings.py
+config/settings_local.py
+
+
+# OS files
+.DS_Store
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
