@@ -24,7 +24,12 @@
         </button>
         <div class="header-center">
             <span class="header-label">{% trans 'MIJOZLAR' %}</span>
-            <span class="header-count" id="totalCount">{{ page_obj.paginator.count }} ta</span>
+            <span class="header-count">
+                <i class="fa fa-box-open" style="color:#a855f7;font-size:.75rem"></i>
+                <span id="totalContainers">{{ grand_total_containers|default:0 }} ta</span>
+                <span style="color:var(--text-muted);margin:0 4px">·</span>
+                <span id="totalCount">{{ page_obj.paginator.count }} ta</span>
+            </span>
         </div>
         <button class="add-client-btn" data-bs-toggle="modal" data-bs-target="#addClientModal">
             <i class="fa fa-plus"></i>

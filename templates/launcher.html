@@ -106,11 +106,15 @@
                 <div><div class="tile-label">{% trans 'Tarix' %}</div><div class="tile-sub">{% trans 'Sotuv & Ombor' %}</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
+            {% endif %}
+            {% if request.user.is_superadmin %}
             <a href="{% url 'accounts:staff-list' %}" class="menu-tile">
                 <div class="tile-icon staff-icon"><i class="fa fa-user-shield"></i></div>
                 <div><div class="tile-label">{% trans 'Xodimlar' %}</div><div class="tile-sub">{% trans 'Rollar & Ruxsat' %}</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
+            {% endif %}
+            {% if request.user.is_admin %}
             <a href="{% url 'accounts:directory' %}" class="menu-tile">
                 <div class="tile-icon" style="background:var(--blue-d);color:var(--blue)"><i class="fa fa-map-marker-alt"></i></div>
                 <div><div class="tile-label">{% trans 'Viloyatlar' %}</div><div class="tile-sub">{% trans 'Hudud katalogi' %}</div></div>

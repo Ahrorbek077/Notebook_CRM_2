@@ -64,6 +64,9 @@ class ClientListView(LoginRequiredMixin, BusinessRequiredMixin, ListView):
         context['regions'] = Region.objects.filter(is_active=True, business=self.request.business)
         context['selected_region'] = self.request.GET.get("region", "")
         context['selected_balance'] = self.request.GET.get("balance", "")
+        context['grand_total_containers'] = self.get_queryset().aggregate(
+            total=Coalesce(Sum('container_total'), 0)
+        )['total']
         return context
 
     def get(self, request, *args, **kwargs):
@@ -79,6 +82,7 @@ class ClientListView(LoginRequiredMixin, BusinessRequiredMixin, ListView):
         grand_totals = queryset.aggregate(
             grand_debt=Coalesce(Sum('total_debt'), Decimal('0')),
             grand_advance=Coalesce(Sum('advance_balance'), Decimal('0')),
+            grand_containers=Coalesce(Sum('container_total'), 0),
         )
 
         paginator = Paginator(queryset, self.paginate_by)
@@ -116,6 +120,7 @@ class ClientListView(LoginRequiredMixin, BusinessRequiredMixin, ListView):
             # ── Barcha sahifalar bo'yicha UMUMIY yig'indi ──────────────────
             "grand_total_debt": float(grand_totals['grand_debt']),
             "grand_total_advance": float(grand_totals['grand_advance']),
+            "grand_total_containers": int(grand_totals['grand_containers']),
             "selected_balance": self.request.GET.get("balance", ""),
         })
 

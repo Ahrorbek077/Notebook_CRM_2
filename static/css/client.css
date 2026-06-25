@@ -111,6 +111,10 @@ body {
     font-weight: 600;
     color: var(--text-primary);
     font-family: var(--mono);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
 }
 
 .add-client-btn {
@@ -235,6 +239,7 @@ body {
 
 .stat-item {
     flex: 1;
+    min-width: 0;
     text-align: center;
     display: flex;
     flex-direction: column;
@@ -246,6 +251,9 @@ body {
     color: var(--text-muted);
     text-transform: uppercase;
     letter-spacing: 0.05em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .stat-value {
@@ -253,6 +261,9 @@ body {
     font-size: 0.85rem;
     font-weight: 600;
     color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .stat-value.danger  { color: var(--danger); }
 .stat-value.success { color: var(--success); }

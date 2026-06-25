@@ -1,15 +1,15 @@
 {% load i18n %}
 {% if switchable_businesses %}
-<div class="biz-switcher" style="position:relative;">
-    <button type="button" class="lang-btn" id="bizSwitchBtn" style="display:flex;align-items:center;gap:6px;">
+<div class="biz-switcher" style="position:relative;flex-shrink:0;">
+    <button type="button" class="lang-btn biz-switch-btn" id="bizSwitchBtn">
         <i class="fa fa-building"></i>
-        <span id="bizSwitchLabel">{{ current_business.name|default:"Biznes tanlanmagan" }}</span>
+        <span class="biz-switch-label" id="bizSwitchLabel">{{ current_business.name|default:"Biznes" }}</span>
         <i class="fa fa-caret-down"></i>
     </button>
-    <div id="bizSwitchMenu" style="display:none;position:absolute;top:110%;right:0;background:#171c26;border:1px solid rgba(255,255,255,.08);border-radius:10px;min-width:200px;z-index:50;overflow:hidden;">
+    <div id="bizSwitchMenu" style="display:none;position:absolute;top:110%;right:0;background:#171c26;border:1px solid rgba(255,255,255,.08);border-radius:10px;min-width:180px;max-width:min(280px, calc(100vw - 24px));z-index:50;overflow:hidden;">
         {% for biz in switchable_businesses %}
         <button type="button" class="biz-switch-item" data-id="{{ biz.id }}"
-            style="display:block;width:100%;text-align:left;padding:10px 14px;background:{% if current_business.id == biz.id %}rgba(0,230,118,.12){% else %}transparent{% endif %};border:none;color:#fff;cursor:pointer;">
+            style="display:block;width:100%;text-align:left;padding:10px 14px;background:{% if current_business.id == biz.id %}rgba(0,230,118,.12){% else %}transparent{% endif %};border:none;color:#fff;cursor:pointer;white-space:normal;word-break:break-word;">
             {{ biz.name }}{% if current_business.id == biz.id %} <i class="fa fa-check" style="color:#00e676;"></i>{% endif %}
         </button>
         {% endfor %}

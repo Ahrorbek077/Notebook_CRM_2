@@ -1136,6 +1136,32 @@ async function populateContainerTypeSelect() {
         types.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
 }
 
+/* ── Filial/Idish turi tanlovini eslab qolish ──
+   Server-ga hech qanday yuk tushmaydi — faqat brauzerning o'zida (localStorage)
+   saqlanadi. Oxirgi tanlangan bo'lsa o'shani, bo'lmasa ro'yxatdagi BIRINCHI
+   variantni avtomatik qo'yib beradi — operator har safar qayta tanlamasin. */
+const CN_LS_BRANCH = 'cn_last_branch_id';
+const CN_LS_TYPE   = 'cn_last_type_id';
+
+function restoreCnSelectDefaults() {
+    const branchSel = document.getElementById('cnBranch');
+    const typeSel   = document.getElementById('cnType');
+
+    const lastBranch = localStorage.getItem(CN_LS_BRANCH);
+    if (lastBranch && branchSel.querySelector(`option[value="${lastBranch}"]`)) {
+        branchSel.value = lastBranch;
+    } else if (branchSel.options.length > 1) {
+        branchSel.value = branchSel.options[1].value;
+    }
+
+    const lastType = localStorage.getItem(CN_LS_TYPE);
+    if (lastType && typeSel.querySelector(`option[value="${lastType}"]`)) {
+        typeSel.value = lastType;
+    } else if (typeSel.options.length > 1) {
+        typeSel.value = typeSel.options[1].value;
+    }
+}
+
 async function loadContainerSummary() {
     const d = await fetch(url(URLS.containerSummary, CLIENT_ID)).then(r => r.json());
     const list = document.getElementById('containerList');
@@ -1180,6 +1206,7 @@ document.getElementById('containerSummaryBtn').addEventListener('click', async (
     document.getElementById('cnQty').value = '';
     document.getElementById('cnNote').value = '';
     await populateContainerTypeSelect();
+    restoreCnSelectDefaults();
     await loadContainerSummary();
 });
 
@@ -1205,6 +1232,8 @@ document.getElementById('cnSubmit').addEventListener('click', async () => {
     if (d.status === 'success') {
         const label = currentCnAction === 'given' ? 'berildi' : 'qaytarildi';
         toast(`Idish ${label} ✓`, 'success');
+        localStorage.setItem(CN_LS_BRANCH, branchId);
+        localStorage.setItem(CN_LS_TYPE, typeId);
         document.getElementById('cnQty').value = '';
         document.getElementById('cnNote').value = '';
         await loadContainerSummary();

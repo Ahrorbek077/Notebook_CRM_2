@@ -9,6 +9,7 @@ class ClientManager {
         this.statTotalDebt = document.getElementById('statTotalDebt');
         this.statAdvance   = document.getElementById('statTotalAdvance');
         this.statCount     = document.getElementById('statCount');
+        this.totalContainers = document.getElementById('totalContainers');
 
         this.addModal    = document.getElementById('addClientModal');
         this.editModal   = document.getElementById('editClientModal');
@@ -43,7 +44,8 @@ class ClientManager {
             this.updateStats(
                 data.clients || [],
                 data.grand_total_debt    ?? null,
-                data.grand_total_advance ?? null
+                data.grand_total_advance ?? null,
+                data.grand_total_containers ?? null
             );
         } catch {
             // AJAX xato bo'lsa DOM dan hisoblash (fallback)
@@ -70,24 +72,28 @@ class ClientManager {
     // ==================== STATS ====================
     updateStatsFromDOM() {
         const cards = this.clientList.querySelectorAll('.client-card');
-        let totalDebt = 0, totalAdvance = 0;
+        let totalDebt = 0, totalAdvance = 0, totalContainers = 0;
         cards.forEach(card => {
-            totalDebt    += parseFloat(card.dataset.debt    || 0);
-            totalAdvance += parseFloat(card.dataset.advance || 0);
+            totalDebt       += parseFloat(card.dataset.debt          || 0);
+            totalAdvance    += parseFloat(card.dataset.advance       || 0);
+            totalContainers += parseInt(card.dataset.containerTotal  || 0);
         });
-        if (this.statTotalDebt) this.statTotalDebt.textContent = this.fmt(totalDebt)    + ' so\'m';
-        if (this.statAdvance)   this.statAdvance.textContent   = this.fmt(totalAdvance) + ' so\'m';
-        if (this.statCount)     this.statCount.textContent     = cards.length;
+        if (this.statTotalDebt)   this.statTotalDebt.textContent   = this.fmt(totalDebt)    + ' so\'m';
+        if (this.statAdvance)     this.statAdvance.textContent     = this.fmt(totalAdvance) + ' so\'m';
+        if (this.statCount)       this.statCount.textContent       = cards.length;
+        if (this.totalContainers) this.totalContainers.textContent = totalContainers + ' ta';
     }
 
-    updateStats(clients, grandTotalDebt = null, grandTotalAdvance = null) {
+    updateStats(clients, grandTotalDebt = null, grandTotalAdvance = null, grandTotalContainers = null) {
         // Agar backend dan umumiy yig'indi kelgan bo'lsa — uni ishlatamiz
         // Aks holda joriy sahifadagi clientlar bo'yicha hisoblaymiz (fallback)
-        const totalDebt    = grandTotalDebt    !== null ? grandTotalDebt    : clients.reduce((s, c) => s + (c.total_debt      || 0), 0);
-        const totalAdvance = grandTotalAdvance !== null ? grandTotalAdvance : clients.reduce((s, c) => s + (c.advance_balance || 0), 0);
-        if (this.statTotalDebt) this.statTotalDebt.textContent = this.fmt(totalDebt)    + ' so\'m';
-        if (this.statAdvance)   this.statAdvance.textContent   = this.fmt(totalAdvance) + ' so\'m';
-        if (this.statCount)     this.statCount.textContent     = this.totalCount?.textContent || clients.length;
+        const totalDebt       = grandTotalDebt       !== null ? grandTotalDebt       : clients.reduce((s, c) => s + (c.total_debt       || 0), 0);
+        const totalAdvance    = grandTotalAdvance    !== null ? grandTotalAdvance    : clients.reduce((s, c) => s + (c.advance_balance  || 0), 0);
+        const totalContainers = grandTotalContainers !== null ? grandTotalContainers : clients.reduce((s, c) => s + (c.container_total  || 0), 0);
+        if (this.statTotalDebt)  this.statTotalDebt.textContent  = this.fmt(totalDebt)    + ' so\'m';
+        if (this.statAdvance)    this.statAdvance.textContent    = this.fmt(totalAdvance) + ' so\'m';
+        if (this.statCount)      this.statCount.textContent      = this.totalCount?.textContent || clients.length;
+        if (this.totalContainers) this.totalContainers.textContent = totalContainers + ' ta';
     }
 
     // ==================== SEARCH CLEAR ====================
@@ -246,7 +252,7 @@ class ClientManager {
             }
 
             this.clientList.innerHTML = data.clients.map(c => this.buildCard(c)).join('');
-            this.updateStats(data.clients, data.grand_total_debt ?? null, data.grand_total_advance ?? null);
+            this.updateStats(data.clients, data.grand_total_debt ?? null, data.grand_total_advance ?? null, data.grand_total_containers ?? null);
 
         } catch (err) {
             console.error('loadClients error:', err);

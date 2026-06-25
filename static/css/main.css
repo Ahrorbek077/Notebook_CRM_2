@@ -1176,7 +1176,8 @@ select.form-control option { background: var(--bg-card); }
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 16px 20px;
+    gap: 8px;
+    padding: 14px 12px;
     background: rgba(7,9,15,0.92);
     backdrop-filter: blur(20px);
     border-bottom: 1px solid var(--b);
@@ -1185,7 +1186,7 @@ select.form-control option { background: var(--bg-card); }
     z-index: 100;
 }
 
-.brand-wrap { display: flex; align-items: center; gap: 10px; }
+.brand-wrap { display: flex; align-items: center; gap: 8px; min-width: 0; flex-shrink: 1; }
 .brand-mark {
     width: 36px; height: 36px;
     background: linear-gradient(135deg, var(--green), var(--cyan));
@@ -1197,19 +1198,24 @@ select.form-control option { background: var(--bg-card); }
     font-weight: 900;
     flex-shrink: 0;
 }
-.brand-name { font-family: var(--disp); font-size: 1.1rem; letter-spacing: 0.08em; color: var(--t); line-height: 1; }
-.brand-sub  { font-size: 0.65rem; color: var(--t3); letter-spacing: 0.06em; text-transform: uppercase; }
+.brand-name { font-family: var(--disp); font-size: 1.1rem; letter-spacing: 0.08em; color: var(--t); line-height: 1; white-space: nowrap; }
+.brand-sub  { display: none; font-size: 0.65rem; color: var(--t3); letter-spacing: 0.06em; text-transform: uppercase; }
 
-.lh-right { display: flex; align-items: center; gap: 8px; }
+.lh-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
+/* ── Biznes almashtirish tugmasi — mobilda faqat ikonka, matn yashirin ── */
+.biz-switch-btn { padding: 0 8px; gap: 4px; }
+.biz-switch-label { display: none; }
 
 .user-pill {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     background: var(--bg-el);
     border: 1px solid var(--b);
     border-radius: 999px;
-    padding: 5px 12px 5px 5px;
+    padding: 5px 8px 5px 5px;
+    min-width: 0;
 }
 .user-ava {
     width: 28px; height: 28px;
@@ -1221,8 +1227,8 @@ select.form-control option { background: var(--bg-card); }
     color: #fff;
     flex-shrink: 0;
 }
-.user-name { font-size: 0.8rem; font-weight: 700; color: var(--t); }
-.user-role { font-size: 0.65rem; color: var(--t2); }
+.user-name { display: none; font-size: 0.8rem; font-weight: 700; color: var(--t); max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.user-role { display: none; font-size: 0.65rem; color: var(--t2); }
 
 /* Quick create row */
 .quick-row {
@@ -1600,6 +1606,16 @@ select.form-control option { background: var(--bg-card); }
     .menu-grid { grid-template-columns: repeat(3, 1fr); }
     .form-row { grid-template-columns: repeat(3, 1fr); }
     .quick-row { grid-template-columns: repeat(4, 1fr); }
+
+    /* Tablet/desktop — header'da to'liq matnlar qaytadi (joy yetarli) */
+    .launcher-header { padding: 16px 20px; }
+    .brand-sub { display: block; }
+    .lh-right { gap: 8px; }
+    .biz-switch-btn { padding: 0 12px; gap: 6px; }
+    .biz-switch-label { display: inline; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .user-pill { padding: 5px 12px 5px 5px; gap: 8px; }
+    .user-name { display: block; max-width: none; }
+    .user-role { display: block; }
 }
 
 @media (min-width: 1024px) {
