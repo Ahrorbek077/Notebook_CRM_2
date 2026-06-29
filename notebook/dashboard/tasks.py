@@ -44,6 +44,7 @@ def _clear_dashboard_cache():
     from notebook.business.models import Business
     for biz_id in Business.objects.values_list('id', flat=True):
         cache.delete(f'dashboard_full_data_{biz_id}')
+        cache.delete(f'analytics_overview_{biz_id}')
 
 
 def refresh_mv_sync():

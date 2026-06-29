@@ -1,0 +1,140 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analitika — Savdo Tizimi</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+<link rel="icon" href="{% static 'img/logo.png' %}">
+<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/analytics.css' %}">
+</head>
+
+<body>
+<div class="grid-overlay"></div>
+
+<div class="dash-shell">
+
+    <!-- ── HEADER ── -->
+    <header class="dash-header">
+        <div class="header-left">
+            <div class="logo-mark">
+                <span class="lm-bar b1"></span><span class="lm-bar b2"></span><span class="lm-bar b3"></span>
+            </div>
+            <div>
+                <div class="header-title">SAVDO<span class="accent">{% trans 'ANALITIKA' %}</span></div>
+                <div class="header-sub">{% trans 'Sotuv va Kassa — alohida-alohida' %}</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="header-nav">
+                <a href="{% url 'dashboard:launcher' %}" class="nav-chip"><i class="fa fa-arrow-left"></i> {% trans 'Ortga' %}</a>
+                <a href="{% url 'dashboard:dashboard' %}" class="nav-chip"><i class="fa fa-gauge-high"></i> Dashboard</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- ── NARRATIVE (oddiy tilda tushuntirish) ── -->
+    <section class="narrative-card" id="narrativeCard">
+        <div class="nc-icon"><i class="fa fa-wand-magic-sparkles"></i></div>
+        <div class="nc-text" id="narrativeText">Yuklanmoqda...</div>
+    </section>
+
+    <!-- ── SOTUV vs KASSA ── -->
+    <section class="section-block">
+        <span class="section-label">{% trans 'BU OY — SOTUV (accrual) vs KASSA (cash)' %}</span>
+        <div class="flow-grid">
+            <div class="flow-card cyan">
+                <div class="flow-icon"><i class="fa fa-chart-line"></i></div>
+                <div class="flow-label">{% trans 'Sotilgan (jami)' %}</div>
+                <div class="flow-value" id="flowSales">—</div>
+                <div class="flow-note">{% trans "Pul kelgan-kelmaganidan qat'i nazar" %}</div>
+            </div>
+            <div class="flow-card green">
+                <div class="flow-icon"><i class="fa fa-hand-holding-dollar"></i></div>
+                <div class="flow-label">{% trans 'Mijozdan naqd kelgan' %}</div>
+                <div class="flow-value" id="flowCashIn">—</div>
+                <div class="flow-note" id="flowCollectedPct">—</div>
+            </div>
+            <div class="flow-card red">
+                <div class="flow-icon"><i class="fa fa-truck-ramp-box"></i></div>
+                <div class="flow-label">{% trans "Ta'minotchiga to'langan" %}</div>
+                <div class="flow-value" id="flowCashOut">—</div>
+                <div class="flow-note">{% trans 'Bu oy chiqgan real pul' %}</div>
+            </div>
+            <div class="flow-card blue">
+                <div class="flow-icon"><i class="fa fa-scale-balanced"></i></div>
+                <div class="flow-label">{% trans 'Sof pul oqimi' %}</div>
+                <div class="flow-value" id="flowNetCash">—</div>
+                <div class="flow-note">{% trans 'Kelgan − chiqqan (kassa)' %}</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ── QARZ HOLATI ── -->
+    <section class="section-block">
+        <span class="section-label">{% trans 'QARZ HOLATI' %}</span>
+        <div class="debt-card">
+            <div class="debt-row">
+                <div class="debt-side">
+                    <span class="debt-dot green"></span>
+                    <span class="debt-name">{% trans 'Mijozlardan kutilayotgan' %}</span>
+                    <span class="debt-val green" id="debtReceivables">—</span>
+                </div>
+                <div class="debt-side">
+                    <span class="debt-dot red"></span>
+                    <span class="debt-name">{% trans "Ta'minotchiga qarz" %}</span>
+                    <span class="debt-val red" id="debtPayables">—</span>
+                </div>
+            </div>
+            <div class="debt-bar-wrap">
+                <div class="debt-bar">
+                    <div class="debt-bar-fill green" id="debtBarReceivables" style="width:50%"></div>
+                    <div class="debt-bar-fill red" id="debtBarPayables" style="width:50%"></div>
+                </div>
+            </div>
+            <div class="debt-net" id="debtNet">—</div>
+        </div>
+    </section>
+
+    <!-- ── ESKIRISH (AGING) ── -->
+    <section class="section-block">
+        <span class="section-label">{% trans "QARZ NECHA KUNDAN BERI HARAKATSIZ (taxminiy)" %}</span>
+        <div class="aging-list" id="agingList">
+            <div class="skeleton-rows"><div class="sk-row"></div><div class="sk-row"></div><div class="sk-row"></div><div class="sk-row"></div></div>
+        </div>
+    </section>
+
+    <!-- ── 6 OYLIK TREND ── -->
+    <section class="chart-section">
+        <div class="chart-header">
+            <span class="section-label">{% trans "6 OYLIK TREND — Sotuv / Kassa kirim / Kassa chiqim" %}</span>
+        </div>
+        <div class="chart-wrap">
+            <canvas id="trendChart"></canvas>
+        </div>
+    </section>
+
+</div>
+
+<div class="page-loader" id="pageLoader">
+    <div class="loader-inner">
+        <div class="loader-bars"><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="loader-text">Ma'lumotlar yuklanmoqda...</div>
+    </div>
+</div>
+
+{% include "partials/i18n_js.html" %}
+<script>
+window.ANALYTICS_URLS = {
+    analyticsApi: "{% url 'dashboard:analytics_api' %}",
+};
+</script>
+<script src="{% static 'script/analytics.js' %}"></script>
+</body>
+</html>

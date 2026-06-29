@@ -48,6 +48,12 @@ class DashboardView(AdminRequiredMixin, LoginRequiredMixin, BusinessRequiredMixi
     template_name = 'dashboard.html'
 
 
+class AnalyticsView(AdminRequiredMixin, LoginRequiredMixin, BusinessRequiredMixin, TemplateView):
+    """"Analitika" — Sotuv (accrual) va Kassa (cash) ni alohida ko'rsatadigan,
+    qarz holatini va oddiy tildagi tushuntirish matnini beruvchi sahifa."""
+    template_name = 'analytics.html'
+
+
 class BaseHistoryView(AdminRequiredMixin, LoginRequiredMixin, BusinessRequiredMixin, ListView):
     model               = ActivityLog
     context_object_name = 'logs'

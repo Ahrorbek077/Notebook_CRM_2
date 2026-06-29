@@ -77,6 +77,16 @@
                 <div><div class="tile-label">{% trans 'Dashboard' %}</div><div class="tile-sub">{% trans 'Statistika' %}</div></div>
                 <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
             </a>
+            <a href="{% url 'dashboard:analytics' %}" class="menu-tile">
+                <div class="tile-icon" style="background:rgba(168,85,247,.12);color:#a855f7"><i class="fa fa-wand-magic-sparkles"></i></div>
+                <div><div class="tile-label">{% trans 'Analitika' %}</div><div class="tile-sub">{% trans 'Sotuv vs Kassa' %}</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>
+            <a href="{% url 'inbox:list' %}" class="menu-tile">
+                <div class="tile-icon" style="background:rgba(34,197,94,.12);color:#22c55e"><i class="fa fa-inbox"></i></div>
+                <div><div class="tile-label">{% trans "Kelgan to'lovlar" %}</div><div class="tile-sub">{% trans 'Bank/SMS avtomatik' %}</div></div>
+                <div class="tile-arrow"><i class="fa fa-arrow-right"></i></div>
+            </a>
             {% endif %}
             <a href="{% url 'clients:client_list' %}" class="menu-tile">
                 <div class="tile-icon clients-icon"><i class="fa fa-users"></i></div>

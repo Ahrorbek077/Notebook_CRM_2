@@ -32,6 +32,11 @@ class Business(models.Model):
     note       = models.TextField(blank=True)
     is_active  = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    webhook_token = models.CharField(
+        max_length=40, unique=True, blank=True,
+        verbose_name="Webhook token",
+        help_text="Bank SMS/bildirishnoma avtomatlashtirish (MacroDroid) uchun maxfiy kalit"
+    )
 
     class Meta:
         ordering = ['name']
@@ -50,4 +55,7 @@ class Business(models.Model):
                 slug = f"{base}-{n}"
                 n += 1
             self.slug = slug
+        if not self.webhook_token:
+            import secrets
+            self.webhook_token = secrets.token_urlsafe(24)
         super().save(*args, **kwargs)

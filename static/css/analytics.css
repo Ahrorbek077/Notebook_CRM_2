@@ -1,0 +1,177 @@
+/* static/css/analytics.css — "Analitika" sahifasi uchun qo'shimcha stillar.
+   Asosiy o'zgaruvchilar (--green, --cyan, --blue, --red, --t, --t2 ...) va
+   shell/header/chart klasslari dashboard.css'dan meros olinadi. */
+
+.narrative-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    background: linear-gradient(135deg, rgba(34,211,238,0.08), rgba(0,229,160,0.05));
+    border: 1px solid rgba(34,211,238,0.18);
+    border-radius: 16px;
+    padding: 18px 20px;
+}
+.nc-icon {
+    width: 38px; height: 38px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    background: rgba(34,211,238,0.15);
+    color: var(--cyan);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+}
+.nc-text {
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: var(--t, #e2e6ef);
+}
+
+.section-block { display: flex; flex-direction: column; gap: 10px; }
+
+/* ── Sotuv vs Kassa kartalari ── */
+.flow-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+}
+.flow-card {
+    position: relative;
+    background: var(--bg-card, #131826);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    padding: 16px;
+    overflow: hidden;
+}
+.flow-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 2px;
+}
+.flow-card.cyan::before  { background: var(--cyan); }
+.flow-card.green::before { background: var(--green); }
+.flow-card.red::before   { background: var(--red); }
+.flow-card.blue::before  { background: var(--blue); }
+.flow-card.negative::before { background: var(--red); }
+
+.flow-icon { font-size: 1.1rem; margin-bottom: 8px; color: var(--t2, #8b93a7); }
+.flow-card.cyan  .flow-icon { color: var(--cyan); }
+.flow-card.green .flow-icon { color: var(--green); }
+.flow-card.red   .flow-icon { color: var(--red); }
+.flow-card.blue  .flow-icon { color: var(--blue); }
+
+.flow-label { font-size: 0.72rem; color: var(--t2, #8b93a7); margin-bottom: 4px; }
+.flow-value { font-family: var(--mono); font-size: 1.15rem; font-weight: 700; color: var(--t, #e2e6ef); }
+.flow-card.negative .flow-value { color: var(--red); }
+.flow-note { font-size: 0.68rem; color: var(--t2, #8b93a7); margin-top: 4px; }
+
+/* ── Qarz holati ── */
+.debt-card {
+    background: var(--bg-card, #131826);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 14px;
+    padding: 18px;
+}
+.debt-row {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+.debt-side { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.debt-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.debt-dot.green { background: var(--green); }
+.debt-dot.red   { background: var(--red); }
+.debt-name { font-size: 0.78rem; color: var(--t2, #8b93a7); white-space: nowrap; }
+.debt-val { font-family: var(--mono); font-weight: 700; font-size: 0.95rem; white-space: nowrap; }
+.debt-val.green { color: var(--green); }
+.debt-val.red   { color: var(--red); }
+
+.debt-bar-wrap { margin-bottom: 12px; }
+.debt-bar {
+    display: flex;
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.06);
+}
+.debt-bar-fill { height: 100%; transition: width 0.4s; }
+.debt-bar-fill.green { background: var(--green); }
+.debt-bar-fill.red   { background: var(--red); }
+
+.debt-net {
+    font-size: 0.82rem;
+    color: var(--t2, #8b93a7);
+    line-height: 1.5;
+}
+.debt-net strong { color: var(--green); font-family: var(--mono); }
+.debt-net.warn strong { color: var(--red); }
+.debt-net i { margin-right: 4px; }
+.debt-net:not(.warn) i { color: var(--green); }
+.debt-net.warn i { color: var(--red); }
+
+/* ── Eskirish (aging) ── */
+.aging-list { display: flex; flex-direction: column; gap: 10px; }
+.aging-row {
+    display: grid;
+    grid-template-columns: 90px 1fr 130px 70px;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-card, #131826);
+    border: 1px solid var(--border, rgba(255,255,255,0.08));
+    border-radius: 10px;
+    padding: 10px 14px;
+}
+.aging-label { font-size: 0.78rem; color: var(--t2, #8b93a7); font-weight: 600; }
+.aging-bar-track {
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    overflow: hidden;
+}
+.aging-bar-fill { height: 100%; background: var(--cyan); border-radius: 999px; transition: width 0.4s; }
+.aging-bar-fill.danger { background: var(--red); }
+.aging-amount { font-family: var(--mono); font-size: 0.82rem; font-weight: 700; color: var(--t, #e2e6ef); text-align: right; white-space: nowrap; }
+.aging-count { font-size: 0.7rem; color: var(--t2, #8b93a7); text-align: right; white-space: nowrap; }
+
+.chart-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--t2, #8b93a7);
+    font-size: 0.85rem;
+    text-align: center;
+    padding: 20px;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   MOBIL (max-width: 680px) — dashboard.css bilan bir xil breakpoint
+   ════════════════════════════════════════════════════════════════ */
+@media (max-width: 680px) {
+    .flow-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .flow-value { font-size: 1rem; }
+    .narrative-card { padding: 14px; gap: 10px; }
+    .nc-text { font-size: 0.85rem; }
+
+    .debt-row { flex-direction: column; gap: 8px; }
+
+    .aging-row {
+        grid-template-columns: 1fr;
+        grid-template-areas:
+            "label amount"
+            "bar bar"
+            "count count";
+        grid-template-columns: 1fr auto;
+        row-gap: 6px;
+    }
+    .aging-label  { grid-area: label; }
+    .aging-amount { grid-area: amount; }
+    .aging-bar-track { grid-area: bar; }
+    .aging-count  { grid-area: count; text-align: left; }
+}
+
+@media (max-width: 420px) {
+    .flow-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .flow-card { padding: 12px; }
+}

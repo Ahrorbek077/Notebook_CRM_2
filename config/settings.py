@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     'notebook.expenses',
     'notebook.containers',
     'notebook.sms',
+    'notebook.inbox',
     # ── Third-party ──────────────────────────────────────────────────────────
     'django_celery_beat',
     'django_celery_results',

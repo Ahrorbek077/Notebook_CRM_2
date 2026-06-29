@@ -34,6 +34,7 @@ class PaymentService:
                             'client_name': client.name, 'amount': str(amount), 'note': note}
             )
             cache.delete(f'dashboard_full_data_{client.business_id}')
+            cache.delete(f'analytics_overview_{client.business_id}')
             on_commit(lambda: _refresh_mv())
             return payment
 
@@ -69,6 +70,7 @@ class PaymentService:
                             'client_name': client.name, 'amount': str(amount), 'reason': reason}
             )
             cache.delete(f'dashboard_full_data_{client.business_id}')
+            cache.delete(f'analytics_overview_{client.business_id}')
             on_commit(lambda: _refresh_mv())
             return payment
 

@@ -67,6 +67,7 @@ class SaleService:
 
             SaleService._add_to_client_debt(client, total_amount)
             cache.delete(f'dashboard_full_data_{client.business_id}')
+            cache.delete(f'analytics_overview_{client.business_id}')
             on_commit(lambda: _refresh_mv())
             return sale
 
@@ -144,6 +145,7 @@ class SaleService:
                 sale.cancel(cancelled_by=user)
 
             cache.delete(f'dashboard_full_data_{sale.business_id}')
+            cache.delete(f'analytics_overview_{sale.business_id}')
             on_commit(lambda: _refresh_mv())
             return sale_return
 

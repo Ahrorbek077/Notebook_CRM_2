@@ -1,0 +1,142 @@
+{% load static i18n %}
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Kelgan to'lovlar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link rel="icon" href="{% static 'img/logo.png' %}">
+    <link rel="stylesheet" href="{% static 'css/staff.css' %}">
+    <link rel="stylesheet" href="{% static 'css/inbox.css' %}">
+</head>
+<body>
+
+<div class="page-shell">
+
+    <header class="page-header">
+        <button onclick="history.back()" class="back-btn"><i class="fa fa-arrow-left"></i></button>
+        <div class="header-center">
+            <div class="header-eyebrow">{% trans 'AVTOMATIK ANIQLASH' %}</div>
+            <h1 class="header-title">{% trans "Kelgan to'lovlar" %}</h1>
+        </div>
+        <button class="add-btn" id="openWebhookInfo"><i class="fa fa-link"></i></button>
+    </header>
+
+    <!-- WEBHOOK INFO -->
+    <div class="webhook-box" id="webhookBox">
+        <div class="wb-row">
+            <i class="fa fa-circle-info"></i>
+            <span>{% trans "MacroDroid'da shu manzilga HTTP so'rov yuboring (SMS matni 'text' parametrida):" %}</span>
+        </div>
+        <div class="wb-url-row">
+            <code id="webhookUrl">{{ webhook_url }}</code>
+            <button class="wb-btn" id="copyWebhookBtn" title="Nusxalash"><i class="fa fa-copy"></i></button>
+        </div>
+        <button class="wb-regen" id="regenTokenBtn">
+            <i class="fa fa-rotate"></i> {% trans 'Tokenni yangilash (eski manzil ishlamay qoladi)' %}
+        </button>
+    </div>
+
+    <!-- KUTMOQDA -->
+    <div class="inbox-section">
+        <div class="inbox-section-head">
+            <span>{% trans 'KUTMOQDA' %}</span>
+            <span class="inbox-count">{{ unmatched|length }}</span>
+        </div>
+
+        <div class="inbox-list">
+            {% for txn in unmatched %}
+            <div class="txn-card" id="txn-{{ txn.id }}">
+                <div class="txn-top">
+                    <div class="txn-amount">
+                        {% if txn.parsed_amount %}{{ txn.parsed_amount|floatformat:0 }} so'm{% else %}<span class="txn-unknown">Summa aniqlanmadi</span>{% endif %}
+                    </div>
+                    <div class="txn-time">{{ txn.created_at|date:"d.m H:i" }}</div>
+                </div>
+                <div class="txn-text">{{ txn.raw_text|truncatechars:160 }}</div>
+                {% if txn.sender_hint %}<div class="txn-hint"><i class="fa fa-credit-card"></i> {{ txn.sender_hint }}</div>{% endif %}
+                <div class="txn-actions">
+                    <button class="txn-btn match" data-id="{{ txn.id }}" data-amount="{% if txn.parsed_amount %}{{ txn.parsed_amount|stringformat:'s' }}{% endif %}">
+                        <i class="fa fa-link"></i> {% trans "Mijozga bog'lash" %}
+                    </button>
+                    <button class="txn-btn ignore" data-id="{{ txn.id }}">
+                        <i class="fa fa-eye-slash"></i>
+                    </button>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <div class="es-icon"><i class="fa fa-inbox"></i></div>
+                <p>{% trans "Hozircha kutayotgan tushum yo'q." %}</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- SO'NGGI HARAKATLAR -->
+    {% if recent %}
+    <div class="inbox-section">
+        <div class="inbox-section-head"><span>{% trans "SO'NGGI HARAKATLAR" %}</span></div>
+        <div class="inbox-list">
+            {% for txn in recent %}
+            <div class="txn-card secondary">
+                <div class="txn-top">
+                    <div class="txn-amount small">
+                        {% if txn.parsed_amount %}{{ txn.parsed_amount|floatformat:0 }} so'm{% else %}—{% endif %}
+                    </div>
+                    <span class="txn-status {{ txn.status }}">{{ txn.get_status_display }}</span>
+                </div>
+                {% if txn.matched_client %}<div class="txn-hint"><i class="fa fa-user"></i> {{ txn.matched_client.name }}</div>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- MATCH MODAL -->
+<div class="modal-overlay d-none" id="matchModal">
+    <div class="modal-box">
+        <div class="modal-head">
+            <div class="modal-title"><i class="fa fa-link"></i> {% trans "Mijozga bog'lash" %}</div>
+            <button class="modal-close" data-close="matchModal"><i class="fa fa-times"></i></button>
+        </div>
+        <form id="matchForm">
+            <div class="modal-body">
+                <div class="field-group">
+                    <label>{% trans 'Mijozni qidirish' %}</label>
+                    <input type="text" id="clientSearch" class="field-input" placeholder="Ism yoki telefon...">
+                </div>
+                <div class="field-group">
+                    <label>{% trans 'Mijoz' %} <span class="req">*</span></label>
+                    <select id="clientSelect" class="field-input" required size="6">
+                        {% for c in clients %}
+                        <option value="{{ c.id }}" data-search="{{ c.name|lower }} {{ c.phone }}">
+                            {{ c.name }} — {{ c.phone }} {% if c.total_debt > 0 %}(qarzi: {{ c.total_debt|floatformat:0 }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="field-group">
+                    <label>{% trans 'Summa' %} <span class="req">*</span></label>
+                    <input type="number" id="matchAmount" class="field-input" step="0.01" required>
+                </div>
+                <div class="form-error d-none" id="matchError"></div>
+            </div>
+            <div class="modal-foot">
+                <button type="button" class="btn-cancel" data-close="matchModal">{% trans 'Bekor' %}</button>
+                <button type="submit" class="btn-submit"><i class="fa fa-check"></i> {% trans "Tasdiqlash" %}</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="{% static 'script/inbox.js' %}"></script>
+</body>
+</html>

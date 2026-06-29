@@ -165,6 +165,8 @@ class CompanyService:
                     'new_advance': str(branch.advance_balance),
                 }
             )
+            from django.core.cache import cache
+            cache.delete(f'analytics_overview_{branch.company.business_id}')
             return bp
 
     # ─────────────────────────────────────────────────────────────
@@ -202,9 +204,8 @@ class CompanyService:
                     'new_advance': str(branch.advance_balance),
                 }
             )
-
-    # ─────────────────────────────────────────────────────────────
-    # QAYTARISH: biz filialga mahsulot qaytaramiz → qarz kamayadi
+            from django.core.cache import cache
+            cache.delete(f'analytics_overview_{branch.company.business_id}')
     #   Avvalo qarzdan ayiramiz,
     #   qarz 0 ga tushsa — ortiqcha summa avansga tushadi.
     # ─────────────────────────────────────────────────────────────
