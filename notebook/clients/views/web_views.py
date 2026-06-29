@@ -10,7 +10,7 @@ from notebook.sales.models import Sale, SaleItem, SaleReturn, SaleReturnItem
 from notebook.payments.models import PaymentRefund
 from notebook.clients.forms import ClientForm, RegionForm
 from django.views.generic import ListView, CreateView, View, DetailView
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Q, Sum, Prefetch, F, ExpressionWrapper, DecimalField, OuterRef, Subquery, IntegerField
@@ -402,6 +402,27 @@ class SaleReceiptView(BusinessRequiredMixin, View):
             'advance':     float(sale.client.advance_balance),
         }
         return JsonResponse({'status': 'success', 'receipt': receipt_data})
+
+
+class SaleReceiptPdfView(BusinessRequiredMixin, View):
+    """Chekni SERVERDA PDF qilib beradi (Kirill/lotin/o'zbek harflari to'liq
+    qo'llab-quvvatlanadi — DejaVu Sans shrifti orqali). Brauzer/telefon
+    tomonidagi jsPDF'ning kirillni "ko'rmaslik" muammosini butunlay chetlab
+    o'tadi."""
+
+    def get(self, request, sale_id):
+        from notebook.clients.services_receipt import build_receipt_pdf
+
+        sale = get_object_or_404(
+            Sale.objects.select_related('client', 'user')
+                        .prefetch_related('items__product'),
+            id=sale_id, business=request.business
+        )
+        pdf_bytes = build_receipt_pdf(sale)
+
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="chek_{sale.id}.pdf"'
+        return response
 
 
 # ====================== REGION ======================

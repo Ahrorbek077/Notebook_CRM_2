@@ -322,96 +322,12 @@ const ReceiptManager = (() => {
     printWin.document.close();
   }
 
-  // ── PDF yuklab olish ──────────────────────────────────────────────────────
+  // ── PDF yuklab olish — SERVERDA generatsiya qilinadi (Kirill/o'zbek
+  //    harflari to'liq chiqishi uchun; jsPDF standart shriftlari kirillni
+  //    bilmaydi, shu sabab avval chek deyarli bo'sh chiqardi) ─────────────
   async function doPdf(saleId) {
-    // jsPDF CDN dan yuklash (agar yuklanmagan bo'lsa)
-    if (typeof window.jspdf === 'undefined') {
-      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-    }
-
     try {
-      const receipt = await fetchReceipt(saleId);
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ unit: 'mm', format: [80, 200], orientation: 'portrait' });
-
-      doc.setFont('helvetica');
-      let y = 8;
-      const lm = 5; // left margin
-      const w  = 70; // usable width
-
-      // Sarlavha
-      doc.setFontSize(14); doc.setFont('helvetica', 'bold');
-      doc.text('NoteBook', 40, y, { align: 'center' }); y += 6;
-      doc.setFontSize(9);  doc.setFont('helvetica', 'normal');
-      doc.text(`Sotuv cheki #${receipt.sale_id}`, 40, y, { align: 'center' }); y += 4;
-      doc.line(lm, y, 75, y); y += 4;
-
-      // Info
-      doc.setFontSize(8);
-      const info = [
-        ['Mijoz:',  receipt.client_name],
-        ['Tel:',    receipt.client_phone],
-        ['Kassir:', receipt.cashier],
-        ['Sana:',   receipt.date],
-      ];
-      info.forEach(([k, v]) => {
-        doc.setFont('helvetica', 'bold');   doc.text(k, lm, y);
-        doc.setFont('helvetica', 'normal'); doc.text(v, 25, y);
-        y += 4;
-      });
-      doc.line(lm, y, 75, y); y += 4;
-
-      // Ustunlar
-      doc.setFont('helvetica', 'bold');
-      doc.text('Mahsulot', lm, y);
-      doc.text('Jami', 75, y, { align: 'right' });
-      y += 3;
-      doc.setFont('helvetica', 'normal');
-      doc.line(lm, y, 75, y); y += 3;
-
-      // Mahsulotlar
-      receipt.items.forEach(item => {
-        const name = item.name.length > 22 ? item.name.substring(0, 20) + '..' : item.name;
-        doc.text(name, lm, y);
-        doc.text(`${Number(item.subtotal).toLocaleString('uz-UZ')}`, 75, y, { align: 'right' });
-        y += 3.5;
-        doc.setFontSize(7);
-        doc.setTextColor(100);
-        doc.text(`  ${fmtQty(item.qty)} x ${Number(item.price).toLocaleString('uz-UZ')} so'm`, lm, y);
-        doc.setTextColor(0);
-        doc.setFontSize(8);
-        y += 3.5;
-      });
-
-      doc.line(lm, y, 75, y); y += 4;
-
-      // Jami
-      doc.setFont('helvetica', 'bold');
-      doc.text('JAMI:', lm, y);
-      doc.text(`${Number(receipt.total).toLocaleString('uz-UZ')} so'm`, 75, y, { align: 'right' });
-      y += 5;
-
-      if (receipt.debt > 0) {
-        doc.setTextColor(220, 53, 69);
-        doc.text('Qarz:', lm, y);
-        doc.text(`${Number(receipt.debt).toLocaleString('uz-UZ')} so'm`, 75, y, { align: 'right' });
-        doc.setTextColor(0);
-        y += 4;
-      } else if (receipt.advance > 0) {
-        doc.setTextColor(25, 135, 84);
-        doc.text('Avans:', lm, y);
-        doc.text(`${Number(receipt.advance).toLocaleString('uz-UZ')} so'm`, 75, y, { align: 'right' });
-        doc.setTextColor(0);
-        y += 4;
-      }
-
-      doc.line(lm, y, 75, y); y += 5;
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
-      doc.text('Xarid uchun rahmat! · NoteBook', 40, y, { align: 'center' });
-
-      // Balandlikni dinamik o'rnatish
-      doc.internal.pageSize.height = y + 10;
-      doc.save(`chek_${receipt.sale_id}.pdf`);
+      window.location.href = `/clients/receipt/${saleId}/pdf/`;
     } catch (err) {
       showToast('PDF xatoligi: ' + err.message, 'danger');
     }
