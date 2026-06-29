@@ -392,6 +392,7 @@ class SaleReceiptView(BusinessRequiredMixin, View):
 
         receipt_data = {
             'sale_id':     sale.id,
+            'business_name': sale.business.name if sale.business else 'Biznes',
             'client_name': sale.client.name,
             'client_phone': sale.client.phone,
             'cashier':     sale.user.get_full_name() if sale.user else '—',

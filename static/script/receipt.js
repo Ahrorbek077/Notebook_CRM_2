@@ -6,7 +6,7 @@
  * Imkoniyatlar:
  *   1. Browser Print  — CSS @media print orqali
  *   2. PDF yuklab olish — jsPDF orqali
- *   3. Bluetooth Printer — Web Bluetooth API + ESC/POS (80mm)
+ *   3. Bluetooth Printer — Web Bluetooth API + ESC/POS (58mm)
  *
  * Ishlatish:
  *   ReceiptManager.print(saleId)            → chek modalini ochadi
@@ -33,7 +33,7 @@ const ReceiptManager = (() => {
     CHARSET_UTF8:   [ESC, 0x74, 0x2D],         // code page
   };
 
-  const COL_WIDTH   = 48;  // 80mm ≈ 48 belgi
+  const COL_WIDTH   = 32;  // 58mm ≈ 32 belgi (xitoylik arzon termo-printerlar standarti)
   const DIVIDER     = '─'.repeat(COL_WIDTH);
 
   // ── Yordamchi: matn o'rtaga hizalash ─────────────────────────────────────
@@ -87,14 +87,13 @@ const ReceiptManager = (() => {
 
     // ── Sarlavha ─────────────────────────────────────────────────────────────
     push(ESC_POS.ALIGN_CENTER, ESC_POS.BOLD_ON, ESC_POS.DOUBLE_HEIGHT);
-    push('NoteBook\n');
+    push(`${receipt.business_name || 'Biznes'}\n`);
     push(ESC_POS.NORMAL_SIZE, ESC_POS.BOLD_OFF);
     push(`Sotuv cheki #${receipt.sale_id}\n`);
     push(DIVIDER + '\n');
 
-    // ── Mijoz va kassir ───────────────────────────────────────────────────────
+    // ── Telefon va kassir (maxfiylik uchun ism/qarz ko'rsatilmaydi) ───────────
     push(ESC_POS.ALIGN_LEFT);
-    push(`Mijoz : ${receipt.client_name}\n`);
     push(`Tel   : ${receipt.client_phone}\n`);
     push(`Kassir: ${receipt.cashier}\n`);
     push(`Sana  : ${receipt.date}\n`);
@@ -123,18 +122,11 @@ const ReceiptManager = (() => {
     push(twoCol('JAMI:', fmt(receipt.total)) + '\n');
     push(ESC_POS.BOLD_OFF);
 
-    // ── Balans ────────────────────────────────────────────────────────────────
-    if (receipt.debt > 0) {
-      push(twoCol('Qarz:', fmt(receipt.debt)) + '\n');
-    } else if (receipt.advance > 0) {
-      push(twoCol('Avans:', fmt(receipt.advance)) + '\n');
-    }
-
     // ── Footer ────────────────────────────────────────────────────────────────
     push(DIVIDER + '\n');
     push(ESC_POS.ALIGN_CENTER);
     push('Xarid uchun rahmat!\n');
-    push('NoteBook tizimi\n');
+    push(`${receipt.business_name || 'Biznes'}\n`);
 
     // 3 bo'sh qator + kesish
     push('\n\n\n');
@@ -159,12 +151,6 @@ const ReceiptManager = (() => {
       </tr>
     `).join('');
 
-    const balanceLine = receipt.debt > 0
-      ? `<tr class="text-danger"><td colspan="3"><strong>Qarz</strong></td><td class="text-end"><strong>${Number(receipt.debt).toLocaleString('uz-UZ')}</strong></td></tr>`
-      : receipt.advance > 0
-        ? `<tr class="text-success"><td colspan="3"><strong>Avans</strong></td><td class="text-end"><strong>${Number(receipt.advance).toLocaleString('uz-UZ')}</strong></td></tr>`
-        : '';
-
     const rowStyle = "display:flex;justify-content:space-between;padding:4px 0;font-size:.82rem;border-bottom:1px solid var(--b,rgba(255,255,255,.06))";
     const labelStyle = "color:var(--t2,#aaa)";
     const valueStyle = "color:var(--t,#fff);font-weight:600";
@@ -174,14 +160,13 @@ const ReceiptManager = (() => {
 
         <!-- Sarlavha -->
         <div style="text-align:center;margin-bottom:14px">
-          <div style="font-size:1.1rem;font-weight:800;color:var(--cyan,#00bcd4);letter-spacing:.05em">NoteBook</div>
+          <div style="font-size:1.1rem;font-weight:800;color:var(--cyan,#00bcd4);letter-spacing:.05em">${receipt.business_name || 'Biznes'}</div>
           <div style="font-size:.75rem;color:var(--t3,#666);margin-top:2px">Sotuv cheki #${receipt.sale_id}</div>
           <div style="height:1px;background:var(--b,rgba(255,255,255,.08));margin:10px 0"></div>
         </div>
 
-        <!-- Mijoz info -->
+        <!-- Telefon/kassir info (maxfiylik uchun ism/qarz ko'rsatilmaydi) -->
         <div style="margin-bottom:12px">
-          <div style="${rowStyle}"><span style="${labelStyle}">Mijoz</span><span style="${valueStyle}">${receipt.client_name}</span></div>
           <div style="${rowStyle}"><span style="${labelStyle}">Telefon</span><span style="${valueStyle}">${receipt.client_phone}</span></div>
           <div style="${rowStyle}"><span style="${labelStyle}">Kassir</span><span style="color:var(--t,#fff)">${receipt.cashier}</span></div>
           <div style="${rowStyle};border:none"><span style="${labelStyle}">Sana</span><span style="color:var(--t,#fff)">${receipt.date}</span></div>
@@ -217,19 +202,10 @@ const ReceiptManager = (() => {
           <span style="font-weight:800;color:var(--cyan,#00bcd4)">${Number(receipt.total).toLocaleString('uz-UZ')} so'm</span>
         </div>
 
-        <!-- Balans -->
-        ${receipt.debt > 0 ? `
-        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:.82rem">
-          <span style="color:var(--red,#ef5350)">Qarz</span>
-          <span style="color:var(--red,#ef5350);font-weight:700">${Number(receipt.debt).toLocaleString('uz-UZ')} so'm</span>
-        </div>` : receipt.advance > 0 ? `
-        <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:.82rem">
-          <span style="color:var(--green,#00e676)">Avans</span>
-          <span style="color:var(--green,#00e676);font-weight:700">${Number(receipt.advance).toLocaleString('uz-UZ')} so'm</span>
-        </div>` : ''}
+        <!-- Balans satri olib tashlandi (maxfiylik) -->
 
         <div style="height:1px;background:var(--b,rgba(255,255,255,.08));margin:10px 0"></div>
-        <div style="text-align:center;font-size:.72rem;color:var(--t3,#555)">Xarid uchun rahmat! · NoteBook</div>
+        <div style="text-align:center;font-size:.72rem;color:var(--t3,#555)">Xarid uchun rahmat! · ${receipt.business_name || 'Biznes'}</div>
       </div>
     `;
   }

@@ -153,7 +153,7 @@
                 </button>
                 {% if client.total_debt > 0 or client.advance_balance > 0 %}
                 <a class="ca-btn sms-btn"
-                   href="sms:{{ client.phone }}?body={% if client.total_debt > 0 %}Hurmatli {{ client.name }}, sizning qarzingiz {{ client.total_debt|floatformat:0 }} so'm. Iltimos, imkon qadar tezroq toʻlovni amalga oshiring. Rahmat!{% else %}Hurmatli {{ client.name }}, sizning avansingiz {{ client.advance_balance|floatformat:0 }} so'm. Keyingi xaridingizda hisobga olinadi. Rahmat!{% endif %}"
+                   href="sms:{{ client.phone }}?body={% if client.total_debt > 0 %}Assalomu alaykum, {{ client.phone }} raqami egasi! Sizning {{ client.business.name }}dan {{ client.total_debt|floatformat:0 }} so'm qarzingiz bor. Iltimos, tezroq toʻlov qilib qoʻying!{% else %}Assalomu alaykum, {{ client.phone }} raqami egasi! Sizning {{ client.business.name }}da {{ client.advance_balance|floatformat:0 }} so'm avansingiz bor. Keyingi xaridingizda hisobga olinadi. Rahmat!{% endif %}"
                    onclick="event.stopPropagation()">
                     <i class="fa fa-comment-sms"></i><span>SMS</span>
                 </a>
@@ -421,6 +421,7 @@
 <script src="{% static 'script/location_picker.js' %}"></script>
 <script>
 window.SMS_SEND_URL = "{% url 'sms:send-balance-sms' 0 %}";
+window.CURRENT_BUSINESS_NAME = "{{ request.business.name|escapejs }}";
 </script>
 <script src="{% static 'script/client.js' %}"></script>
 </body>

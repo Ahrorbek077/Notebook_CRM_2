@@ -122,21 +122,24 @@ class EskizClient:
 
 class SmsService:
 
-    DEBT_TEMPLATE     = ("Hurmatli {name}, sizning qarzingiz {amount} so'm. "
-                         "Iltimos, imkon qadar tezroq to'lovni amalga oshiring. Rahmat!")
-    ADVANCE_TEMPLATE  = ("Hurmatli {name}, sizning avansingiz {amount} so'm. "
-                         "Keyingi xaridingizda hisobga olinadi. Rahmat!")
+    DEBT_TEMPLATE     = ("Assalomu alaykum, {phone} raqami egasi! Sizning {business}dan "
+                         "{amount} so'm qarzingiz bor. Iltimos, tezroq to'lov qilib qo'ying!")
+    ADVANCE_TEMPLATE  = ("Assalomu alaykum, {phone} raqami egasi! Sizning {business}da "
+                         "{amount} so'm avansingiz bor. Keyingi xaridingizda hisobga olinadi. Rahmat!")
 
     RATE_LIMIT_SECONDS = 120  # bitta mijozga ketma-ket SMS orasidagi minimal interval
 
     @classmethod
     def build_balance_message(cls, client) -> str:
+        business_name = client.business.name if client.business else "Biznes"
         if client.total_debt > 0:
             return cls.DEBT_TEMPLATE.format(
-                name=client.name, amount=f"{client.total_debt:,.0f}".replace(',', ' ')
+                phone=client.phone, business=business_name,
+                amount=f"{client.total_debt:,.0f}".replace(',', ' ')
             )
         return cls.ADVANCE_TEMPLATE.format(
-            name=client.name, amount=f"{client.advance_balance:,.0f}".replace(',', ' ')
+            phone=client.phone, business=business_name,
+            amount=f"{client.advance_balance:,.0f}".replace(',', ' ')
         )
 
     @classmethod

@@ -178,8 +178,8 @@ class ClientManager {
                 <a class="ca-btn sms-btn"
                    href="sms:${c.phone}?body=${encodeURIComponent(
                         debt > 0
-                          ? `Hurmatli ${c.name}, sizning qarzingiz ${this.fmt(debt)} so'm. Iltimos, imkon qadar tezroq to'lovni amalga oshiring. Rahmat!`
-                          : `Hurmatli ${c.name}, sizning avansingiz ${this.fmt(advance)} so'm. Keyingi xaridingizda hisobga olinadi. Rahmat!`
+                          ? `Assalomu alaykum, ${c.phone} raqami egasi! Sizning ${window.CURRENT_BUSINESS_NAME}dan ${this.fmt(debt)} so'm qarzingiz bor. Iltimos, tezroq to'lov qilib qo'ying!`
+                          : `Assalomu alaykum, ${c.phone} raqami egasi! Sizning ${window.CURRENT_BUSINESS_NAME}da ${this.fmt(advance)} so'm avansingiz bor. Keyingi xaridingizda hisobga olinadi. Rahmat!`
                    )}"
                    onclick="event.stopPropagation()">
                     <i class="fa fa-comment-sms"></i><span>SMS</span>

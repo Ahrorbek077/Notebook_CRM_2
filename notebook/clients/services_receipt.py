@@ -48,29 +48,40 @@ def _fmt_qty(val) -> str:
 
 
 def build_receipt_pdf(sale) -> bytes:
-    """Berilgan Sale obyekti uchun 80mm kvitansiya (chek) PDF baytlarini qaytaradi."""
+    """Berilgan Sale obyekti uchun 58mm kvitansiya (chek) PDF baytlarini qaytaradi.
+
+    58mm — chunki ko'pchilik arzon termo-printerlar (xitoylik label printer)
+    aynan shu kenglikda qog'oz ishlatadi. Agar 80mm'da yasab 58mm'ga
+    "siqilsa" — matn xira/kichik chiqib qoladi, shuning uchun to'g'ridan-to'g'ri
+    58mm'ning o'zida, yetarlicha katta shrift bilan chiqaramiz.
+
+    Maxfiylik: mijozning ismi va qarz/avans summasi CHEKDA ko'rsatilmaydi
+    (faqat telefon raqami) — chunki ba'zi mijozlar tizimda taxallus/
+    laqab bilan kiritilgan bo'lishi mumkin, bu mijozni xafa qilmasligi uchun.
+    """
     _ensure_fonts()
 
-    width = 80 * mm_unit
-    # Balandlikni mahsulotlar soniga qarab dinamik hisoblaymiz
+    width = 58 * mm_unit
     items = list(sale.items.all())
-    base_h  = 60 * mm_unit
-    per_item_h = 9 * mm_unit
+    base_h     = 46 * mm_unit
+    per_item_h = 10 * mm_unit
     height = base_h + per_item_h * max(len(items), 1)
 
     buf = BytesIO()
     c = canvas.Canvas(buf, pagesize=(width, height))
 
-    LM = 4 * mm_unit          # left margin
-    RM = width - 4 * mm_unit  # right edge
-    y  = height - 8 * mm_unit
+    LM = 3 * mm_unit          # left margin
+    RM = width - 3 * mm_unit  # right edge
+    y  = height - 7 * mm_unit
+
+    business_name = sale.business.name if sale.business else 'Do\u02bckon'
 
     def line(yy):
         c.setStrokeColor(colors.HexColor('#999999'))
         c.setLineWidth(0.3)
         c.line(LM, yy, RM, yy)
 
-    def text(x, yy, s, font='DejaVuSans', size=8, align='left', color='#000000'):
+    def text(x, yy, s, font='DejaVuSans', size=9, align='left', color='#000000'):
         c.setFont(font, size)
         c.setFillColor(colors.HexColor(color))
         if align == 'right':
@@ -80,64 +91,54 @@ def build_receipt_pdf(sale) -> bytes:
         else:
             c.drawString(x, yy, s)
 
-    # ── Sarlavha ──────────────────────────────────────────────────────────
-    text(width / 2, y, 'NoteBook', font='DejaVuSans-Bold', size=13, align='center', color='#0d9bb5')
-    y -= 5 * mm_unit
-    text(width / 2, y, f"Sotuv cheki #{sale.id}", size=8, align='center', color='#666666')
+    # ── Sarlavha (biznes nomi) ───────────────────────────────────────────
+    text(width / 2, y, business_name, font='DejaVuSans-Bold', size=14, align='center', color='#0d9bb5')
+    y -= 5.5 * mm_unit
+    text(width / 2, y, f"Sotuv cheki #{sale.id}", size=8.5, align='center', color='#666666')
     y -= 3 * mm_unit
     line(y); y -= 5 * mm_unit
 
-    # ── Mijoz/kassir ma'lumotlari ─────────────────────────────────────────
+    # ── Telefon va sana (ism/qarz ko'rsatilmaydi — maxfiylik) ────────────
     rows = [
-        ('Mijoz', sale.client.name),
         ('Telefon', sale.client.phone or '—'),
         ('Kassir', sale.user.get_full_name() if sale.user else '—'),
         ('Sana', sale.created_at.strftime('%d.%m.%Y %H:%M')),
     ]
     for label, value in rows:
-        text(LM, y, label, size=7.5, color='#777777')
-        text(RM, y, str(value), size=7.5, align='right', color='#111111')
-        y -= 4.2 * mm_unit
+        text(LM, y, label, size=8, color='#777777')
+        text(RM, y, str(value), size=8, align='right', color='#111111')
+        y -= 4.6 * mm_unit
 
     line(y); y -= 4.5 * mm_unit
 
     # ── Ustun sarlavhasi ──────────────────────────────────────────────────
-    text(LM, y, 'Mahsulot', font='DejaVuSans-Bold', size=7)
-    text(RM, y, 'Jami', font='DejaVuSans-Bold', size=7, align='right')
-    y -= 3 * mm_unit
-    line(y); y -= 4 * mm_unit
+    text(LM, y, 'Mahsulot', font='DejaVuSans-Bold', size=8)
+    text(RM, y, 'Jami', font='DejaVuSans-Bold', size=8, align='right')
+    y -= 3.2 * mm_unit
+    line(y); y -= 4.5 * mm_unit
 
     # ── Mahsulotlar ──────────────────────────────────────────────────────
     for item in items:
         name = item.product.name
-        if len(name) > 30:
-            name = name[:28] + '..'
+        if len(name) > 24:
+            name = name[:22] + '..'
         subtotal = item.price_at_sale * item.quantity
-        text(LM, y, name, size=8)
-        text(RM, y, _fmt_money(subtotal), size=8, align='right', color='#b8860b')
-        y -= 3.8 * mm_unit
-        qty_line = f"  {_fmt_qty(item.quantity)} {item.product.get_unit_type_display()} x {_fmt_money(item.price_at_sale)}"
-        text(LM, y, qty_line, size=6.5, color='#888888')
+        text(LM, y, name, size=9)
+        text(RM, y, _fmt_money(subtotal), size=9, align='right', color='#b8860b')
         y -= 4.2 * mm_unit
+        qty_line = f"  {_fmt_qty(item.quantity)} {item.product.get_unit_type_display()} x {_fmt_money(item.price_at_sale)}"
+        text(LM, y, qty_line, size=7, color='#888888')
+        y -= 4.8 * mm_unit
 
-    line(y); y -= 5 * mm_unit
+    line(y); y -= 5.5 * mm_unit
 
     # ── Jami ──────────────────────────────────────────────────────────────
-    text(LM, y, 'JAMI', font='DejaVuSans-Bold', size=9.5)
-    text(RM, y, _fmt_money(sale.total_amount), font='DejaVuSans-Bold', size=9.5, align='right', color='#0d9bb5')
-    y -= 5 * mm_unit
+    text(LM, y, 'JAMI', font='DejaVuSans-Bold', size=11)
+    text(RM, y, _fmt_money(sale.total_amount), font='DejaVuSans-Bold', size=11, align='right', color='#0d9bb5')
+    y -= 6 * mm_unit
 
-    if sale.client.total_debt > 0:
-        text(LM, y, 'Qarz', size=8, color='#d32f2f')
-        text(RM, y, _fmt_money(sale.client.total_debt), size=8, align='right', color='#d32f2f')
-        y -= 4.5 * mm_unit
-    elif sale.client.advance_balance > 0:
-        text(LM, y, 'Avans', size=8, color='#2e7d32')
-        text(RM, y, _fmt_money(sale.client.advance_balance), size=8, align='right', color='#2e7d32')
-        y -= 4.5 * mm_unit
-
-    line(y); y -= 5 * mm_unit
-    text(width / 2, y, 'Xarid uchun rahmat! · NoteBook', size=6.5, align='center', color='#999999')
+    line(y); y -= 5.5 * mm_unit
+    text(width / 2, y, f"Xarid uchun rahmat! \u00b7 {business_name}", size=7, align='center', color='#999999')
 
     c.showPage()
     c.save()
