@@ -155,14 +155,15 @@ def build_receipt_pdf(sale) -> bytes:
 
 
 def build_receipt_png(sale) -> bytes:
-    """Chekni PNG RASM sifatida yaratadi.
+    """Chekni PNG RASM sifatida yaratadi — QORA-OQ (1-bit), RANGSIZ.
 
     Sabab: ko'plab "label printer" mobil ilovalari (masalan Eleph Label,
-    Phomemo, va shunga o'xshashlar) faqat RASM formatini tushunadi —
-    PDF'ni ochib bera olmaydi (ekran "oq/bo'sh" bo'lib qoladi). "Ulashish"
-    tugmasi shu funksiya orqali yaratilgan PNG'ni yuboradi, shunda
-    deyarli har qanday ilova (jumladan label-printer ilovalari) uni
-    to'g'ri ochib, chop eta oladi.
+    Phomemo, va shunga o'xshashlar) shunday qurilmalar (termal yorliq
+    printerlari) uchun mo'ljallangan — ular faqat ODDIY OQ-QORA rasmlarni
+    to'g'ri qabul qiladi. Avval rangli (ko'k/sariq) rasm yuborilganda
+    ilova uni "tushunmay" oq/bo'sh ko'rsatardi. Bu — termal printerlarning
+    o'zi ham faqat bitta rangda (qora) bosib chiqarganligi uchun ham
+    mantiqan to'g'ri — rang baribir qog'ozda ko'rinmaydi.
     """
     from PIL import Image, ImageDraw, ImageFont
 
@@ -177,7 +178,7 @@ def build_receipt_png(sale) -> bytes:
     per_item_h = int(13 * MM2PX)  # har bir mahsulot uchun (nomi + soni/narxi qatori)
     height = base_h + per_item_h * max(len(items), 1)
 
-    img = Image.new('RGB', (width, height), '#ffffff')
+    img = Image.new('L', (width, height), 255)  # 'L' = 8-bit grayscale, 255=oq
     draw = ImageDraw.Draw(img)
 
     def font(size, bold=False):
@@ -190,11 +191,7 @@ def build_receipt_png(sale) -> bytes:
 
     business_name = sale.business.name if sale.business else 'Do\u02bckon'
 
-    def hexrgb(h):
-        h = h.lstrip('#')
-        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-
-    def text(x, y, s, size=9, bold=False, align='left', color='#000000'):
+    def text(x, y, s, size=9, bold=False, align='left'):
         f = font(size, bold)
         bbox = draw.textbbox((0, 0), s, font=f)
         w = bbox[2] - bbox[0]
@@ -202,16 +199,16 @@ def build_receipt_png(sale) -> bytes:
             x = x - w
         elif align == 'center':
             x = x - w / 2
-        draw.text((x, y), s, font=f, fill=hexrgb(color))
+        draw.text((x, y), s, font=f, fill=0)  # 0 = qora
         return bbox[3] - bbox[1]
 
     def line(yy):
-        draw.line([(LM, yy), (RM, yy)], fill=hexrgb('#999999'), width=1)
+        draw.line([(LM, yy), (RM, yy)], fill=0, width=1)
 
     # ── Sarlavha ──────────────────────────────────────────────────────────
-    text(width / 2, y, business_name, size=14, bold=True, align='center', color='#0d9bb5')
+    text(width / 2, y, business_name, size=14, bold=True, align='center')
     y += int(7 * MM2PX)
-    text(width / 2, y, f"Sotuv cheki #{sale.id}", size=8.5, align='center', color='#666666')
+    text(width / 2, y, f"Sotuv cheki #{sale.id}", size=8.5, align='center')
     y += int(6 * MM2PX)
     line(y); y += int(5 * MM2PX)
 
@@ -222,8 +219,8 @@ def build_receipt_png(sale) -> bytes:
         ('Sana', sale.created_at.strftime('%d.%m.%Y %H:%M')),
     ]
     for label, value in rows:
-        text(LM, y, label, size=8, color='#777777')
-        text(RM, y, str(value), size=8, align='right', color='#111111')
+        text(LM, y, label, size=8)
+        text(RM, y, str(value), size=8, align='right')
         y += int(6 * MM2PX)
 
     line(y); y += int(5 * MM2PX)
@@ -242,7 +239,7 @@ def build_receipt_png(sale) -> bytes:
         price_str = _fmt_money(subtotal)
 
         f_name  = font(9)
-        f_price = font(9)
+        f_price = font(9, bold=True)
         price_w = draw.textbbox((0, 0), price_str, font=f_price)[2]
         max_name_w = (RM - LM) - price_w - GAP
 
@@ -253,21 +250,21 @@ def build_receipt_png(sale) -> bytes:
             name = name[:-2] + '..'
 
         text(LM, y, name, size=9)
-        text(RM, y, price_str, size=9, align='right', color='#b8860b')
+        text(RM, y, price_str, size=9, bold=True, align='right')
         y += int(5.5 * MM2PX)
         qty_line = f"  {_fmt_qty(item.quantity)} {item.product.get_unit_type_display()} x {_fmt_money(item.price_at_sale)}"
-        text(LM, y, qty_line, size=7, color='#888888')
+        text(LM, y, qty_line, size=7)
         y += int(5.5 * MM2PX)
 
     line(y); y += int(7 * MM2PX)
 
     # ── Jami ──────────────────────────────────────────────────────────────
     text(LM, y, 'JAMI', size=11, bold=True)
-    text(RM, y, _fmt_money(sale.total_amount), size=11, bold=True, align='right', color='#0d9bb5')
+    text(RM, y, _fmt_money(sale.total_amount), size=11, bold=True, align='right')
     y += int(8 * MM2PX)
 
     line(y); y += int(6 * MM2PX)
-    text(width / 2, y, f"Xarid uchun rahmat! \u00b7 {business_name}", size=7, align='center', color='#999999')
+    text(width / 2, y, f"Xarid uchun rahmat! \u00b7 {business_name}", size=7, align='center')
     y += int(6 * MM2PX)
 
     img = img.crop((0, 0, width, min(y, height)))

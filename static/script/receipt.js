@@ -162,9 +162,13 @@ const ReceiptManager = (() => {
     push('Xarid uchun rahmat!\n');
     push(`${receipt.business_name || 'Biznes'}\n`);
 
-    // 3 bo'sh qator + kesish
-    push('\n\n\n');
-    push(ESC_POS.CUT_PAPER);
+    // 5 bo'sh qator — qo'lda yirtish uchun joy.
+    // MUHIM: avtomatik "qog'oz kesish" (CUT_PAPER) buyrug'i ATAYLAB
+    // yuborilmaydi — ko'plab arzon printerlarda (jumladan NT-2880 kabi
+    // avtomatik kesuvchisi yo'q modellarda) bu buyruq "kesuvchi xatosi"
+    // sifatida qabul qilinib, printer o'zini xavfsizlik rejimida o'chirib
+    // qo'yadi. Qog'oz arrasimon chetidan qo'lda yirtiladi.
+    push('\n\n\n\n\n');
 
     // Umumiy buffer
     const totalLen = chunks.reduce((s, c) => s + c.length, 0);
