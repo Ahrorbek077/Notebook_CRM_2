@@ -427,11 +427,37 @@ const ReceiptManager = (() => {
       const receipt = await fetchReceipt(saleId);
       const bytes   = buildEscPos(receipt);
 
-      // Katta ma'lumotni chunk qilib yuborish (BLE MTU = 512 bytes)
-      const CHUNK = 512;
+      // Katta ma'lumotni KICHIK bo'laklarga bo'lib yuborish.
+      // SABAB: BLE ulanishlar odatda bir martada juda kichik hajmni
+      // (ko'pincha atigi ~20 bayt) qabul qila oladi — agar "MTU
+      // kelishuvi" (negotiation) brauzer/qurilma tomonidan yaxshi
+      // ishlamasa. Avval 512 baytlik bo'laklar yuborilardi — bu
+      // arzon/oddiy printerlarda ulanishni "uzib qo'yardi" (shuning
+      // uchun faqat qisqa sarlavha o'tib, keyin xato chiqardi).
+      // Endi 20 baytdan — bu deyarli barcha qurilmalarda ishlaydigan
+      // "xavfsiz" hajm — sekinroq, lekin ishonchli.
+      const CHUNK = 20;
+      const DELAY_MS = 25;
+
+      async function writeChunkWithRetry(chunk, attempt = 1) {
+        try {
+          if (char.properties.writeWithoutResponse) {
+            await char.writeValueWithoutResponse(chunk);
+          } else {
+            await char.writeValue(chunk);
+          }
+        } catch (err) {
+          if (attempt < 3) {
+            await new Promise(r => setTimeout(r, 150));
+            return writeChunkWithRetry(chunk, attempt + 1);
+          }
+          throw err;
+        }
+      }
+
       for (let i = 0; i < bytes.length; i += CHUNK) {
-        await char.writeValueWithoutResponse(bytes.slice(i, i + CHUNK));
-        await new Promise(r => setTimeout(r, 20)); // kichik delay
+        await writeChunkWithRetry(bytes.slice(i, i + CHUNK));
+        await new Promise(r => setTimeout(r, DELAY_MS));
       }
 
       await server.disconnect();
@@ -443,7 +469,10 @@ const ReceiptManager = (() => {
         return;
       }
       console.error('Bluetooth xatoligi:', err);
-      showToast(`Printer xatoligi: ${err.message}`, 'danger');
+      showToast(
+        `Printer xatoligi: ${err.message}. "Ulashish" tugmasi orqali ham urinib ko'ring.`,
+        'danger'
+      );
     }
   }
 
