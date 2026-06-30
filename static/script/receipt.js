@@ -426,6 +426,13 @@ const ReceiptManager = (() => {
       const service = await server.getPrimaryService(PRINTER_SERVICE);
       const char    = await service.getCharacteristic(PRINTER_CHAR);
 
+      console.log('Printer characteristic properties:', {
+        write: char.properties.write,
+        writeWithoutResponse: char.properties.writeWithoutResponse,
+        notify: char.properties.notify,
+        indicate: char.properties.indicate,
+      });
+
       const receipt = await fetchReceipt(saleId);
       const bytes   = buildEscPos(receipt);
 
@@ -443,12 +450,21 @@ const ReceiptManager = (() => {
       // tugagandan (line feed, 0x0A) keyin qo'shimcha, uzunroq kutish
       // qo'shildi — printer "nafas olishi" uchun.
       const CHUNK = 20;
-      const DELAY_MS = 30;
-      const LINE_DELAY_MS = 120;  // qator chop etilishi uchun qo'shimcha vaqt
+      const DELAY_MS = 40;
+      const LINE_DELAY_MS = 180;  // qator chop etilishi uchun qo'shimcha vaqt
+
+      // Imkon bo'lsa "javobli" (with response) yozishni afzal ko'ramiz —
+      // bu holatda printer HAR BIR bo'lakni qabul qilganini tasdiqlagandan
+      // keyingina keyingisi yuboriladi, ya'ni tezlik AVTOMATIK ravishda
+      // printerning haqiqiy ishlash tezligiga moslashadi (qo'lda belgilangan
+      // taxminiy kutishdan ancha ishonchliroq).
+      const useAck = !!char.properties.write;
 
       async function writeChunkWithRetry(chunk, attempt = 1) {
         try {
-          if (char.properties.writeWithoutResponse) {
+          if (useAck) {
+            await char.writeValue(chunk);
+          } else if (char.properties.writeWithoutResponse) {
             await char.writeValueWithoutResponse(chunk);
           } else {
             await char.writeValue(chunk);
@@ -465,8 +481,12 @@ const ReceiptManager = (() => {
       for (let i = 0; i < bytes.length; i += CHUNK) {
         const chunk = bytes.slice(i, i + CHUNK);
         await writeChunkWithRetry(chunk);
-        const hasLineFeed = chunk.includes(0x0A);
-        await new Promise(r => setTimeout(r, hasLineFeed ? LINE_DELAY_MS : DELAY_MS));
+        // Javobli yozishda printer allaqachon "qabul qildim" deb tasdiqlagan —
+        // shuning uchun qo'shimcha kutish faqat javobsiz rejimda kerak
+        if (!useAck) {
+          const hasLineFeed = chunk.includes(0x0A);
+          await new Promise(r => setTimeout(r, hasLineFeed ? LINE_DELAY_MS : DELAY_MS));
+        }
       }
 
       // Oxirgi qatorlarning to'liq bosilib bo'lishini kutamiz, keyin uzamiz
