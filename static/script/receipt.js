@@ -39,7 +39,7 @@ const ReceiptManager = (() => {
     CUT_PAPER:      [GS,  0x56, 0x41, 0x03],  // partial cut
   };
 
-  const COL_WIDTH   = 32;  // 58mm ≈ 32 belgi (384 nuqta, A shrift). MUHIM: bu printer 58mm!
+  const COL_WIDTH   = 48;  // 80mm ≈ 48 belgi (576 nuqta, A shrift)
   const DIVIDER     = '-'.repeat(COL_WIDTH);  // oddiy ASCII chiziq — har qanday kodlashda to'g'ri chiqadi
 
   // ── Yordamchi: matn o'rtaga hizalash ─────────────────────────────────────
@@ -138,9 +138,13 @@ const ReceiptManager = (() => {
     push(ESC_POS.INIT);
 
     // ── Sarlavha ─────────────────────────────────────────────────────────────
-    push(ESC_POS.ALIGN_CENTER, ESC_POS.BOLD_ON, ESC_POS.DOUBLE_HEIGHT);
+    // DIQQAT: "double-height" ATAYLAB olib tashlandi — bu printer bosishni
+    // boshlagan zahoti eng qora joy aynan shu edi, ya'ni boshlanishdagi tok
+    // cho'qqisi eng katta → arzon batareyalarda aynan shu yerda kuchlanish
+    // cho'kib, printer o'chib qolardi. Faqat BOLD qoldirildi (yengilroq).
+    push(ESC_POS.ALIGN_CENTER, ESC_POS.BOLD_ON);
     push(`${receipt.business_name || 'Biznes'}\n`);
-    push(ESC_POS.NORMAL_SIZE, ESC_POS.BOLD_OFF);
+    push(ESC_POS.BOLD_OFF);
     push(`Sotuv cheki #${receipt.sale_id}\n`);
     push(DIVIDER + '\n');
 
@@ -537,14 +541,13 @@ const ReceiptManager = (() => {
     return /android/i.test(navigator.userAgent || '');
   }
 
-  // ESC/POS baytlarni RawBT'ga yuborish. intent: sxema — agar RawBT o'rnatilmagan
-  // bo'lsa, brauzer avtomatik Play Market sahifasini ochadi.
+  // ESC/POS baytlarni RawBT'ga yuborish.
+  // MUHIM: to'g'ridan "rawbt:base64," sxemasi ishlatiladi (RawBT hujjatidagi
+  // standart yo'l). Avval "intent:" o'rashda base64 ichidagi '+' va '/'
+  // belgilar buzilib, ma'lumot yarmida uzilib qolardi.
   function sendBytesToRawBT(bytes) {
     const b64 = bytesToBase64(bytes);
-    const intentUrl =
-      'intent:base64,' + b64 +
-      '#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;';
-    window.location.href = intentUrl;
+    window.location.href = 'rawbt:base64,' + b64;
   }
 
   async function doRawBT(saleId) {
