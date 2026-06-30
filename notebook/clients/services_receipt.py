@@ -61,7 +61,7 @@ def build_receipt_pdf(sale) -> bytes:
     """
     _ensure_fonts()
 
-    width = 58 * mm_unit
+    width = 80 * mm_unit
     items = list(sale.items.all())
     base_h     = 46 * mm_unit
     per_item_h = 10 * mm_unit
@@ -171,7 +171,7 @@ def build_receipt_png(sale) -> bytes:
 
     DPI    = 300
     MM2PX  = DPI / 25.4
-    width  = int(58 * MM2PX)
+    width  = int(80 * MM2PX)
 
     items = list(sale.items.all())
     base_h     = int(90 * MM2PX)  # sarlavha+info+ustun+jami+footer (mahsulotlarsiz)

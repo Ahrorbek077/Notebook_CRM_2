@@ -35,7 +35,7 @@ const ReceiptManager = (() => {
                                                 // printerlarda Kirill uchun standart
   };
 
-  const COL_WIDTH   = 32;  // 58mm ≈ 32 belgi (xitoylik arzon termo-printerlar standarti)
+  const COL_WIDTH   = 48;  // 80mm ≈ 48 belgi
   const DIVIDER     = '-'.repeat(COL_WIDTH);  // oddiy ASCII chiziq — har qanday kodlashda to'g'ri chiqadi
 
   // ── Yordamchi: matn o'rtaga hizalash ─────────────────────────────────────
@@ -103,6 +103,35 @@ const ReceiptManager = (() => {
         bytes.push(CP866_MAP[code]);
       } else {
         bytes.push(0x3F); // tushunarsiz belgi — '?'
+      }
+    }
+    return new Uint8Array(bytes);
+  }
+
+  // ── CP1251 (Windows Cyrillic) kodlash jadvali — CP866 ishlamasa
+  // sinab ko'rish uchun muqobil variant. Klon printerlarda qaysi
+  // kodlash to'g'ri ekanini hujjatsiz bilib bo'lmaydi — shuning uchun
+  // "Diagnostika" tugmasi ikkalasini ham sinab, qaysi biri TO'G'RI
+  // chiqqanini ko'rsatadi.
+  const CP1251_MAP = (() => {
+    const map = {};
+    for (let i = 0; i < 32; i++) map[0x0410 + i] = 0xC0 + i;  // А-Я
+    for (let i = 0; i < 32; i++) map[0x0430 + i] = 0xE0 + i;  // а-я
+    map[0x0401] = 0xA8; // Ё
+    map[0x0451] = 0xB8; // ё
+    return map;
+  })();
+
+  function encodeCp1251(str) {
+    const bytes = [];
+    for (const ch of str) {
+      const code = ch.codePointAt(0);
+      if (code < 128) {
+        bytes.push(code);
+      } else if (CP1251_MAP[code] !== undefined) {
+        bytes.push(CP1251_MAP[code]);
+      } else {
+        bytes.push(0x3F);
       }
     }
     return new Uint8Array(bytes);
@@ -259,6 +288,16 @@ const ReceiptManager = (() => {
          </button>`
       : '';
 
+    // "Diagnostika" — Kirill kodlash (CP866/CP1251) qaysi biri printerga
+    // mos ekanini bitta qog'ozda solishtirib ko'rsatadi (klon printerlarda
+    // hujjat yo'q, shuning uchun sinab ko'rish kerak)
+    const diagBtn = window.isBluetoothSupported()
+      ? `<button class="btn btn-secondary" onclick="ReceiptManager.doDiagnosticPrint()"
+               style="flex:1;height:36px;font-size:.82rem;min-width:80px" title="Kodlashni tekshirish">
+           <i class="fa fa-flask me-1"></i>Diagnostika
+         </button>`
+      : '';
+
     // "Ulashish" — Eleph Label kabi o'z protokoliga ega "label printer"
     // ilovalariga PDF'ni to'g'ridan-to'g'ri yuborish uchun (Bluetooth tugmasi
     // ESC/POS bo'lmagan printerlar bilan ishlamaganda shu yo'l qo'l keladi)
@@ -283,7 +322,8 @@ const ReceiptManager = (() => {
 
           <div style="display:flex;align-items:center;justify-content:space-between;
                       padding:12px 16px 8px;flex-shrink:0;border-bottom:1px solid var(--b,rgba(255,255,255,.08))">
-            <span style="font-weight:700;font-size:.95rem;color:var(--t,#fff)">
+            <span style="font-weight:700;font-size:.95rem;color:var(--t,#fff)"
+                  onclick="ReceiptManager._onTitleClick()">
               <i class="fa fa-receipt me-2" style="color:var(--cyan,#00bcd4)"></i>Chek #${receipt.sale_id}
             </span>
             <button onclick="ReceiptManager.closeModal()"
@@ -308,6 +348,7 @@ const ReceiptManager = (() => {
             </button>
             ${shareBtn}
             ${bluetoothBtn}
+            ${diagBtn}
           </div>
         </div>
       </div>
@@ -398,6 +439,79 @@ const ReceiptManager = (() => {
   }
 
   // ── Web Bluetooth ESC/POS ─────────────────────────────────────────────────
+  // ── Printerga ulanish (umumiy, bitta requestDevice chaqiruvi) ────────────
+  const PRINTER_SERVICE  = '000018f0-0000-1000-8000-00805f9b34fb';
+  const PRINTER_CHAR     = '00002af1-0000-1000-8000-00805f9b34fb';
+
+  async function connectToPrinter() {
+    // MUHIM: faqat BITTA requestDevice chaqiruvi — ikkinchi (zanjirlangan)
+    // chaqiruv "Must be handling a user gesture" xatosiga olib kelardi,
+    // chunki brauzer buni "foydalanuvchi bosishi emas" deb hisoblaydi.
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [PRINTER_SERVICE],
+    });
+
+    showToast(`${device.name || 'Printer'} ga ulanmoqda...`, 'info');
+    const server  = await device.gatt.connect();
+    const service = await server.getPrimaryService(PRINTER_SERVICE);
+    const char    = await service.getCharacteristic(PRINTER_CHAR);
+
+    const props = {
+      write: char.properties.write,
+      writeWithoutResponse: char.properties.writeWithoutResponse,
+      notify: char.properties.notify,
+      indicate: char.properties.indicate,
+    };
+    console.log('Printer characteristic properties:', props);
+    debugLog('Printer: ' + (device.name || '?') + ' | props: ' + JSON.stringify(props));
+
+    return { device, server, char };
+  }
+
+  // ── Bayt massivini printerga, vaqt berib yuborish (umumiy) ───────────────
+  // SABAB 1 (hajm): BLE ulanishlar odatda bir martada juda kichik hajmni
+  // (ko'pincha atigi ~20 bayt) qabul qila oladi.
+  // SABAB 2 (tezlik — MUHIM): termoprinter har bir qatorni jismonan bosib
+  // chiqarishi (qizdirish + qog'ozni siljitish) Bluetooth orqali ma'lumot
+  // yuborishdan SEZILARLI DARAJADA SEKINROQ. Agar ma'lumot printer
+  // "ulgurishi"dan tezroq yuborilsa, uning ichki bufer to'lib-toshib,
+  // qurilma xatoga uchrab o'zini o'chirib qo'yadi.
+  async function writeBytesToPrinter(char, bytes) {
+    const CHUNK = 20;
+    const DELAY_MS = 40;
+    const LINE_DELAY_MS = 180;
+    const useAck = !!char.properties.write;
+
+    async function writeChunkWithRetry(chunk, attempt = 1) {
+      try {
+        if (useAck) {
+          await char.writeValue(chunk);
+        } else if (char.properties.writeWithoutResponse) {
+          await char.writeValueWithoutResponse(chunk);
+        } else {
+          await char.writeValue(chunk);
+        }
+      } catch (err) {
+        debugLog(`Yozish xatosi (urinish ${attempt}): ${err.message}`);
+        if (attempt < 4) {
+          await new Promise(r => setTimeout(r, 200 * attempt));
+          return writeChunkWithRetry(chunk, attempt + 1);
+        }
+        throw err;
+      }
+    }
+
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      const chunk = bytes.slice(i, i + CHUNK);
+      await writeChunkWithRetry(chunk);
+      if (!useAck) {
+        const hasLineFeed = chunk.includes(0x0A);
+        await new Promise(r => setTimeout(r, hasLineFeed ? LINE_DELAY_MS : DELAY_MS));
+      }
+    }
+  }
+
   async function doBluetooth(saleId) {
     if (!navigator.bluetooth) {
       showToast(T.bluetooth_unsupported, 'warning');
@@ -405,89 +519,12 @@ const ReceiptManager = (() => {
     }
     try {
       showToast(T.printer_searching, 'info');
-
-      // ESC/POS printerlari uchun GATT service UUID
-      const PRINTER_SERVICE  = '000018f0-0000-1000-8000-00805f9b34fb';
-      const PRINTER_CHAR     = '00002af1-0000-1000-8000-00805f9b34fb';
-
-      // MUHIM: faqat BITTA requestDevice chaqiruvi — ikkinchi (zanjirlangan)
-      // chaqiruv "Must be handling a user gesture" xatosiga olib kelardi,
-      // chunki brauzer buni "foydalanuvchi bosishi emas" deb hisoblaydi.
-      // Shuning uchun darhol "barcha qurilmalarni ko'rsat" rejimida so'raymiz —
-      // bu bitta chaqiruvning o'zi ham filtrlangan, ham filtrlanmagan
-      // holatni qamrab oladi.
-      const device = await navigator.bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: [PRINTER_SERVICE],
-      });
-
-      showToast(`${device.name || 'Printer'} ga ulanmoqda...`, 'info');
-      const server  = await device.gatt.connect();
-      const service = await server.getPrimaryService(PRINTER_SERVICE);
-      const char    = await service.getCharacteristic(PRINTER_CHAR);
-
-      console.log('Printer characteristic properties:', {
-        write: char.properties.write,
-        writeWithoutResponse: char.properties.writeWithoutResponse,
-        notify: char.properties.notify,
-        indicate: char.properties.indicate,
-      });
+      const { server, char } = await connectToPrinter();
 
       const receipt = await fetchReceipt(saleId);
       const bytes   = buildEscPos(receipt);
+      await writeBytesToPrinter(char, bytes);
 
-      // Katta ma'lumotni KICHIK bo'laklarga bo'lib, PRINTERGA VAQT BERIB
-      // yuborish.
-      // SABAB 1 (hajm): BLE ulanishlar odatda bir martada juda kichik
-      // hajmni (ko'pincha atigi ~20 bayt) qabul qila oladi.
-      // SABAB 2 (tezlik — MUHIM): termoprinter har bir qatorni jismonan
-      // bosib chiqarishi (qizdirish + qog'ozni siljitish) Bluetooth orqali
-      // ma'lumot yuborishdan SEZILARLI DARAJADA SEKINROQ. Agar ma'lumot
-      // printer "ulgurishi"dan tezroq yuborilsa, uning ichki bufer
-      // to'lib-toshib, qurilma xatoga uchrab o'zini o'chirib qo'yadi —
-      // aynan shu sabab "faqat sarlavha chiqib, keyin o'chib qolish"
-      // holatiga olib kelgan edi. Shuning uchun har bir QATOR
-      // tugagandan (line feed, 0x0A) keyin qo'shimcha, uzunroq kutish
-      // qo'shildi — printer "nafas olishi" uchun.
-      const CHUNK = 20;
-      const DELAY_MS = 40;
-      const LINE_DELAY_MS = 180;  // qator chop etilishi uchun qo'shimcha vaqt
-
-      // Imkon bo'lsa "javobli" (with response) yozishni afzal ko'ramiz —
-      // bu holatda printer HAR BIR bo'lakni qabul qilganini tasdiqlagandan
-      // keyingina keyingisi yuboriladi, ya'ni tezlik AVTOMATIK ravishda
-      // printerning haqiqiy ishlash tezligiga moslashadi (qo'lda belgilangan
-      // taxminiy kutishdan ancha ishonchliroq).
-      const useAck = !!char.properties.write;
-
-      async function writeChunkWithRetry(chunk, attempt = 1) {
-        try {
-          if (useAck) {
-            await char.writeValue(chunk);
-          } else if (char.properties.writeWithoutResponse) {
-            await char.writeValueWithoutResponse(chunk);
-          } else {
-            await char.writeValue(chunk);
-          }
-        } catch (err) {
-          if (attempt < 4) {
-            await new Promise(r => setTimeout(r, 200 * attempt));
-            return writeChunkWithRetry(chunk, attempt + 1);
-          }
-          throw err;
-        }
-      }
-
-      for (let i = 0; i < bytes.length; i += CHUNK) {
-        const chunk = bytes.slice(i, i + CHUNK);
-        await writeChunkWithRetry(chunk);
-        // Javobli yozishda printer allaqachon "qabul qildim" deb tasdiqlagan —
-        // shuning uchun qo'shimcha kutish faqat javobsiz rejimda kerak
-        if (!useAck) {
-          const hasLineFeed = chunk.includes(0x0A);
-          await new Promise(r => setTimeout(r, hasLineFeed ? LINE_DELAY_MS : DELAY_MS));
-        }
-      }
 
       // Oxirgi qatorlarning to'liq bosilib bo'lishini kutamiz, keyin uzamiz
       await new Promise(r => setTimeout(r, 300));
@@ -500,10 +537,74 @@ const ReceiptManager = (() => {
         return;
       }
       console.error('Bluetooth xatoligi:', err);
+      debugLog('XATO: ' + err.name + ' — ' + err.message);
       showToast(
         `Printer xatoligi: ${err.message}. "Ulashish" tugmasi orqali ham urinib ko'ring.`,
         'danger'
       );
+    }
+  }
+
+  // ── DIAGNOSTIKA: bir nechta kodlash variantini sinab ko'rsatadi ──────────
+  // Klon printerlarda Kirill uchun CP866 yoki CP1251 dan QAYSI BIRI to'g'ri
+  // ekanini hujjatsiz aniq bilib bo'lmaydi. Bu funksiya bitta qog'ozga BIR
+  // NECHTA variantni, har birini ASCII (har doim o'qiladigan) yorliq bilan
+  // belgilab chiqaradi — foydalanuvchi qaysi blok TO'G'RI Kirill harflar
+  // bilan chiqqanini ko'rib, menga aytib beradi.
+  async function doDiagnosticPrint() {
+    if (!navigator.bluetooth) {
+      showToast(T.bluetooth_unsupported, 'warning');
+      return;
+    }
+    try {
+      showToast('Diagnostika uchun printer qidirilmoqda...', 'info');
+      const { server, char } = await connectToPrinter();
+
+      const sample = 'БАНАН Мева сабзавот 0123';
+      const chunks = [];
+      const push = (...cmds) => cmds.forEach(c => {
+        chunks.push(Array.isArray(c) ? new Uint8Array(c) : encodeAscii(c));
+      });
+      const pushCp866  = (s) => chunks.push(encodeCp866(s));
+      const pushCp1251 = (s) => chunks.push(encodeCp1251(s));
+
+      function encodeAscii(str) {
+        return new Uint8Array([...str].map(ch => ch.codePointAt(0) & 0x7F));
+      }
+
+      push([ESC, 0x40]); // INIT
+
+      // Variant 1: CP866, ESC t 17
+      push([ESC, 0x74, 17], '\n=== V1: CP866 (t17) ===\n');
+      pushCp866(sample); push('\n\n');
+
+      // Variant 2: CP1251, ESC t 18
+      push([ESC, 0x74, 18], '\n=== V2: CP1251 (t18) ===\n');
+      pushCp1251(sample); push('\n\n');
+
+      // Variant 3: CP866, ESC t 16 (ba'zi klonlarda boshqa indeks)
+      push([ESC, 0x74, 16], '\n=== V3: CP866 (t16) ===\n');
+      pushCp866(sample); push('\n\n');
+
+      // Variant 4: CP1251, ESC t 34 (ba'zi Star-mos klonlarda)
+      push([ESC, 0x74, 34], '\n=== V4: CP1251 (t34) ===\n');
+      pushCp1251(sample); push('\n\n\n\n\n');
+
+      const totalLen = chunks.reduce((s, c) => s + c.length, 0);
+      const buffer   = new Uint8Array(totalLen);
+      let offset = 0;
+      chunks.forEach(c => { buffer.set(c, offset); offset += c.length; });
+
+      await writeBytesToPrinter(char, buffer);
+      await new Promise(r => setTimeout(r, 300));
+      await server.disconnect();
+      showToast('Diagnostika chiqdi — qaysi V1-V4 to\'g\'ri ekanini tekshiring', 'success');
+
+    } catch (err) {
+      if (err.name === 'NotFoundError' || err.name === 'AbortError') return;
+      console.error('Diagnostika xatoligi:', err);
+      debugLog('DIAGNOSTIKA XATO: ' + err.name + ' — ' + err.message);
+      showToast(`Diagnostika xatoligi: ${err.message}`, 'danger');
     }
   }
 
@@ -515,6 +616,50 @@ const ReceiptManager = (() => {
       s.src = src; s.onload = resolve; s.onerror = reject;
       document.head.appendChild(s);
     });
+  }
+
+  // ── Mobil debug panel — "F12" o'rniga ────────────────────────────────────
+  // Telefonda Chrome DevTools (F12) ochish uchun kompyuter + USB sim kerak.
+  // Shu panel orqali xabarlarni TO'G'RIDAN-TO'G'RI EKRANDA ko'rish mumkin —
+  // shunchaki skrinshot olib yuborish kifoya.
+  // Ochish: chek oynasidagi sarlavhani 5 marta ketma-ket bosing.
+  const _debugLines = [];
+  function debugLog(msg) {
+    const time = new Date().toLocaleTimeString('uz-UZ');
+    _debugLines.push(`[${time}] ${msg}`);
+    if (_debugLines.length > 50) _debugLines.shift();
+    const panel = document.getElementById('receiptDebugPanel');
+    if (panel) panel.textContent = _debugLines.join('\n');
+  }
+
+  function toggleDebugPanel() {
+    let panel = document.getElementById('receiptDebugPanel');
+    if (panel) { panel.remove(); return; }
+    panel = document.createElement('pre');
+    panel.id = 'receiptDebugPanel';
+    panel.style.cssText = `
+      position:fixed; inset:auto 0 0 0; max-height:40vh; overflow-y:auto;
+      background:#000; color:#0f0; font-size:10px; line-height:1.4;
+      padding:8px; margin:0; z-index:99999; white-space:pre-wrap;
+      font-family:monospace; border-top:2px solid #0f0;
+    `;
+    panel.textContent = _debugLines.length
+      ? _debugLines.join('\n')
+      : "Debug panel ochildi. Bluetooth/Printer harakatlari shu yerda ko'rinadi.";
+    document.body.appendChild(panel);
+  }
+
+  // 5 marta bosish bilan ochish/yopish (chek oyna sarlavhasiga ulanadi — pastda)
+  let _titleClickCount = 0;
+  let _titleClickTimer = null;
+  function _onTitleClickForDebug() {
+    _titleClickCount++;
+    clearTimeout(_titleClickTimer);
+    _titleClickTimer = setTimeout(() => { _titleClickCount = 0; }, 1500);
+    if (_titleClickCount >= 5) {
+      _titleClickCount = 0;
+      toggleDebugPanel();
+    }
   }
 
   // ── Toast ─────────────────────────────────────────────────────────────────
@@ -539,6 +684,7 @@ const ReceiptManager = (() => {
       </div>
     `);
     setTimeout(() => document.getElementById(id)?.remove(), 4000);
+    debugLog(`[${type}] ${msg}`);
   }
 
   // ── Public API ────────────────────────────────────────────────────────────
@@ -564,6 +710,8 @@ const ReceiptManager = (() => {
     doPdf,
     doShare,
     async doBluetooth(saleId) { await doBluetooth(saleId); },
+    doDiagnosticPrint,
+    _onTitleClick: _onTitleClickForDebug,
     closeModal,
   };
 
