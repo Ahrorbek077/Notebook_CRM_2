@@ -221,6 +221,17 @@ const ReceiptManager = (() => {
          </button>`
       : '';
 
+    // "Ulashish" — Eleph Label kabi o'z protokoliga ega "label printer"
+    // ilovalariga PDF'ni to'g'ridan-to'g'ri yuborish uchun (Bluetooth tugmasi
+    // ESC/POS bo'lmagan printerlar bilan ishlamaganda shu yo'l qo'l keladi)
+    const shareSupported = !!(navigator.share && navigator.canShare);
+    const shareBtn = shareSupported
+      ? `<button class="btn btn-secondary" onclick="ReceiptManager.doShare(${receipt.sale_id})"
+               style="flex:1;height:36px;font-size:.82rem;min-width:80px">
+           <i class="fa fa-share-nodes me-1"></i>Ulashish
+         </button>`
+      : '';
+
     const html = `
       <div id="receiptModal"
            style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;
@@ -257,6 +268,7 @@ const ReceiptManager = (() => {
                     style="flex:1;height:36px;font-size:.82rem;min-width:80px">
               <i class="fa fa-file-pdf me-1"></i>PDF
             </button>
+            ${shareBtn}
             ${bluetoothBtn}
           </div>
         </div>
@@ -306,6 +318,43 @@ const ReceiptManager = (() => {
       window.location.href = `/clients/receipt/${saleId}/pdf/`;
     } catch (err) {
       showToast('PDF xatoligi: ' + err.message, 'danger');
+    }
+  }
+
+  // ── "Ulashish" — telefonning umumiy Share menyusi orqali PDF'ni
+  //    to'g'ridan-to'g'ri boshqa ilovaga (masalan "Eleph Label", "Print
+  //    Master" va h.k. — o'z protokoliga ega "label printer" ilovalari)
+  //    yuboradi. Bular ESC/POS'ni tushunmaydi, shuning uchun Bluetooth
+  //    tugmasi ular bilan ishlamaydi — lekin ularning o'z ilovasi orqali
+  //    PDF ochish/chop etish odatda ishlaydi. Bu — eng oson yo'l: faylni
+  //    qo'lda yuklab olib, fayl menejeridan qidirib ochishning o'rnini
+  //    bosadi. Faqat HTTPS'da va asosan Android Chrome'da ishlaydi. ─────
+  async function doShare(saleId) {
+    if (!navigator.share || !navigator.canShare) {
+      showToast("Bu brauzer ulashishni qo'llab-quvvatlamaydi. PDF tugmasidan foydalaning.", 'warning');
+      return;
+    }
+    try {
+      showToast('Tayyorlanmoqda...', 'info');
+      const resp = await fetch(`/clients/receipt/${saleId}/pdf/`);
+      if (!resp.ok) throw new Error('Chekni yuklab bo\'lmadi');
+      const blob = await resp.blob();
+      const file = new File([blob], `chek_${saleId}.pdf`, { type: 'application/pdf' });
+
+      if (!navigator.canShare({ files: [file] })) {
+        showToast("Bu qurilmada fayl ulashish ishlamaydi. PDF tugmasidan foydalaning.", 'warning');
+        return;
+      }
+
+      await navigator.share({
+        files: [file],
+        title: `Chek #${saleId}`,
+      });
+    } catch (err) {
+      // Foydalanuvchi ulashish oynasini bekor qilsa, bu ham xato sifatida keladi — uni e'tiborsiz qoldiramiz
+      if (err.name !== 'AbortError') {
+        showToast('Ulashishda xatolik: ' + err.message, 'danger');
+      }
     }
   }
 
@@ -418,6 +467,7 @@ const ReceiptManager = (() => {
     // Modal ichidagi tugmalar uchun
     doPrint,
     doPdf,
+    doShare,
     async doBluetooth(saleId) { await doBluetooth(saleId); },
     closeModal,
   };
