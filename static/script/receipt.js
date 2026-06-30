@@ -490,20 +490,9 @@ const ReceiptManager = (() => {
   // qurilma xatoga uchrab o'zini o'chirib qo'yadi.
   async function writeBytesToPrinter(char, bytes, { lineAware = true } = {}) {
     const CHUNK = 20;
-    const DELAY_MS = 35;
-    const LINE_DELAY_MS = 180;
+    const DELAY_MS = 60;
+    const LINE_DELAY_MS = 200;
 
-    // MUHIM: "javobli" (write with response) yozish o'rniga "javobsiz"
-    // (writeWithoutResponse) ni AFZAL ko'ramiz — garchi printer "men
-    // javob bera olaman" (write:true) deb e'lon qilsa ham!
-    // SABAB: arzon termoprinterlar jismonan qog'ozni bosib chiqarish
-    // paytida (issitish elementi ishlayotganda) o'z protsessori band
-    // bo'lib, Bluetooth javobini O'Z VAQTIDA YUBORA OLMAYDI. Shunda
-    // Android "javob kelmadi" deb, BUTUN ULANISHNI MAJBURAN UZADI —
-    // aynan shu sabab katta rasm yuborishda muayyan foizda doimiy
-    // uzilib qolish holatiga olib kelgan edi. "Javobsiz" yozishda esa
-    // operatsion tizim javobni KUTMAYDI, shuning uchun printerning
-    // "sekin javob berishi" ulanishni buzmaydi.
     const useWithoutResponse = !!char.properties.writeWithoutResponse;
 
     async function writeChunkWithRetry(chunk, attempt = 1) {
@@ -515,8 +504,13 @@ const ReceiptManager = (() => {
         }
       } catch (err) {
         debugLog(`Yozish xatosi (urinish ${attempt}): ${err.message}`);
-        if (attempt < 4) {
-          await new Promise(r => setTimeout(r, 200 * attempt));
+        if (attempt < 5) {
+          // "already in progress" — bu RADIO HALI BAND degani, demak
+          // qisqa kutish yetarli emas; uzunroq kutib, navbat bo'shashini
+          // kutamiz. Boshqa xatolarda (masalan ulanish butunlay uzilgan)
+          // ham xuddi shu strategiya zarar qilmaydi.
+          const isBusy = /already in progress/i.test(err.message);
+          await new Promise(r => setTimeout(r, isBusy ? 150 * attempt : 200 * attempt));
           return writeChunkWithRetry(chunk, attempt + 1);
         }
         throw err;
@@ -527,12 +521,8 @@ const ReceiptManager = (() => {
     for (let i = 0; i < total; i += CHUNK) {
       const chunk = bytes.slice(i, i + CHUNK);
       await writeChunkWithRetry(chunk);
-      // RASM (raster) ma'lumotida 0x0A bayti tasodifan piksel qiymati
-      // sifatida ham uchrashi mumkin — shuning uchun "qator tugadi"
-      // mantig'i FAQAT matn chop etishda ishlatiladi (lineAware=true).
       const hasLineFeed = lineAware && chunk.includes(0x0A);
       await new Promise(r => setTimeout(r, hasLineFeed ? LINE_DELAY_MS : DELAY_MS));
-      // Katta fayllarda (rasm) progress holatini debug panelga yozib boramiz
       if (total > 2000 && (i / CHUNK) % 100 === 0) {
         debugLog(`Yuborilmoqda: ${Math.round(i / total * 100)}%`);
       }
