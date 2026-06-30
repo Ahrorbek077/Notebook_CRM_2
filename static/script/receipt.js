@@ -443,15 +443,20 @@ const ReceiptManager = (() => {
   const PRINTER_SERVICE  = '000018f0-0000-1000-8000-00805f9b34fb';
   const PRINTER_CHAR     = '00002af1-0000-1000-8000-00805f9b34fb';
 
-  async function connectToPrinter() {
+  async function selectPrinterDevice() {
     // MUHIM: faqat BITTA requestDevice chaqiruvi — ikkinchi (zanjirlangan)
     // chaqiruv "Must be handling a user gesture" xatosiga olib kelardi,
     // chunki brauzer buni "foydalanuvchi bosishi emas" deb hisoblaydi.
-    const device = await navigator.bluetooth.requestDevice({
+    // Shuning uchun bu funksiya BITTA marta chaqiriladi; keyingi qayta
+    // ulanishlar (agar uzilib qolsa) shu TANLANGAN qurilmaning o'zidan
+    // foydalanadi — yangi tanlov oynasi OCHILMAYDI (kerak ham emas).
+    return navigator.bluetooth.requestDevice({
       acceptAllDevices: true,
       optionalServices: [PRINTER_SERVICE],
     });
+  }
 
+  async function establishGattConnection(device) {
     showToast(`${device.name || 'Printer'} ga ulanmoqda...`, 'info');
     const server  = await device.gatt.connect();
     const service = await server.getPrimaryService(PRINTER_SERVICE);
@@ -466,6 +471,12 @@ const ReceiptManager = (() => {
     console.log('Printer characteristic properties:', props);
     debugLog('Printer: ' + (device.name || '?') + ' | props: ' + JSON.stringify(props));
 
+    return { server, char };
+  }
+
+  async function connectToPrinter() {
+    const device = await selectPrinterDevice();
+    const { server, char } = await establishGattConnection(device);
     return { device, server, char };
   }
 
@@ -479,15 +490,25 @@ const ReceiptManager = (() => {
   // qurilma xatoga uchrab o'zini o'chirib qo'yadi.
   async function writeBytesToPrinter(char, bytes, { lineAware = true } = {}) {
     const CHUNK = 20;
-    const DELAY_MS = 40;
+    const DELAY_MS = 35;
     const LINE_DELAY_MS = 180;
-    const useAck = !!char.properties.write;
+
+    // MUHIM: "javobli" (write with response) yozish o'rniga "javobsiz"
+    // (writeWithoutResponse) ni AFZAL ko'ramiz — garchi printer "men
+    // javob bera olaman" (write:true) deb e'lon qilsa ham!
+    // SABAB: arzon termoprinterlar jismonan qog'ozni bosib chiqarish
+    // paytida (issitish elementi ishlayotganda) o'z protsessori band
+    // bo'lib, Bluetooth javobini O'Z VAQTIDA YUBORA OLMAYDI. Shunda
+    // Android "javob kelmadi" deb, BUTUN ULANISHNI MAJBURAN UZADI —
+    // aynan shu sabab katta rasm yuborishda muayyan foizda doimiy
+    // uzilib qolish holatiga olib kelgan edi. "Javobsiz" yozishda esa
+    // operatsion tizim javobni KUTMAYDI, shuning uchun printerning
+    // "sekin javob berishi" ulanishni buzmaydi.
+    const useWithoutResponse = !!char.properties.writeWithoutResponse;
 
     async function writeChunkWithRetry(chunk, attempt = 1) {
       try {
-        if (useAck) {
-          await char.writeValue(chunk);
-        } else if (char.properties.writeWithoutResponse) {
+        if (useWithoutResponse) {
           await char.writeValueWithoutResponse(chunk);
         } else {
           await char.writeValue(chunk);
@@ -506,13 +527,11 @@ const ReceiptManager = (() => {
     for (let i = 0; i < total; i += CHUNK) {
       const chunk = bytes.slice(i, i + CHUNK);
       await writeChunkWithRetry(chunk);
-      if (!useAck) {
-        // RASM (raster) ma'lumotida 0x0A bayti tasodifan piksel qiymati
-        // sifatida ham uchrashi mumkin — shuning uchun "qator tugadi"
-        // mantig'i FAQAT matn chop etishda ishlatiladi (lineAware=true).
-        const hasLineFeed = lineAware && chunk.includes(0x0A);
-        await new Promise(r => setTimeout(r, hasLineFeed ? LINE_DELAY_MS : DELAY_MS));
-      }
+      // RASM (raster) ma'lumotida 0x0A bayti tasodifan piksel qiymati
+      // sifatida ham uchrashi mumkin — shuning uchun "qator tugadi"
+      // mantig'i FAQAT matn chop etishda ishlatiladi (lineAware=true).
+      const hasLineFeed = lineAware && chunk.includes(0x0A);
+      await new Promise(r => setTimeout(r, hasLineFeed ? LINE_DELAY_MS : DELAY_MS));
       // Katta fayllarda (rasm) progress holatini debug panelga yozib boramiz
       if (total > 2000 && (i / CHUNK) % 100 === 0) {
         debugLog(`Yuborilmoqda: ${Math.round(i / total * 100)}%`);
@@ -527,7 +546,7 @@ const ReceiptManager = (() => {
     }
     try {
       showToast(T.printer_searching, 'info');
-      const { server, char } = await connectToPrinter();
+      const device = await selectPrinterDevice();
 
       // MUHIM: matn (harf-kod) o'rniga, SERVERDA tayyorlangan RASM
       // (raster bitmap) baytlarini olamiz. Diagnostika orqali aniqlandiki,
@@ -542,13 +561,35 @@ const ReceiptManager = (() => {
       debugLog(`Raster rasm yuklandi: ${bytes.length} bayt`);
       showToast("Chop etilmoqda, biroz vaqt oladi (rasm sifatida)...", 'info');
 
-      await writeBytesToPrinter(char, bytes, { lineAware: false });
-
-
-      // Oxirgi qatorlarning to'liq bosilib bo'lishini kutamiz, keyin uzamiz
-      await new Promise(r => setTimeout(r, 300));
-      await server.disconnect();
-      showToast(T.receipt_printed, 'success');
+      // ── Qayta ulanish bilan urinish ──────────────────────────────────────
+      // Arzon printerlar jismonan bosib chiqarish paytida Bluetooth
+      // ulanishini VAQTINCHA uzib qo'yishi keng tarqalgan holat. Bunday
+      // holatda BUTUN jarayonni emas (yangi qurilma tanlash oynasi
+      // ochilmasligi uchun), faqat ULANISHNI qayta tiklab, davom etamiz.
+      const MAX_ATTEMPTS = 3;
+      let lastErr = null;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          const { server, char } = await establishGattConnection(device);
+          if (attempt > 1) {
+            debugLog(`Qayta ulanish (${attempt}-urinish) — boshidan yuborilmoqda`);
+            showToast(`Qayta ulanmoqda (${attempt}-urinish)...`, 'warning');
+          }
+          await writeBytesToPrinter(char, bytes, { lineAware: false });
+          await new Promise(r => setTimeout(r, 300));
+          try { await server.disconnect(); } catch (_) { /* allaqachon uzilgan bo'lishi mumkin */ }
+          showToast(T.receipt_printed, 'success');
+          lastErr = null;
+          break;
+        } catch (err) {
+          lastErr = err;
+          debugLog(`Urinish ${attempt} muvaffaqiyatsiz: ${err.message}`);
+          if (attempt < MAX_ATTEMPTS) {
+            await new Promise(r => setTimeout(r, 800));
+          }
+        }
+      }
+      if (lastErr) throw lastErr;
 
     } catch (err) {
       if (err.name === 'NotFoundError' || err.name === 'AbortError') {
