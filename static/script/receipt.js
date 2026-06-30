@@ -459,11 +459,23 @@ const ReceiptManager = (() => {
     const DELAY_MS = 60;
     const LINE_DELAY_MS = 200;
 
-    const useWithoutResponse = !!char.properties.writeWithoutResponse;
+    // MUHIM: "javobli" (write with response) yozishni AFZAL ko'ramiz —
+    // garchi avvalroq katta RASM yuborishda bu uzilishlarga olib kelgan
+    // bo'lsa ham! SABAB: endi ma'lumot juda KICHIK (matn, ~0.5-1 KB,
+    // bir necha soniyada tugaydi) — printerning "band bo'lib qolish"
+    // oynasi juda qisqa. "Javobsiz" yozish esa hech qanday kafolat
+    // bermaydi: agar signal yo'qolsa, JS BUNI BILMAYDI — aynan shu sabab
+    // "Telefon"/"Kassir" qatorlari sezilmasdan bo'sh chiqib qolgan edi.
+    // Javobli yozishda esa printer har bir bo'lakni qabul qilganini
+    // tasdiqlaydi — agar tasdiq kelmasa, BIZ DARHOL BILAMIZ va qayta
+    // yuboramiz (pastdagi retry orqali).
+    const useAck = !!char.properties.write;
 
     async function writeChunkWithRetry(chunk, attempt = 1) {
       try {
-        if (useWithoutResponse) {
+        if (useAck) {
+          await char.writeValue(chunk);
+        } else if (char.properties.writeWithoutResponse) {
           await char.writeValueWithoutResponse(chunk);
         } else {
           await char.writeValue(chunk);
