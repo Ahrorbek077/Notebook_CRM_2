@@ -321,14 +321,15 @@ const ReceiptManager = (() => {
     }
   }
 
-  // ── "Ulashish" — telefonning umumiy Share menyusi orqali PDF'ni
-  //    to'g'ridan-to'g'ri boshqa ilovaga (masalan "Eleph Label", "Print
-  //    Master" va h.k. — o'z protokoliga ega "label printer" ilovalari)
-  //    yuboradi. Bular ESC/POS'ni tushunmaydi, shuning uchun Bluetooth
-  //    tugmasi ular bilan ishlamaydi — lekin ularning o'z ilovasi orqali
-  //    PDF ochish/chop etish odatda ishlaydi. Bu — eng oson yo'l: faylni
-  //    qo'lda yuklab olib, fayl menejeridan qidirib ochishning o'rnini
-  //    bosadi. Faqat HTTPS'da va asosan Android Chrome'da ishlaydi. ─────
+  // ── "Ulashish" — telefonning umumiy Share menyusi orqali RASM (PNG)
+  //    yuboradi — to'g'ridan-to'g'ri boshqa ilovaga (masalan "Eleph Label",
+  //    "Print Master" va h.k. — o'z protokoliga ega "label printer"
+  //    ilovalari). MUHIM: PDF emas, aynan PNG (rasm) yuboramiz — chunki
+  //    bunday "label" ilovalari deyarli har doim faqat rasm formatini
+  //    tushunadi, PDF'ni ochib bera olmaydi (shu sabab avval "oq ekran"
+  //    chiqqan edi). Bu — eng oson yo'l: faylni qo'lda yuklab olib, fayl
+  //    menejeridan qidirib ochishning o'rnini bosadi. Faqat HTTPS'da va
+  //    asosan Android Chrome'da ishlaydi. ──────────────────────────────
   async function doShare(saleId) {
     if (!navigator.share || !navigator.canShare) {
       showToast("Bu brauzer ulashishni qo'llab-quvvatlamaydi. PDF tugmasidan foydalaning.", 'warning');
@@ -336,10 +337,10 @@ const ReceiptManager = (() => {
     }
     try {
       showToast('Tayyorlanmoqda...', 'info');
-      const resp = await fetch(`/clients/receipt/${saleId}/pdf/`);
+      const resp = await fetch(`/clients/receipt/${saleId}/png/`);
       if (!resp.ok) throw new Error('Chekni yuklab bo\'lmadi');
       const blob = await resp.blob();
-      const file = new File([blob], `chek_${saleId}.pdf`, { type: 'application/pdf' });
+      const file = new File([blob], `chek_${saleId}.png`, { type: 'image/png' });
 
       if (!navigator.canShare({ files: [file] })) {
         showToast("Bu qurilmada fayl ulashish ishlamaydi. PDF tugmasidan foydalaning.", 'warning');

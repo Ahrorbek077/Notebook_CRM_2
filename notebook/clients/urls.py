@@ -6,6 +6,7 @@ from .views.web_views import (
     RegionSaveView, RegionDeleteView,
     SaleReceiptView,
     SaleReceiptPdfView,
+    SaleReceiptPngView,
 )
 
 app_name = 'clients'
@@ -22,4 +23,5 @@ urlpatterns = [
     # ── Chek ────────────────────────────────────────────────────────────────
     path('receipt/<int:sale_id>/',  SaleReceiptView.as_view(),   name='sale_receipt'),
     path('receipt/<int:sale_id>/pdf/',  SaleReceiptPdfView.as_view(),   name='sale_receipt_pdf'),
+    path('receipt/<int:sale_id>/png/',  SaleReceiptPngView.as_view(),   name='sale_receipt_png'),
 ]

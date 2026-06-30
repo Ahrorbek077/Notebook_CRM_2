@@ -426,6 +426,28 @@ class SaleReceiptPdfView(BusinessRequiredMixin, View):
         return response
 
 
+class SaleReceiptPngView(BusinessRequiredMixin, View):
+    """Chekni SERVERDA PNG (rasm) qilib beradi.
+
+    Ko'plab "label printer" mobil ilovalari (Eleph Label va h.k.) faqat
+    rasm formatini ochib bera oladi, PDF'ni emas. "Ulashish" tugmasi shu
+    endpoint orqali olingan PNG'ni yuboradi."""
+
+    def get(self, request, sale_id):
+        from notebook.clients.services_receipt import build_receipt_png
+
+        sale = get_object_or_404(
+            Sale.objects.select_related('client', 'user')
+                        .prefetch_related('items__product'),
+            id=sale_id, business=request.business
+        )
+        png_bytes = build_receipt_png(sale)
+
+        response = HttpResponse(png_bytes, content_type='image/png')
+        response['Content-Disposition'] = f'attachment; filename="chek_{sale.id}.png"'
+        return response
+
+
 # ====================== REGION ======================
 class RegionSaveView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request):

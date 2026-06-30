@@ -118,13 +118,22 @@ def build_receipt_pdf(sale) -> bytes:
     line(y); y -= 4.5 * mm_unit
 
     # ── Mahsulotlar ──────────────────────────────────────────────────────
+    GAP = 2 * mm_unit  # nom va narx orasidagi minimal bo'shliq
     for item in items:
         name = item.product.name
-        if len(name) > 24:
-            name = name[:22] + '..'
         subtotal = item.price_at_sale * item.quantity
+        price_str = _fmt_money(subtotal)
+        price_w = pdfmetrics.stringWidth(price_str, 'DejaVuSans', 9)
+        max_name_w = (RM - LM) - price_w - GAP
+
+        # Nom narx bilan to'qnashmasligi uchun haqiqiy piksel kengligiga qarab qisqartiramiz
+        while pdfmetrics.stringWidth(name, 'DejaVuSans', 9) > max_name_w and len(name) > 3:
+            name = name[:-1]
+        if name != item.product.name:
+            name = name[:-2] + '..'
+
         text(LM, y, name, size=9)
-        text(RM, y, _fmt_money(subtotal), size=9, align='right', color='#b8860b')
+        text(RM, y, price_str, size=9, align='right', color='#b8860b')
         y -= 4.2 * mm_unit
         qty_line = f"  {_fmt_qty(item.quantity)} {item.product.get_unit_type_display()} x {_fmt_money(item.price_at_sale)}"
         text(LM, y, qty_line, size=7, color='#888888')
@@ -142,4 +151,127 @@ def build_receipt_pdf(sale) -> bytes:
 
     c.showPage()
     c.save()
+    return buf.getvalue()
+
+
+def build_receipt_png(sale) -> bytes:
+    """Chekni PNG RASM sifatida yaratadi.
+
+    Sabab: ko'plab "label printer" mobil ilovalari (masalan Eleph Label,
+    Phomemo, va shunga o'xshashlar) faqat RASM formatini tushunadi —
+    PDF'ni ochib bera olmaydi (ekran "oq/bo'sh" bo'lib qoladi). "Ulashish"
+    tugmasi shu funksiya orqali yaratilgan PNG'ni yuboradi, shunda
+    deyarli har qanday ilova (jumladan label-printer ilovalari) uni
+    to'g'ri ochib, chop eta oladi.
+    """
+    from PIL import Image, ImageDraw, ImageFont
+
+    _ensure_fonts()
+
+    DPI    = 300
+    MM2PX  = DPI / 25.4
+    width  = int(58 * MM2PX)
+
+    items = list(sale.items.all())
+    base_h     = int(90 * MM2PX)  # sarlavha+info+ustun+jami+footer (mahsulotlarsiz)
+    per_item_h = int(13 * MM2PX)  # har bir mahsulot uchun (nomi + soni/narxi qatori)
+    height = base_h + per_item_h * max(len(items), 1)
+
+    img = Image.new('RGB', (width, height), '#ffffff')
+    draw = ImageDraw.Draw(img)
+
+    def font(size, bold=False):
+        path = FONT_DIR / ('DejaVuSans-Bold.ttf' if bold else 'DejaVuSans.ttf')
+        return ImageFont.truetype(str(path), int(size * MM2PX / 2.5))
+
+    LM = int(3 * MM2PX)
+    RM = width - int(3 * MM2PX)
+    y  = int(7 * MM2PX)
+
+    business_name = sale.business.name if sale.business else 'Do\u02bckon'
+
+    def hexrgb(h):
+        h = h.lstrip('#')
+        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+
+    def text(x, y, s, size=9, bold=False, align='left', color='#000000'):
+        f = font(size, bold)
+        bbox = draw.textbbox((0, 0), s, font=f)
+        w = bbox[2] - bbox[0]
+        if align == 'right':
+            x = x - w
+        elif align == 'center':
+            x = x - w / 2
+        draw.text((x, y), s, font=f, fill=hexrgb(color))
+        return bbox[3] - bbox[1]
+
+    def line(yy):
+        draw.line([(LM, yy), (RM, yy)], fill=hexrgb('#999999'), width=1)
+
+    # ── Sarlavha ──────────────────────────────────────────────────────────
+    text(width / 2, y, business_name, size=14, bold=True, align='center', color='#0d9bb5')
+    y += int(7 * MM2PX)
+    text(width / 2, y, f"Sotuv cheki #{sale.id}", size=8.5, align='center', color='#666666')
+    y += int(6 * MM2PX)
+    line(y); y += int(5 * MM2PX)
+
+    # ── Telefon va sana (ism/qarz ko'rsatilmaydi — maxfiylik) ────────────
+    rows = [
+        ('Telefon', sale.client.phone or '\u2014'),
+        ('Kassir', sale.user.get_full_name() if sale.user else '\u2014'),
+        ('Sana', sale.created_at.strftime('%d.%m.%Y %H:%M')),
+    ]
+    for label, value in rows:
+        text(LM, y, label, size=8, color='#777777')
+        text(RM, y, str(value), size=8, align='right', color='#111111')
+        y += int(6 * MM2PX)
+
+    line(y); y += int(5 * MM2PX)
+
+    # ── Ustun sarlavhasi ──────────────────────────────────────────────────
+    text(LM, y, 'Mahsulot', size=8, bold=True)
+    text(RM, y, 'Jami', size=8, bold=True, align='right')
+    y += int(5 * MM2PX)
+    line(y); y += int(5 * MM2PX)
+
+    # ── Mahsulotlar ──────────────────────────────────────────────────────
+    GAP = int(2 * MM2PX)  # nom va narx orasidagi minimal bo'shliq
+    for item in items:
+        name = item.product.name
+        subtotal = item.price_at_sale * item.quantity
+        price_str = _fmt_money(subtotal)
+
+        f_name  = font(9)
+        f_price = font(9)
+        price_w = draw.textbbox((0, 0), price_str, font=f_price)[2]
+        max_name_w = (RM - LM) - price_w - GAP
+
+        # Nom narx bilan to'qnashmasligi uchun piksel kengligiga qarab qisqartiramiz
+        while draw.textbbox((0, 0), name, font=f_name)[2] > max_name_w and len(name) > 3:
+            name = name[:-1]
+        if name != item.product.name:
+            name = name[:-2] + '..'
+
+        text(LM, y, name, size=9)
+        text(RM, y, price_str, size=9, align='right', color='#b8860b')
+        y += int(5.5 * MM2PX)
+        qty_line = f"  {_fmt_qty(item.quantity)} {item.product.get_unit_type_display()} x {_fmt_money(item.price_at_sale)}"
+        text(LM, y, qty_line, size=7, color='#888888')
+        y += int(5.5 * MM2PX)
+
+    line(y); y += int(7 * MM2PX)
+
+    # ── Jami ──────────────────────────────────────────────────────────────
+    text(LM, y, 'JAMI', size=11, bold=True)
+    text(RM, y, _fmt_money(sale.total_amount), size=11, bold=True, align='right', color='#0d9bb5')
+    y += int(8 * MM2PX)
+
+    line(y); y += int(6 * MM2PX)
+    text(width / 2, y, f"Xarid uchun rahmat! \u00b7 {business_name}", size=7, align='center', color='#999999')
+    y += int(6 * MM2PX)
+
+    img = img.crop((0, 0, width, min(y, height)))
+
+    buf = BytesIO()
+    img.save(buf, format='PNG')
     return buf.getvalue()
