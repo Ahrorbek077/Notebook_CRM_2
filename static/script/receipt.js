@@ -30,11 +30,13 @@ const ReceiptManager = (() => {
     NORMAL_SIZE:    [GS,  0x21, 0x00],
     LINE_FEED:      [0x0A],
     CUT_PAPER:      [GS,  0x56, 0x41, 0x03],  // partial cut
-    CHARSET_UTF8:   [ESC, 0x74, 0x2D],         // code page
+    CHARSET_CP866:  [ESC, 0x74, 0x11],         // ESC t 17 — Cyrillic #2 (CP866),
+                                                // deyarli barcha ESC/POS klon
+                                                // printerlarda Kirill uchun standart
   };
 
   const COL_WIDTH   = 32;  // 58mm ≈ 32 belgi (xitoylik arzon termo-printerlar standarti)
-  const DIVIDER     = '─'.repeat(COL_WIDTH);
+  const DIVIDER     = '-'.repeat(COL_WIDTH);  // oddiy ASCII chiziq — har qanday kodlashda to'g'ri chiqadi
 
   // ── Yordamchi: matn o'rtaga hizalash ─────────────────────────────────────
   function center(text, width = COL_WIDTH) {
@@ -73,17 +75,49 @@ const ReceiptManager = (() => {
     return data.receipt;
   }
 
+  // ── CP866 (Cyrillic #2) kodlash jadvali ─────────────────────────────────
+  // SABAB: termoprinterlar (xitoylik klon ESC/POS qurilmalar) UTF-8'ni
+  // tushunmaydi — har bir Kirill harf UTF-8'da 2 bayt bo'lgani uchun,
+  // printer ularni bitta-baytli kodlash deb noto'g'ri o'qib, "axlat"
+  // belgilar chiqarib yuboradi (ikki baravar ko'payib). CP866 — bunday
+  // printerlarning deyarli barchasida standart bo'lgan, bitta-baytli
+  // Kirill kodlash jadvali (DOS-davridan qolgan, lekin hamon eng keng
+  // qo'llab-quvvatlanadigan variant).
+  const CP866_MAP = (() => {
+    const map = {};
+    for (let i = 0; i < 32; i++) map[0x0410 + i] = 0x80 + i;  // А-Я
+    for (let i = 0; i < 16; i++) map[0x0430 + i] = 0xA0 + i;  // а-п
+    for (let i = 0; i < 16; i++) map[0x0440 + i] = 0xE0 + i;  // р-я
+    map[0x0401] = 0xF0; // Ё
+    map[0x0451] = 0xF1; // ё
+    return map;
+  })();
+
+  function encodeCp866(str) {
+    const bytes = [];
+    for (const ch of str) {
+      const code = ch.codePointAt(0);
+      if (code < 128) {
+        bytes.push(code);
+      } else if (CP866_MAP[code] !== undefined) {
+        bytes.push(CP866_MAP[code]);
+      } else {
+        bytes.push(0x3F); // tushunarsiz belgi — '?'
+      }
+    }
+    return new Uint8Array(bytes);
+  }
+
   // ── ESC/POS bytes yaratish ────────────────────────────────────────────────
   function buildEscPos(receipt) {
-    const encoder = new TextEncoder();
     const chunks  = [];
 
     const push = (...cmds) => cmds.forEach(c => {
-      chunks.push(Array.isArray(c) ? new Uint8Array(c) : encoder.encode(c));
+      chunks.push(Array.isArray(c) ? new Uint8Array(c) : encodeCp866(c));
     });
 
-    // Printer reset
-    push(ESC_POS.INIT, ESC_POS.CHARSET_UTF8);
+    // Printer reset + Kirill kodlash jadvalini yoqish
+    push(ESC_POS.INIT, ESC_POS.CHARSET_CP866);
 
     // ── Sarlavha ─────────────────────────────────────────────────────────────
     push(ESC_POS.ALIGN_CENTER, ESC_POS.BOLD_ON, ESC_POS.DOUBLE_HEIGHT);
