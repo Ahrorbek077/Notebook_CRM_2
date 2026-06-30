@@ -410,17 +410,15 @@ const ReceiptManager = (() => {
       const PRINTER_SERVICE  = '000018f0-0000-1000-8000-00805f9b34fb';
       const PRINTER_CHAR     = '00002af1-0000-1000-8000-00805f9b34fb';
 
+      // MUHIM: faqat BITTA requestDevice chaqiruvi — ikkinchi (zanjirlangan)
+      // chaqiruv "Must be handling a user gesture" xatosiga olib kelardi,
+      // chunki brauzer buni "foydalanuvchi bosishi emas" deb hisoblaydi.
+      // Shuning uchun darhol "barcha qurilmalarni ko'rsat" rejimida so'raymiz —
+      // bu bitta chaqiruvning o'zi ham filtrlangan, ham filtrlanmagan
+      // holatni qamrab oladi.
       const device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: [PRINTER_SERVICE] },
-        ],
+        acceptAllDevices: true,
         optionalServices: [PRINTER_SERVICE],
-      }).catch(() => {
-        // Agar filter ishlmasa — barcha qurilmalarni ko'rsat
-        return navigator.bluetooth.requestDevice({
-          acceptAllDevices: true,
-          optionalServices: [PRINTER_SERVICE],
-        });
       });
 
       showToast(`${device.name || 'Printer'} ga ulanmoqda...`, 'info');
@@ -431,17 +429,22 @@ const ReceiptManager = (() => {
       const receipt = await fetchReceipt(saleId);
       const bytes   = buildEscPos(receipt);
 
-      // Katta ma'lumotni KICHIK bo'laklarga bo'lib yuborish.
-      // SABAB: BLE ulanishlar odatda bir martada juda kichik hajmni
-      // (ko'pincha atigi ~20 bayt) qabul qila oladi — agar "MTU
-      // kelishuvi" (negotiation) brauzer/qurilma tomonidan yaxshi
-      // ishlamasa. Avval 512 baytlik bo'laklar yuborilardi — bu
-      // arzon/oddiy printerlarda ulanishni "uzib qo'yardi" (shuning
-      // uchun faqat qisqa sarlavha o'tib, keyin xato chiqardi).
-      // Endi 20 baytdan — bu deyarli barcha qurilmalarda ishlaydigan
-      // "xavfsiz" hajm — sekinroq, lekin ishonchli.
+      // Katta ma'lumotni KICHIK bo'laklarga bo'lib, PRINTERGA VAQT BERIB
+      // yuborish.
+      // SABAB 1 (hajm): BLE ulanishlar odatda bir martada juda kichik
+      // hajmni (ko'pincha atigi ~20 bayt) qabul qila oladi.
+      // SABAB 2 (tezlik — MUHIM): termoprinter har bir qatorni jismonan
+      // bosib chiqarishi (qizdirish + qog'ozni siljitish) Bluetooth orqali
+      // ma'lumot yuborishdan SEZILARLI DARAJADA SEKINROQ. Agar ma'lumot
+      // printer "ulgurishi"dan tezroq yuborilsa, uning ichki bufer
+      // to'lib-toshib, qurilma xatoga uchrab o'zini o'chirib qo'yadi —
+      // aynan shu sabab "faqat sarlavha chiqib, keyin o'chib qolish"
+      // holatiga olib kelgan edi. Shuning uchun har bir QATOR
+      // tugagandan (line feed, 0x0A) keyin qo'shimcha, uzunroq kutish
+      // qo'shildi — printer "nafas olishi" uchun.
       const CHUNK = 20;
-      const DELAY_MS = 25;
+      const DELAY_MS = 30;
+      const LINE_DELAY_MS = 120;  // qator chop etilishi uchun qo'shimcha vaqt
 
       async function writeChunkWithRetry(chunk, attempt = 1) {
         try {
@@ -451,8 +454,8 @@ const ReceiptManager = (() => {
             await char.writeValue(chunk);
           }
         } catch (err) {
-          if (attempt < 3) {
-            await new Promise(r => setTimeout(r, 150));
+          if (attempt < 4) {
+            await new Promise(r => setTimeout(r, 200 * attempt));
             return writeChunkWithRetry(chunk, attempt + 1);
           }
           throw err;
@@ -460,10 +463,14 @@ const ReceiptManager = (() => {
       }
 
       for (let i = 0; i < bytes.length; i += CHUNK) {
-        await writeChunkWithRetry(bytes.slice(i, i + CHUNK));
-        await new Promise(r => setTimeout(r, DELAY_MS));
+        const chunk = bytes.slice(i, i + CHUNK);
+        await writeChunkWithRetry(chunk);
+        const hasLineFeed = chunk.includes(0x0A);
+        await new Promise(r => setTimeout(r, hasLineFeed ? LINE_DELAY_MS : DELAY_MS));
       }
 
+      // Oxirgi qatorlarning to'liq bosilib bo'lishini kutamiz, keyin uzamiz
+      await new Promise(r => setTimeout(r, 300));
       await server.disconnect();
       showToast(T.receipt_printed, 'success');
 
