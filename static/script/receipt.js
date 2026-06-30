@@ -477,7 +477,7 @@ const ReceiptManager = (() => {
   // yuborishdan SEZILARLI DARAJADA SEKINROQ. Agar ma'lumot printer
   // "ulgurishi"dan tezroq yuborilsa, uning ichki bufer to'lib-toshib,
   // qurilma xatoga uchrab o'zini o'chirib qo'yadi.
-  async function writeBytesToPrinter(char, bytes) {
+  async function writeBytesToPrinter(char, bytes, { lineAware = true } = {}) {
     const CHUNK = 20;
     const DELAY_MS = 40;
     const LINE_DELAY_MS = 180;
@@ -502,12 +502,20 @@ const ReceiptManager = (() => {
       }
     }
 
-    for (let i = 0; i < bytes.length; i += CHUNK) {
+    const total = bytes.length;
+    for (let i = 0; i < total; i += CHUNK) {
       const chunk = bytes.slice(i, i + CHUNK);
       await writeChunkWithRetry(chunk);
       if (!useAck) {
-        const hasLineFeed = chunk.includes(0x0A);
+        // RASM (raster) ma'lumotida 0x0A bayti tasodifan piksel qiymati
+        // sifatida ham uchrashi mumkin — shuning uchun "qator tugadi"
+        // mantig'i FAQAT matn chop etishda ishlatiladi (lineAware=true).
+        const hasLineFeed = lineAware && chunk.includes(0x0A);
         await new Promise(r => setTimeout(r, hasLineFeed ? LINE_DELAY_MS : DELAY_MS));
+      }
+      // Katta fayllarda (rasm) progress holatini debug panelga yozib boramiz
+      if (total > 2000 && (i / CHUNK) % 100 === 0) {
+        debugLog(`Yuborilmoqda: ${Math.round(i / total * 100)}%`);
       }
     }
   }
@@ -521,9 +529,20 @@ const ReceiptManager = (() => {
       showToast(T.printer_searching, 'info');
       const { server, char } = await connectToPrinter();
 
-      const receipt = await fetchReceipt(saleId);
-      const bytes   = buildEscPos(receipt);
-      await writeBytesToPrinter(char, bytes);
+      // MUHIM: matn (harf-kod) o'rniga, SERVERDA tayyorlangan RASM
+      // (raster bitmap) baytlarini olamiz. Diagnostika orqali aniqlandiki,
+      // bu printer "ESC t" (kodlash) buyrug'ini umuman tan olmaydi va
+      // doim faqat lotin (CP437) jadvalidan foydalanadi — shuning uchun
+      // Kirill matnni "harf" sifatida yuborish ASLO ishlamaydi. Rasm
+      // sifatida yuborish esa kodlashga umuman bog'liq emas (faqat qora/
+      // oq nuqtalar) — shu sababli har qanday tilda to'g'ri chiqadi.
+      const resp = await fetch(`/clients/receipt/${saleId}/escpos/`);
+      if (!resp.ok) throw new Error("Chek rasmini olib bo'lmadi");
+      const bytes = new Uint8Array(await resp.arrayBuffer());
+      debugLog(`Raster rasm yuklandi: ${bytes.length} bayt`);
+      showToast("Chop etilmoqda, biroz vaqt oladi (rasm sifatida)...", 'info');
+
+      await writeBytesToPrinter(char, bytes, { lineAware: false });
 
 
       // Oxirgi qatorlarning to'liq bosilib bo'lishini kutamiz, keyin uzamiz

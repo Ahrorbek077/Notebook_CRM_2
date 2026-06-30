@@ -154,23 +154,20 @@ def build_receipt_pdf(sale) -> bytes:
     return buf.getvalue()
 
 
-def build_receipt_png(sale) -> bytes:
-    """Chekni PNG RASM sifatida yaratadi — QORA-OQ (1-bit), RANGSIZ.
+def _render_receipt_image(sale, dpi=300):
+    """Chekni PIL Image obyekti sifatida (QORA-OQ, 'L' rejim) yaratadi.
 
-    Sabab: ko'plab "label printer" mobil ilovalari (masalan Eleph Label,
-    Phomemo, va shunga o'xshashlar) shunday qurilmalar (termal yorliq
-    printerlari) uchun mo'ljallangan — ular faqat ODDIY OQ-QORA rasmlarni
-    to'g'ri qabul qiladi. Avval rangli (ko'k/sariq) rasm yuborilganda
-    ilova uni "tushunmay" oq/bo'sh ko'rsatardi. Bu — termal printerlarning
-    o'zi ham faqat bitta rangda (qora) bosib chiqarganligi uchun ham
-    mantiqan to'g'ri — rang baribir qog'ozda ko'rinmaydi.
+    Bu — umumiy "chizish" funksiyasi: undan PNG fayl HAM, ESC/POS raster
+    bitmap HAM yasaladi (build_receipt_png va build_receipt_escpos).
+    `dpi` parametri orqali chiqish o'lchamini moslash mumkin (PNG uchun
+    300 — sifatli ko'rinish; printerga to'g'ridan-to'g'ri yuborish uchun
+    odatda 203 — termoprinterlarning standart fizik o'lchamiga mos).
     """
     from PIL import Image, ImageDraw, ImageFont
 
     _ensure_fonts()
 
-    DPI    = 300
-    MM2PX  = DPI / 25.4
+    MM2PX  = dpi / 25.4
     width  = int(80 * MM2PX)
 
     items = list(sale.items.all())
@@ -268,7 +265,78 @@ def build_receipt_png(sale) -> bytes:
     y += int(6 * MM2PX)
 
     img = img.crop((0, 0, width, min(y, height)))
+    return img
+
+
+def build_receipt_png(sale) -> bytes:
+    """Chekni PNG RASM sifatida (yuklab olish/ulashish uchun, 300dpi sifatli)."""
+    img = _render_receipt_image(sale, dpi=300)
 
     buf = BytesIO()
     img.save(buf, format='PNG')
     return buf.getvalue()
+
+
+def build_receipt_escpos(sale) -> bytes:
+    """Chekni ESC/POS "raster bitmap" (rasm) sifatida — MATN EMAS — yaratadi.
+
+    MUHIM SABAB: diagnostika orqali aniqlandiki, sizning printeringiz (klon,
+    hujjatsiz firmware) "ESC t" (kodlash jadvalini tanlash) buyrug'ini
+    UMUMAN E'TIBORGA OLMAYDI — u doim faqat o'zining qattiq biriktirilgan,
+    LOTIN (CP437) jadvalidan foydalanadi. Demak Kirill harflarni "matn"
+    sifatida (har bir harf — bitta bayt-kod) yuborish PRINSIP JIHATDAN
+    MUMKIN EMAS bu qurilmada — qaysi kodlashni tanlasak ham, natija bir xil
+    noto'g'ri chiqadi.
+
+    Yechim: matn o'rniga chekni RASM (qora-oq nuqtalar to'plami) sifatida
+    yuboramiz — "GS v 0" buyrug'i orqali. Bu yondashuvda printer harflarni
+    "o'qimaydi", shunchaki bizning aytgan joylarimizga qora nuqta bosadi —
+    shuning uchun til/kodlash AHAMIYATSIZ bo'lib qoladi. Bu — aynan RawBT
+    kabi professional ilovalar ham ishlatadigan, eng ishonchli usul.
+    """
+    from PIL import Image
+
+    RASTER_WIDTH_DOTS = 576  # 80mm qog'ozda standart bosib chiqarish kengligi
+                              # (~72mm samarali maydon, deyarli barcha
+                              # 80mm termoprinterlarda ishlaydi)
+
+    img = _render_receipt_image(sale, dpi=300)
+
+    # Standart bosib chiqarish kengligiga moslab o'lchamini o'zgartiramiz
+    ratio = RASTER_WIDTH_DOTS / img.width
+    new_height = max(1, int(img.height * ratio))
+    img = img.resize((RASTER_WIDTH_DOTS, new_height), Image.LANCZOS)
+
+    # Aniq qora-oq (1-bit) ga o'tkazamiz — chegarani biroz yumshoqroq
+    # qilib (180) matn ingichka chiziqlari yo'qolib ketmasligi uchun.
+    img = img.point(lambda p: 0 if p < 180 else 255, mode='L').convert('1')
+
+    width_bytes = RASTER_WIDTH_DOTS // 8  # 576 / 8 = 72, qoldiqsiz bo'linadi
+    height_dots = img.height
+
+    # Piksellarni baytlarga "qadaymiz" (MSB birinchi, 1 = qora nuqta)
+    pixels = img.load()
+    data = bytearray(width_bytes * height_dots)
+    for yy in range(height_dots):
+        row_offset = yy * width_bytes
+        for xb in range(width_bytes):
+            byte_val = 0
+            for bit in range(8):
+                xx = xb * 8 + bit
+                if pixels[xx, yy] == 0:  # 0 = qora (PIL '1' rejimida)
+                    byte_val |= (0x80 >> bit)
+            data[row_offset + xb] = byte_val
+
+    xL = width_bytes & 0xFF
+    xH = (width_bytes >> 8) & 0xFF
+    yL = height_dots & 0xFF
+    yH = (height_dots >> 8) & 0xFF
+
+    out = bytearray()
+    out += bytes([0x1B, 0x40])              # ESC @  — printer reset
+    out += bytes([0x1D, 0x76, 0x30, 0x00])  # GS v 0 m=0 — raster rejim
+    out += bytes([xL, xH, yL, yH])
+    out += bytes(data)
+    out += b'\n\n\n\n\n'                     # qo'lda yirtish uchun joy
+
+    return bytes(out)

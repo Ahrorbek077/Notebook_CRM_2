@@ -448,6 +448,27 @@ class SaleReceiptPngView(BusinessRequiredMixin, View):
         return response
 
 
+class SaleReceiptEscposView(BusinessRequiredMixin, View):
+    """Chekni ESC/POS RASTER BITMAP (rasm sifatida, matn emas) ko'rinishida
+    qaytaradi — Bluetooth "Printer" tugmasi shu xom baytlarni to'g'ridan-
+    to'g'ri printerga yuboradi. Bu kodlash/codepage muammosini butunlay
+    chetlab o'tadi (qarang: build_receipt_escpos docstring)."""
+
+    def get(self, request, sale_id):
+        from notebook.clients.services_receipt import build_receipt_escpos
+
+        sale = get_object_or_404(
+            Sale.objects.select_related('client', 'user')
+                        .prefetch_related('items__product'),
+            id=sale_id, business=request.business
+        )
+        escpos_bytes = build_receipt_escpos(sale)
+
+        response = HttpResponse(escpos_bytes, content_type='application/octet-stream')
+        response['Content-Disposition'] = f'attachment; filename="chek_{sale.id}.bin"'
+        return response
+
+
 # ====================== REGION ======================
 class RegionSaveView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request):
