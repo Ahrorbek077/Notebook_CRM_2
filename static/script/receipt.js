@@ -30,9 +30,6 @@ const ReceiptManager = (() => {
     NORMAL_SIZE:    [GS,  0x21, 0x00],
     LINE_FEED:      [0x0A],
     CUT_PAPER:      [GS,  0x56, 0x41, 0x03],  // partial cut
-    CHARSET_CP866:  [ESC, 0x74, 0x11],         // ESC t 17 — Cyrillic #2 (CP866),
-                                                // deyarli barcha ESC/POS klon
-                                                // printerlarda Kirill uchun standart
   };
 
   const COL_WIDTH   = 48;  // 80mm ≈ 48 belgi
@@ -75,64 +72,44 @@ const ReceiptManager = (() => {
     return data.receipt;
   }
 
-  // ── CP866 (Cyrillic #2) kodlash jadvali ─────────────────────────────────
-  // SABAB: termoprinterlar (xitoylik klon ESC/POS qurilmalar) UTF-8'ni
-  // tushunmaydi — har bir Kirill harf UTF-8'da 2 bayt bo'lgani uchun,
-  // printer ularni bitta-baytli kodlash deb noto'g'ri o'qib, "axlat"
-  // belgilar chiqarib yuboradi (ikki baravar ko'payib). CP866 — bunday
-  // printerlarning deyarli barchasida standart bo'lgan, bitta-baytli
-  // Kirill kodlash jadvali (DOS-davridan qolgan, lekin hamon eng keng
-  // qo'llab-quvvatlanadigan variant).
-  const CP866_MAP = (() => {
-    const map = {};
-    for (let i = 0; i < 32; i++) map[0x0410 + i] = 0x80 + i;  // А-Я
-    for (let i = 0; i < 16; i++) map[0x0430 + i] = 0xA0 + i;  // а-п
-    for (let i = 0; i < 16; i++) map[0x0440 + i] = 0xE0 + i;  // р-я
-    map[0x0401] = 0xF0; // Ё
-    map[0x0451] = 0xF1; // ё
-    return map;
-  })();
+  // ── Kirill → Lotin transliteratsiya ──────────────────────────────────────
+  // SABAB: diagnostika orqali aniqlandiki, bu printer "ESC t" (kodlash
+  // tanlash) buyrug'ini umuman tan olmaydi — u doim faqat qattiq
+  // biriktirilgan LOTIN (CP437) jadvalidan foydalanadi. Demak Kirill
+  // harflarni "to'g'ri kodlash" orqali chiqarish bu qurilmada IMKONSIZ.
+  // Yechim: Kirill matnni avtomatik LOTIN harflarga o'giramiz (standart
+  // o'zbekcha transliteratsiya), so'ng oddiy ASCII (0-127 oralig'i)
+  // sifatida yuboramiz — bu diapazon BARCHA kodlash jadvallarida bir xil,
+  // shuning uchun har qanday printerda, hech qanday "moslashtirishsiz"
+  // to'g'ri chiqadi. Bonus: matn picture'dan ancha yengil — chop etish
+  // bir necha soniyada tugaydi, Bluetooth ulanish "uzilib qolish" xavfi
+  // deyarli yo'qoladi.
+  const CYR_TO_LAT = {
+    'А':'A','Б':'B','В':'V','Г':'G','Д':'D','Е':'E','Ё':'Yo','Ж':'J','З':'Z',
+    'И':'I','Й':'Y','К':'K','Л':'L','М':'M','Н':'N','О':'O','П':'P','Р':'R',
+    'С':'S','Т':'T','У':'U','Ф':'F','Х':'X','Ц':'Ts','Ч':'Ch','Ш':'Sh','Щ':'Sh',
+    'Ъ':'','Ы':'I','Ь':'','Э':'E','Ю':'Yu','Я':'Ya',
+    'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'yo','ж':'j','з':'z',
+    'и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r',
+    'с':'s','т':'t','у':'u','ф':'f','х':'x','ц':'ts','ч':'ch','ш':'sh','щ':'sh',
+    'ъ':'','ы':'i','ь':'','э':'e','ю':'yu','я':'ya',
+    'Ў':"O'",'ў':"o'",'Қ':'Q','қ':'q','Ғ':"G'",'ғ':"g'",'Ҳ':'H','ҳ':'h',
+  };
 
-  function encodeCp866(str) {
-    const bytes = [];
+  function transliterate(str) {
+    let out = '';
     for (const ch of str) {
-      const code = ch.codePointAt(0);
-      if (code < 128) {
-        bytes.push(code);
-      } else if (CP866_MAP[code] !== undefined) {
-        bytes.push(CP866_MAP[code]);
-      } else {
-        bytes.push(0x3F); // tushunarsiz belgi — '?'
-      }
+      out += CYR_TO_LAT[ch] !== undefined ? CYR_TO_LAT[ch] : ch;
     }
-    return new Uint8Array(bytes);
+    return out;
   }
 
-  // ── CP1251 (Windows Cyrillic) kodlash jadvali — CP866 ishlamasa
-  // sinab ko'rish uchun muqobil variant. Klon printerlarda qaysi
-  // kodlash to'g'ri ekanini hujjatsiz bilib bo'lmaydi — shuning uchun
-  // "Diagnostika" tugmasi ikkalasini ham sinab, qaysi biri TO'G'RI
-  // chiqqanini ko'rsatadi.
-  const CP1251_MAP = (() => {
-    const map = {};
-    for (let i = 0; i < 32; i++) map[0x0410 + i] = 0xC0 + i;  // А-Я
-    for (let i = 0; i < 32; i++) map[0x0430 + i] = 0xE0 + i;  // а-я
-    map[0x0401] = 0xA8; // Ё
-    map[0x0451] = 0xB8; // ё
-    return map;
-  })();
-
-  function encodeCp1251(str) {
+  function encodeAsciiSafe(str) {
+    const translit = transliterate(str);
     const bytes = [];
-    for (const ch of str) {
+    for (const ch of translit) {
       const code = ch.codePointAt(0);
-      if (code < 128) {
-        bytes.push(code);
-      } else if (CP1251_MAP[code] !== undefined) {
-        bytes.push(CP1251_MAP[code]);
-      } else {
-        bytes.push(0x3F);
-      }
+      bytes.push(code < 128 ? code : 0x3F); // baribir lotin bo'lmasa — '?'
     }
     return new Uint8Array(bytes);
   }
@@ -142,11 +119,11 @@ const ReceiptManager = (() => {
     const chunks  = [];
 
     const push = (...cmds) => cmds.forEach(c => {
-      chunks.push(Array.isArray(c) ? new Uint8Array(c) : encodeCp866(c));
+      chunks.push(Array.isArray(c) ? new Uint8Array(c) : encodeAsciiSafe(c));
     });
 
-    // Printer reset + Kirill kodlash jadvalini yoqish
-    push(ESC_POS.INIT, ESC_POS.CHARSET_CP866);
+    // Printer reset (kodlash buyrug'i endi kerak emas — hammasi lotin/ASCII)
+    push(ESC_POS.INIT);
 
     // ── Sarlavha ─────────────────────────────────────────────────────────────
     push(ESC_POS.ALIGN_CENTER, ESC_POS.BOLD_ON, ESC_POS.DOUBLE_HEIGHT);
@@ -288,16 +265,6 @@ const ReceiptManager = (() => {
          </button>`
       : '';
 
-    // "Diagnostika" — Kirill kodlash (CP866/CP1251) qaysi biri printerga
-    // mos ekanini bitta qog'ozda solishtirib ko'rsatadi (klon printerlarda
-    // hujjat yo'q, shuning uchun sinab ko'rish kerak)
-    const diagBtn = window.isBluetoothSupported()
-      ? `<button class="btn btn-secondary" onclick="ReceiptManager.doDiagnosticPrint()"
-               style="flex:1;height:36px;font-size:.82rem;min-width:80px" title="Kodlashni tekshirish">
-           <i class="fa fa-flask me-1"></i>Diagnostika
-         </button>`
-      : '';
-
     // "Ulashish" — Eleph Label kabi o'z protokoliga ega "label printer"
     // ilovalariga PDF'ni to'g'ridan-to'g'ri yuborish uchun (Bluetooth tugmasi
     // ESC/POS bo'lmagan printerlar bilan ishlamaganda shu yo'l qo'l keladi)
@@ -348,7 +315,6 @@ const ReceiptManager = (() => {
             </button>
             ${shareBtn}
             ${bluetoothBtn}
-            ${diagBtn}
           </div>
         </div>
       </div>
@@ -538,18 +504,15 @@ const ReceiptManager = (() => {
       showToast(T.printer_searching, 'info');
       const device = await selectPrinterDevice();
 
-      // MUHIM: matn (harf-kod) o'rniga, SERVERDA tayyorlangan RASM
-      // (raster bitmap) baytlarini olamiz. Diagnostika orqali aniqlandiki,
-      // bu printer "ESC t" (kodlash) buyrug'ini umuman tan olmaydi va
-      // doim faqat lotin (CP437) jadvalidan foydalanadi — shuning uchun
-      // Kirill matnni "harf" sifatida yuborish ASLO ishlamaydi. Rasm
-      // sifatida yuborish esa kodlashga umuman bog'liq emas (faqat qora/
-      // oq nuqtalar) — shu sababli har qanday tilda to'g'ri chiqadi.
-      const resp = await fetch(`/clients/receipt/${saleId}/escpos/`);
-      if (!resp.ok) throw new Error("Chek rasmini olib bo'lmadi");
-      const bytes = new Uint8Array(await resp.arrayBuffer());
-      debugLog(`Raster rasm yuklandi: ${bytes.length} bayt`);
-      showToast("Chop etilmoqda, biroz vaqt oladi (rasm sifatida)...", 'info');
+      // MATN rejimi (yengil, tez) — Kirill harflar avtomatik LOTINGA
+      // o'giriladi (qarang: transliterate/encodeAsciiSafe), shuning uchun
+      // printerning kodlash jadvali AHAMIYATSIZ: faqat oddiy ASCII (0-127)
+      // yuboriladi, bu har qanday qurilmada bir xil ishlaydi. Bonus:
+      // ma'lumot hajmi rasmdan O'NLAB MARTA KICHIK — chop etish bir necha
+      // soniyada tugaydi, Bluetooth "band/uzilib qolish" xavfi deyarli yo'q.
+      const receipt = await fetchReceipt(saleId);
+      const bytes   = buildEscPos(receipt);
+      debugLog(`Chek matni tayyor: ${bytes.length} bayt (lotin harflarda)`);
 
       // ── Qayta ulanish bilan urinish ──────────────────────────────────────
       // Arzon printerlar jismonan bosib chiqarish paytida Bluetooth
@@ -565,7 +528,7 @@ const ReceiptManager = (() => {
             debugLog(`Qayta ulanish (${attempt}-urinish) — boshidan yuborilmoqda`);
             showToast(`Qayta ulanmoqda (${attempt}-urinish)...`, 'warning');
           }
-          await writeBytesToPrinter(char, bytes, { lineAware: false });
+          await writeBytesToPrinter(char, bytes, { lineAware: true });
           await new Promise(r => setTimeout(r, 300));
           try { await server.disconnect(); } catch (_) { /* allaqachon uzilgan bo'lishi mumkin */ }
           showToast(T.receipt_printed, 'success');
@@ -592,69 +555,6 @@ const ReceiptManager = (() => {
         `Printer xatoligi: ${err.message}. "Ulashish" tugmasi orqali ham urinib ko'ring.`,
         'danger'
       );
-    }
-  }
-
-  // ── DIAGNOSTIKA: bir nechta kodlash variantini sinab ko'rsatadi ──────────
-  // Klon printerlarda Kirill uchun CP866 yoki CP1251 dan QAYSI BIRI to'g'ri
-  // ekanini hujjatsiz aniq bilib bo'lmaydi. Bu funksiya bitta qog'ozga BIR
-  // NECHTA variantni, har birini ASCII (har doim o'qiladigan) yorliq bilan
-  // belgilab chiqaradi — foydalanuvchi qaysi blok TO'G'RI Kirill harflar
-  // bilan chiqqanini ko'rib, menga aytib beradi.
-  async function doDiagnosticPrint() {
-    if (!navigator.bluetooth) {
-      showToast(T.bluetooth_unsupported, 'warning');
-      return;
-    }
-    try {
-      showToast('Diagnostika uchun printer qidirilmoqda...', 'info');
-      const { server, char } = await connectToPrinter();
-
-      const sample = 'БАНАН Мева сабзавот 0123';
-      const chunks = [];
-      const push = (...cmds) => cmds.forEach(c => {
-        chunks.push(Array.isArray(c) ? new Uint8Array(c) : encodeAscii(c));
-      });
-      const pushCp866  = (s) => chunks.push(encodeCp866(s));
-      const pushCp1251 = (s) => chunks.push(encodeCp1251(s));
-
-      function encodeAscii(str) {
-        return new Uint8Array([...str].map(ch => ch.codePointAt(0) & 0x7F));
-      }
-
-      push([ESC, 0x40]); // INIT
-
-      // Variant 1: CP866, ESC t 17
-      push([ESC, 0x74, 17], '\n=== V1: CP866 (t17) ===\n');
-      pushCp866(sample); push('\n\n');
-
-      // Variant 2: CP1251, ESC t 18
-      push([ESC, 0x74, 18], '\n=== V2: CP1251 (t18) ===\n');
-      pushCp1251(sample); push('\n\n');
-
-      // Variant 3: CP866, ESC t 16 (ba'zi klonlarda boshqa indeks)
-      push([ESC, 0x74, 16], '\n=== V3: CP866 (t16) ===\n');
-      pushCp866(sample); push('\n\n');
-
-      // Variant 4: CP1251, ESC t 34 (ba'zi Star-mos klonlarda)
-      push([ESC, 0x74, 34], '\n=== V4: CP1251 (t34) ===\n');
-      pushCp1251(sample); push('\n\n\n\n\n');
-
-      const totalLen = chunks.reduce((s, c) => s + c.length, 0);
-      const buffer   = new Uint8Array(totalLen);
-      let offset = 0;
-      chunks.forEach(c => { buffer.set(c, offset); offset += c.length; });
-
-      await writeBytesToPrinter(char, buffer);
-      await new Promise(r => setTimeout(r, 300));
-      await server.disconnect();
-      showToast('Diagnostika chiqdi — qaysi V1-V4 to\'g\'ri ekanini tekshiring', 'success');
-
-    } catch (err) {
-      if (err.name === 'NotFoundError' || err.name === 'AbortError') return;
-      console.error('Diagnostika xatoligi:', err);
-      debugLog('DIAGNOSTIKA XATO: ' + err.name + ' — ' + err.message);
-      showToast(`Diagnostika xatoligi: ${err.message}`, 'danger');
     }
   }
 
@@ -760,7 +660,6 @@ const ReceiptManager = (() => {
     doPdf,
     doShare,
     async doBluetooth(saleId) { await doBluetooth(saleId); },
-    doDiagnosticPrint,
     _onTitleClick: _onTitleClickForDebug,
     closeModal,
   };
