@@ -4,13 +4,20 @@
  * NoteBook — Chek chiqarish moduli
  *
  * Imkoniyatlar:
- *   1. Browser Print  — CSS @media print orqali
- *   2. PDF yuklab olish — jsPDF orqali
- *   3. Bluetooth Printer — Web Bluetooth API + ESC/POS (58mm)
+ *   1. RawBT (Android)  — ENG ISHONCHLI: ESC/POS ni RawBT ilovasiga yuboradi,
+ *                         ilova Bluetooth ulanish/oqim nazoratini O'ZI qiladi
+ *   2. Browser Print    — CSS @media print orqali
+ *   3. PDF yuklab olish — serverda generatsiya
+ *   4. Bluetooth Printer — Web Bluetooth API + ESC/POS (zaxira yo'l)
+ *
+ * MUHIM: printer 58mm (32 belgi). NT-2880 kabi arzon printerlarda Web Bluetooth
+ * ko'pincha chala chiqaradi (header'dan keyin uziladi). RawBT yo'li shu muammoni
+ * butunlay hal qiladi.
  *
  * Ishlatish:
  *   ReceiptManager.print(saleId)            → chek modalini ochadi
- *   ReceiptManager.printBluetooth(saleId)   → to'g'ridan Bluetooth printer
+ *   ReceiptManager.printRawBT(saleId)       → to'g'ridan RawBT (Android)
+ *   ReceiptManager.printBluetooth(saleId)   → to'g'ridan Web Bluetooth
  * ──────────────────────────────────────────────────────────────────────────
  */
 
@@ -32,7 +39,7 @@ const ReceiptManager = (() => {
     CUT_PAPER:      [GS,  0x56, 0x41, 0x03],  // partial cut
   };
 
-  const COL_WIDTH   = 48;  // 80mm ≈ 48 belgi
+  const COL_WIDTH   = 32;  // 58mm ≈ 32 belgi (384 nuqta, A shrift). MUHIM: bu printer 58mm!
   const DIVIDER     = '-'.repeat(COL_WIDTH);  // oddiy ASCII chiziq — har qanday kodlashda to'g'ri chiqadi
 
   // ── Yordamchi: matn o'rtaga hizalash ─────────────────────────────────────
@@ -52,6 +59,11 @@ const ReceiptManager = (() => {
   // ── Pul formati ───────────────────────────────────────────────────────────
   function fmt(num) {
     return Number(num).toLocaleString('uz-UZ') + " so'm";
+  }
+
+  // ── Pul formati (qisqa, "so'm"siz) — 58mm tor qatorlar uchun ──────────────
+  function num(val) {
+    return Number(val).toLocaleString('uz-UZ');
   }
 
   // ── Miqdor formati: "1.000" -> "1", "2.500" -> "2.5" ───────────────────────
@@ -141,18 +153,17 @@ const ReceiptManager = (() => {
 
     // ── Ustun sarlavhasi ──────────────────────────────────────────────────────
     push(ESC_POS.BOLD_ON);
-    push(twoCol('Mahsulot (dona)', 'Summa') + '\n');
+    push(twoCol('Mahsulot', 'Summa') + '\n');
     push(ESC_POS.BOLD_OFF);
     push(DIVIDER + '\n');
 
-    // ── Mahsulotlar ───────────────────────────────────────────────────────────
+    // ── Mahsulotlar (58mm: nom alohida qatorda, pastida miqdor×narx .... jami) ─
     receipt.items.forEach(item => {
-      const nameLine = `${item.name}`;
-      // Uzun nomlar uchun qisqartirish
-      const shortName = nameLine.length > 28 ? nameLine.substring(0, 26) + '..' : nameLine;
-      const qtyPrice  = `${fmtQty(item.qty)}x${fmt(item.price)}`;
-      push(twoCol(shortName, fmt(item.subtotal)) + '\n');
-      push(`  ${qtyPrice}\n`);
+      const name      = String(item.name);
+      const nameLine  = name.length > COL_WIDTH ? name.substring(0, COL_WIDTH - 1) + '.' : name;
+      push(nameLine + '\n');
+      const left      = `  ${fmtQty(item.qty)} x ${num(item.price)}`;
+      push(twoCol(left, num(item.subtotal)) + '\n');
     });
 
     push(DIVIDER + '\n');
@@ -258,6 +269,14 @@ const ReceiptManager = (() => {
   function showModal(receipt) {
     document.getElementById('receiptModal')?.remove();
 
+    // RawBT — Android uchun ASOSIY (eng ishonchli) chop etish tugmasi.
+    const rawbtBtn = isAndroidDevice()
+      ? `<button class="btn btn-success" onclick="ReceiptManager.doRawBT(${receipt.sale_id})"
+               style="flex:1;height:36px;font-size:.82rem;min-width:80px">
+           <i class="fa fa-receipt me-1"></i>Chek (RawBT)
+         </button>`
+      : '';
+
     const bluetoothBtn = window.isBluetoothSupported()
       ? `<button class="btn btn-primary" onclick="ReceiptManager.doBluetooth(${receipt.sale_id})"
                style="flex:1;height:36px;font-size:.82rem;min-width:80px">
@@ -305,6 +324,7 @@ const ReceiptManager = (() => {
 
           <div style="display:flex;gap:8px;padding:12px 16px 20px;flex-shrink:0;
                       border-top:1px solid var(--b,rgba(255,255,255,.08));flex-wrap:wrap">
+            ${rawbtBtn}
             <button class="btn btn-secondary" onclick="ReceiptManager.doPrint()"
                     style="flex:1;height:36px;font-size:.82rem;min-width:80px">
               <i class="fa fa-print me-1"></i>Chop
@@ -455,58 +475,93 @@ const ReceiptManager = (() => {
   // "ulgurishi"dan tezroq yuborilsa, uning ichki bufer to'lib-toshib,
   // qurilma xatoga uchrab o'zini o'chirib qo'yadi.
   async function writeBytesToPrinter(char, bytes, { lineAware = true } = {}) {
-    const CHUNK = 20;
-    const DELAY_MS = 60;
-    const LINE_DELAY_MS = 200;
+    const CHUNK         = 20;
+    const DELAY_MS      = 80;    // har bo'lak orasi
+    const LINE_DELAY_MS = 280;   // har \n dan keyin — printer jismonan bosib ulgursin
+    const WARMUP_MS     = 500;   // INIT dan keyin printer "uyg'onishi" uchun
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-    // MUHIM: "javobli" (write with response) yozishni AFZAL ko'ramiz —
-    // garchi avvalroq katta RASM yuborishda bu uzilishlarga olib kelgan
-    // bo'lsa ham! SABAB: endi ma'lumot juda KICHIK (matn, ~0.5-1 KB,
-    // bir necha soniyada tugaydi) — printerning "band bo'lib qolish"
-    // oynasi juda qisqa. "Javobsiz" yozish esa hech qanday kafolat
-    // bermaydi: agar signal yo'qolsa, JS BUNI BILMAYDI — aynan shu sabab
-    // "Telefon"/"Kassir" qatorlari sezilmasdan bo'sh chiqib qolgan edi.
-    // Javobli yozishda esa printer har bir bo'lakni qabul qilganini
-    // tasdiqlaydi — agar tasdiq kelmasa, BIZ DARHOL BILAMIZ va qayta
-    // yuboramiz (pastdagi retry orqali).
-    const useAck = !!char.properties.write;
+    // Arzon BLE printerlarda ENG mos yo'l — "javobsiz" yozish. Sababi: qator
+    // jismonan bosilayotganda printer GATT'ga javob (ACK) qaytara olmaydi —
+    // "javobli" yozish esa shu paytda osilib qoladi, retry to'planib firmware
+    // xatoga uchraydi va o'chib qoladi (aynan "header'dan keyin o'chish" shu).
+    // Oqim nazoratini O'ZIMIZ kichik bo'lak + kechikish bilan qilamiz.
+    const noResp = char.properties.writeWithoutResponse;
 
     async function writeChunkWithRetry(chunk, attempt = 1) {
       try {
-        if (useAck) {
-          await char.writeValue(chunk);
-        } else if (char.properties.writeWithoutResponse) {
-          await char.writeValueWithoutResponse(chunk);
-        } else {
-          await char.writeValue(chunk);
-        }
+        if (noResp) await char.writeValueWithoutResponse(chunk);
+        else        await char.writeValue(chunk);
       } catch (err) {
         debugLog(`Yozish xatosi (urinish ${attempt}): ${err.message}`);
         if (attempt < 5) {
-          // "already in progress" — bu RADIO HALI BAND degani, demak
-          // qisqa kutish yetarli emas; uzunroq kutib, navbat bo'shashini
-          // kutamiz. Boshqa xatolarda (masalan ulanish butunlay uzilgan)
-          // ham xuddi shu strategiya zarar qilmaydi.
           const isBusy = /already in progress/i.test(err.message);
-          await new Promise(r => setTimeout(r, isBusy ? 150 * attempt : 200 * attempt));
+          await sleep(isBusy ? 150 * attempt : 200 * attempt);
           return writeChunkWithRetry(chunk, attempt + 1);
         }
         throw err;
       }
     }
 
+    await sleep(WARMUP_MS);   // MUHIM: INIT dan keyin printer tayyor bo'lsin
+
     const total = bytes.length;
     for (let i = 0; i < total; i += CHUNK) {
       const chunk = bytes.slice(i, i + CHUNK);
       await writeChunkWithRetry(chunk);
       const hasLineFeed = lineAware && chunk.includes(0x0A);
-      await new Promise(r => setTimeout(r, hasLineFeed ? LINE_DELAY_MS : DELAY_MS));
+      await sleep(hasLineFeed ? LINE_DELAY_MS : DELAY_MS);
       if (total > 2000 && (i / CHUNK) % 100 === 0) {
         debugLog(`Yuborilmoqda: ${Math.round(i / total * 100)}%`);
       }
     }
   }
 
+  // ── RawBT (Android) — ENG ISHONCHLI YO'L ─────────────────────────────────
+  // RawBT ilovasi (ru.a402d.rawbtprinter) ESC/POS ma'lumotni base64 ko'rinishida
+  // "rawbt:" sxema orqali qabul qiladi va Bluetooth ulanish + oqim nazoratini
+  // O'ZI to'g'ri boshqaradi. Shu sabab NT-2880 kabi arzon printerlarda Web
+  // Bluetooth'dan ancha barqaror — chek to'liq chiqadi, "header'dan keyin
+  // o'chish" muammosi yo'qoladi. (Foydalanuvchi telefonida RawBT o'rnatilgan
+  // bo'lishi kerak — Play Market: ru.a402d.rawbtprinter.)
+  function bytesToBase64(bytes) {
+    let bin = '';
+    const STEP = 0x8000; // katta massivlarda "Maximum call stack" bo'lmasligi uchun
+    for (let i = 0; i < bytes.length; i += STEP) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + STEP));
+    }
+    return btoa(bin);
+  }
+
+  function isAndroidDevice() {
+    return /android/i.test(navigator.userAgent || '');
+  }
+
+  // ESC/POS baytlarni RawBT'ga yuborish. intent: sxema — agar RawBT o'rnatilmagan
+  // bo'lsa, brauzer avtomatik Play Market sahifasini ochadi.
+  function sendBytesToRawBT(bytes) {
+    const b64 = bytesToBase64(bytes);
+    const intentUrl =
+      'intent:base64,' + b64 +
+      '#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;';
+    window.location.href = intentUrl;
+  }
+
+  async function doRawBT(saleId) {
+    try {
+      showToast('Chek tayyorlanmoqda...', 'info');
+      const receipt = await fetchReceipt(saleId);
+      const bytes   = buildEscPos(receipt);
+      debugLog(`RawBT: ${bytes.length} bayt yuborilmoqda`);
+      sendBytesToRawBT(bytes);
+      showToast('RawBT ilovasiga yuborildi', 'success');
+    } catch (err) {
+      console.error('RawBT xatoligi:', err);
+      showToast('RawBT xatoligi: ' + err.message + ". RawBT o'rnatilganini tekshiring.", 'danger');
+    }
+  }
+
+  // ── Web Bluetooth ESC/POS (zaxira yo'l) ──────────────────────────────────
   async function doBluetooth(saleId) {
     if (!navigator.bluetooth) {
       showToast(T.bluetooth_unsupported, 'warning');
@@ -662,6 +717,11 @@ const ReceiptManager = (() => {
       }
     },
 
+    // To'g'ridan RawBT (Android — eng ishonchli, modal ochmasdan)
+    async printRawBT(saleId) {
+      await doRawBT(saleId);
+    },
+
     // To'g'ridan Bluetooth (modal ochmasdan)
     async printBluetooth(saleId) {
       await doBluetooth(saleId);
@@ -671,6 +731,7 @@ const ReceiptManager = (() => {
     doPrint,
     doPdf,
     doShare,
+    async doRawBT(saleId) { await doRawBT(saleId); },
     async doBluetooth(saleId) { await doBluetooth(saleId); },
     _onTitleClick: _onTitleClickForDebug,
     closeModal,
