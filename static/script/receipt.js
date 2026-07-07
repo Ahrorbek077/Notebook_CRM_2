@@ -4,20 +4,13 @@
  * NoteBook — Chek chiqarish moduli
  *
  * Imkoniyatlar:
- *   1. RawBT (Android)  — ENG ISHONCHLI: ESC/POS ni RawBT ilovasiga yuboradi,
- *                         ilova Bluetooth ulanish/oqim nazoratini O'ZI qiladi
- *   2. Browser Print    — CSS @media print orqali
- *   3. PDF yuklab olish — serverda generatsiya
- *   4. Bluetooth Printer — Web Bluetooth API + ESC/POS (zaxira yo'l)
- *
- * MUHIM: printer 58mm (32 belgi). NT-2880 kabi arzon printerlarda Web Bluetooth
- * ko'pincha chala chiqaradi (header'dan keyin uziladi). RawBT yo'li shu muammoni
- * butunlay hal qiladi.
+ *   1. Bluetooth Printer — Web Bluetooth API + ESC/POS (80mm, lotin translit)
+ *   2. Ulashish (Share)  — chek rasmini telefon Share menyusi orqali
+ *   3. PDF yuklab olish  — serverda generatsiya
  *
  * Ishlatish:
  *   ReceiptManager.print(saleId)            → chek modalini ochadi
- *   ReceiptManager.printRawBT(saleId)       → to'g'ridan RawBT (Android)
- *   ReceiptManager.printBluetooth(saleId)   → to'g'ridan Web Bluetooth
+ *   ReceiptManager.printBluetooth(saleId)   → to'g'ridan Bluetooth printer
  * ──────────────────────────────────────────────────────────────────────────
  */
 
@@ -57,13 +50,23 @@ const ReceiptManager = (() => {
   }
 
   // ── Pul formati ───────────────────────────────────────────────────────────
-  function fmt(num) {
-    return Number(num).toLocaleString('uz-UZ') + " so'm";
+  // MUHIM: toLocaleString ISHLATILMAYDI! U minglik ajratuvchi sifatida oddiy
+  // probel emas, ko'rinmas U+00A0 (non-breaking space) belgisini qo'yadi —
+  // printer kodlashida bu belgi yo'q va chekda '?' bo'lib chiqadi
+  // (masalan "175?000"). Shu sabab guruhlashni ODDIY PROBEL bilan o'zimiz qilamiz.
+  function groupDigits(val) {
+    const n = Math.round(Number(val) || 0);
+    return String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' ')
+           .replace(/^/, n < 0 ? '-' : '');
   }
 
-  // ── Pul formati (qisqa, "so'm"siz) — 58mm tor qatorlar uchun ──────────────
+  function fmt(val) {
+    return groupDigits(val) + " so'm";
+  }
+
+  // Qisqa variant ("so'm"siz) — tor qatorlar uchun
   function num(val) {
-    return Number(val).toLocaleString('uz-UZ');
+    return groupDigits(val);
   }
 
   // ── Miqdor formati: "1.000" -> "1", "2.500" -> "2.5" ───────────────────────
@@ -117,7 +120,10 @@ const ReceiptManager = (() => {
   }
 
   function encodeAsciiSafe(str) {
-    const translit = transliterate(str);
+    // Xavfsizlik to'ri: ko'rinmas Unicode probellari (U+00A0, U+202F, U+2009)
+    // oddiy probelga aylantiriladi — aks holda chekda '?' bo'lib chiqadi.
+    const cleaned  = str.replace(/[\u00A0\u202F\u2009\u2007]/g, ' ');
+    const translit = transliterate(cleaned);
     const bytes = [];
     for (const ch of translit) {
       const code = ch.codePointAt(0);
@@ -273,18 +279,10 @@ const ReceiptManager = (() => {
   function showModal(receipt) {
     document.getElementById('receiptModal')?.remove();
 
-    // RawBT — Android uchun ASOSIY (eng ishonchli) chop etish tugmasi.
-    const rawbtBtn = isAndroidDevice()
-      ? `<button class="btn btn-success" onclick="ReceiptManager.doRawBT(${receipt.sale_id})"
-               style="flex:1;height:36px;font-size:.82rem;min-width:80px">
-           <i class="fa fa-receipt me-1"></i>Chek (RawBT)
-         </button>`
-      : '';
-
     const bluetoothBtn = window.isBluetoothSupported()
       ? `<button class="btn btn-primary" onclick="ReceiptManager.doBluetooth(${receipt.sale_id})"
                style="flex:1;height:36px;font-size:.82rem;min-width:80px">
-           <i class="fa fa-bluetooth-b me-1"></i>Printer
+           <i class="fa fa-bluetooth-b me-1"></i>Print
          </button>`
       : '';
 
@@ -312,8 +310,7 @@ const ReceiptManager = (() => {
 
           <div style="display:flex;align-items:center;justify-content:space-between;
                       padding:12px 16px 8px;flex-shrink:0;border-bottom:1px solid var(--b,rgba(255,255,255,.08))">
-            <span style="font-weight:700;font-size:.95rem;color:var(--t,#fff)"
-                  onclick="ReceiptManager._onTitleClick()">
+            <span style="font-weight:700;font-size:.95rem;color:var(--t,#fff)">
               <i class="fa fa-receipt me-2" style="color:var(--cyan,#00bcd4)"></i>Chek #${receipt.sale_id}
             </span>
             <button onclick="ReceiptManager.closeModal()"
@@ -328,17 +325,12 @@ const ReceiptManager = (() => {
 
           <div style="display:flex;gap:8px;padding:12px 16px 20px;flex-shrink:0;
                       border-top:1px solid var(--b,rgba(255,255,255,.08));flex-wrap:wrap">
-            ${rawbtBtn}
-            <button class="btn btn-secondary" onclick="ReceiptManager.doPrint()"
-                    style="flex:1;height:36px;font-size:.82rem;min-width:80px">
-              <i class="fa fa-print me-1"></i>Chop
-            </button>
+            ${bluetoothBtn}
+            ${shareBtn}
             <button class="btn btn-secondary" onclick="ReceiptManager.doPdf(${receipt.sale_id})"
                     style="flex:1;height:36px;font-size:.82rem;min-width:80px">
               <i class="fa fa-file-pdf me-1"></i>PDF
             </button>
-            ${shareBtn}
-            ${bluetoothBtn}
           </div>
         </div>
       </div>
@@ -355,29 +347,6 @@ const ReceiptManager = (() => {
     document.getElementById('receiptModal')?.remove();
   }
 
-
-  // ── Browser print ─────────────────────────────────────────────────────────
-  function doPrint() {
-    const content = document.getElementById('receiptContent');
-    if (!content) return;
-    const printWin = window.open('', '_blank', 'width=400,height=600');
-    printWin.document.write(`
-      <!DOCTYPE html><html><head>
-        <title>Chek</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-        <style>
-          body { font-family: 'Courier New', monospace; font-size: 12px; margin: 0; padding: 10px; }
-          .receipt-wrapper { max-width: 320px; margin: 0 auto; }
-          @media print {
-            body { -webkit-print-color-adjust: exact; }
-          }
-        </style>
-      </head><body>${content.outerHTML}
-        <script>window.onload=()=>{window.print();window.close();}<\/script>
-      </body></html>
-    `);
-    printWin.document.close();
-  }
 
   // ── PDF yuklab olish — SERVERDA generatsiya qilinadi (Kirill/o'zbek
   //    harflari to'liq chiqishi uchun; jsPDF standart shriftlari kirillni
@@ -459,7 +428,6 @@ const ReceiptManager = (() => {
       indicate: char.properties.indicate,
     };
     console.log('Printer characteristic properties:', props);
-    debugLog('Printer: ' + (device.name || '?') + ' | props: ' + JSON.stringify(props));
 
     return { server, char };
   }
@@ -497,7 +465,6 @@ const ReceiptManager = (() => {
         if (noResp) await char.writeValueWithoutResponse(chunk);
         else        await char.writeValue(chunk);
       } catch (err) {
-        debugLog(`Yozish xatosi (urinish ${attempt}): ${err.message}`);
         if (attempt < 5) {
           const isBusy = /already in progress/i.test(err.message);
           await sleep(isBusy ? 150 * attempt : 200 * attempt);
@@ -516,51 +483,7 @@ const ReceiptManager = (() => {
       const hasLineFeed = lineAware && chunk.includes(0x0A);
       await sleep(hasLineFeed ? LINE_DELAY_MS : DELAY_MS);
       if (total > 2000 && (i / CHUNK) % 100 === 0) {
-        debugLog(`Yuborilmoqda: ${Math.round(i / total * 100)}%`);
       }
-    }
-  }
-
-  // ── RawBT (Android) — ENG ISHONCHLI YO'L ─────────────────────────────────
-  // RawBT ilovasi (ru.a402d.rawbtprinter) ESC/POS ma'lumotni base64 ko'rinishida
-  // "rawbt:" sxema orqali qabul qiladi va Bluetooth ulanish + oqim nazoratini
-  // O'ZI to'g'ri boshqaradi. Shu sabab NT-2880 kabi arzon printerlarda Web
-  // Bluetooth'dan ancha barqaror — chek to'liq chiqadi, "header'dan keyin
-  // o'chish" muammosi yo'qoladi. (Foydalanuvchi telefonida RawBT o'rnatilgan
-  // bo'lishi kerak — Play Market: ru.a402d.rawbtprinter.)
-  function bytesToBase64(bytes) {
-    let bin = '';
-    const STEP = 0x8000; // katta massivlarda "Maximum call stack" bo'lmasligi uchun
-    for (let i = 0; i < bytes.length; i += STEP) {
-      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + STEP));
-    }
-    return btoa(bin);
-  }
-
-  function isAndroidDevice() {
-    return /android/i.test(navigator.userAgent || '');
-  }
-
-  // ESC/POS baytlarni RawBT'ga yuborish.
-  // MUHIM: to'g'ridan "rawbt:base64," sxemasi ishlatiladi (RawBT hujjatidagi
-  // standart yo'l). Avval "intent:" o'rashda base64 ichidagi '+' va '/'
-  // belgilar buzilib, ma'lumot yarmida uzilib qolardi.
-  function sendBytesToRawBT(bytes) {
-    const b64 = bytesToBase64(bytes);
-    window.location.href = 'rawbt:base64,' + b64;
-  }
-
-  async function doRawBT(saleId) {
-    try {
-      showToast('Chek tayyorlanmoqda...', 'info');
-      const receipt = await fetchReceipt(saleId);
-      const bytes   = buildEscPos(receipt);
-      debugLog(`RawBT: ${bytes.length} bayt yuborilmoqda`);
-      sendBytesToRawBT(bytes);
-      showToast('RawBT ilovasiga yuborildi', 'success');
-    } catch (err) {
-      console.error('RawBT xatoligi:', err);
-      showToast('RawBT xatoligi: ' + err.message + ". RawBT o'rnatilganini tekshiring.", 'danger');
     }
   }
 
@@ -582,7 +505,6 @@ const ReceiptManager = (() => {
       // soniyada tugaydi, Bluetooth "band/uzilib qolish" xavfi deyarli yo'q.
       const receipt = await fetchReceipt(saleId);
       const bytes   = buildEscPos(receipt);
-      debugLog(`Chek matni tayyor: ${bytes.length} bayt (lotin harflarda)`);
 
       // ── Qayta ulanish bilan urinish ──────────────────────────────────────
       // Arzon printerlar jismonan bosib chiqarish paytida Bluetooth
@@ -595,7 +517,6 @@ const ReceiptManager = (() => {
         try {
           const { server, char } = await establishGattConnection(device);
           if (attempt > 1) {
-            debugLog(`Qayta ulanish (${attempt}-urinish) — boshidan yuborilmoqda`);
             showToast(`Qayta ulanmoqda (${attempt}-urinish)...`, 'warning');
           }
           await writeBytesToPrinter(char, bytes, { lineAware: true });
@@ -606,7 +527,6 @@ const ReceiptManager = (() => {
           break;
         } catch (err) {
           lastErr = err;
-          debugLog(`Urinish ${attempt} muvaffaqiyatsiz: ${err.message}`);
           if (attempt < MAX_ATTEMPTS) {
             await new Promise(r => setTimeout(r, 800));
           }
@@ -620,7 +540,6 @@ const ReceiptManager = (() => {
         return;
       }
       console.error('Bluetooth xatoligi:', err);
-      debugLog('XATO: ' + err.name + ' — ' + err.message);
       showToast(
         `Printer xatoligi: ${err.message}. "Ulashish" tugmasi orqali ham urinib ko'ring.`,
         'danger'
@@ -636,50 +555,6 @@ const ReceiptManager = (() => {
       s.src = src; s.onload = resolve; s.onerror = reject;
       document.head.appendChild(s);
     });
-  }
-
-  // ── Mobil debug panel — "F12" o'rniga ────────────────────────────────────
-  // Telefonda Chrome DevTools (F12) ochish uchun kompyuter + USB sim kerak.
-  // Shu panel orqali xabarlarni TO'G'RIDAN-TO'G'RI EKRANDA ko'rish mumkin —
-  // shunchaki skrinshot olib yuborish kifoya.
-  // Ochish: chek oynasidagi sarlavhani 5 marta ketma-ket bosing.
-  const _debugLines = [];
-  function debugLog(msg) {
-    const time = new Date().toLocaleTimeString('uz-UZ');
-    _debugLines.push(`[${time}] ${msg}`);
-    if (_debugLines.length > 50) _debugLines.shift();
-    const panel = document.getElementById('receiptDebugPanel');
-    if (panel) panel.textContent = _debugLines.join('\n');
-  }
-
-  function toggleDebugPanel() {
-    let panel = document.getElementById('receiptDebugPanel');
-    if (panel) { panel.remove(); return; }
-    panel = document.createElement('pre');
-    panel.id = 'receiptDebugPanel';
-    panel.style.cssText = `
-      position:fixed; inset:auto 0 0 0; max-height:40vh; overflow-y:auto;
-      background:#000; color:#0f0; font-size:10px; line-height:1.4;
-      padding:8px; margin:0; z-index:99999; white-space:pre-wrap;
-      font-family:monospace; border-top:2px solid #0f0;
-    `;
-    panel.textContent = _debugLines.length
-      ? _debugLines.join('\n')
-      : "Debug panel ochildi. Bluetooth/Printer harakatlari shu yerda ko'rinadi.";
-    document.body.appendChild(panel);
-  }
-
-  // 5 marta bosish bilan ochish/yopish (chek oyna sarlavhasiga ulanadi — pastda)
-  let _titleClickCount = 0;
-  let _titleClickTimer = null;
-  function _onTitleClickForDebug() {
-    _titleClickCount++;
-    clearTimeout(_titleClickTimer);
-    _titleClickTimer = setTimeout(() => { _titleClickCount = 0; }, 1500);
-    if (_titleClickCount >= 5) {
-      _titleClickCount = 0;
-      toggleDebugPanel();
-    }
   }
 
   // ── Toast ─────────────────────────────────────────────────────────────────
@@ -704,7 +579,6 @@ const ReceiptManager = (() => {
       </div>
     `);
     setTimeout(() => document.getElementById(id)?.remove(), 4000);
-    debugLog(`[${type}] ${msg}`);
   }
 
   // ── Public API ────────────────────────────────────────────────────────────
@@ -720,23 +594,15 @@ const ReceiptManager = (() => {
       }
     },
 
-    // To'g'ridan RawBT (Android — eng ishonchli, modal ochmasdan)
-    async printRawBT(saleId) {
-      await doRawBT(saleId);
-    },
-
     // To'g'ridan Bluetooth (modal ochmasdan)
     async printBluetooth(saleId) {
       await doBluetooth(saleId);
     },
 
     // Modal ichidagi tugmalar uchun
-    doPrint,
     doPdf,
     doShare,
-    async doRawBT(saleId) { await doRawBT(saleId); },
     async doBluetooth(saleId) { await doBluetooth(saleId); },
-    _onTitleClick: _onTitleClickForDebug,
     closeModal,
   };
 

@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY    = os.environ.get('SECRET_KEY')
 DEBUG         = os.environ.get('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '').split(',')
+ALLOWED_HOSTS = [h for h in os.environ.get('ALLOWED_HOSTS', '').split(',') if h]
 GOOGLE_MAPS_API_KEY = os.environ.get('GOOGLE_MAPS_API_KEY', '')
 
 # ── Eskiz.uz SMS ──────────────────────────────────────────────────────────────
@@ -17,8 +17,6 @@ ESKIZ_EMAIL    = os.environ.get('ESKIZ_EMAIL', '')
 ESKIZ_PASSWORD = os.environ.get('ESKIZ_PASSWORD', '')
 ESKIZ_FROM     = os.environ.get('ESKIZ_FROM', '4546')
 ESKIZ_BASE_URL = os.environ.get('ESKIZ_BASE_URL', 'https://notify.eskiz.uz/api')
-
-CSRF_TRUSTED_ORIGINS = ['https://web-production-a6fe2.up.railway.app']
 
 REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
 
@@ -68,6 +66,7 @@ INSTALLED_APPS = [
     'notebook.containers',
     'notebook.sms',
     'notebook.inbox',
+    'notebook.ocr',
     # ── Third-party ──────────────────────────────────────────────────────────
     'django_celery_beat',
     'django_celery_results',
@@ -125,9 +124,15 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-SECURE_PROXY_SSL_HEADER  = ('HTTP_X_FORWARDED_PROTO', 'https')
-SESSION_COOKIE_SECURE    = True
-CSRF_COOKIE_SECURE       = True
+# ── Xavfsizlik — hammasi .env dan (local: False, production: True) ──────────
+CSRF_TRUSTED_ORIGINS = [o for o in os.environ.get('CSRF_TRUSTED_ORIGINS', '').split(',') if o]
+SESSION_COOKIE_SECURE = os.environ.get('SESSION_COOKIE_SECURE', 'False') == 'True'
+CSRF_COOKIE_SECURE    = os.environ.get('CSRF_COOKIE_SECURE',    'False') == 'True'
+
+# Nginx (reverse proxy) ortida HTTPS ni to'g'ri aniqlash uchun.
+# FAQAT proxy ortida yoqiladi (production) — localda runserver'da xavfli.
+if os.environ.get('USE_X_FORWARDED_PROTO', 'False') == 'True':
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 # ── Til va vaqt ──────────────────────────────────────────────────────────────
 LANGUAGE_CODE = 'uz'           # default: O'zbek lotin

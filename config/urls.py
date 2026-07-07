@@ -25,6 +25,7 @@ urlpatterns = [
     path('containers/', include('notebook.containers.urls', namespace='containers')),
     path('sms/', include('notebook.sms.urls', namespace='sms')),
     path('inbox/', include('notebook.inbox.urls', namespace='inbox')),
+    path('ocr/', include('notebook.ocr.urls', namespace='ocr')),
 ]
 
 handler403 = 'notebook.accounts.views.error_403'

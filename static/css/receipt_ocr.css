@@ -1,0 +1,167 @@
+/* static/css/receipt_ocr.css — "Chekdan xarid" modali (dark uslub) */
+
+.rocr-sheet {
+    max-height: 92dvh;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.rocr-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.rocr-title {
+    font-weight: 700;
+    font-size: 1rem;
+}
+.rocr-title .fa-camera { color: #00bcd4; }
+
+.rocr-hint {
+    font-size: .8rem;
+    color: #aab;
+    background: rgba(0,188,212,.07);
+    border: 1px solid rgba(0,188,212,.2);
+    border-radius: 10px;
+    padding: 9px 12px;
+    margin-bottom: 12px;
+    line-height: 1.45;
+}
+
+.rocr-upload-btns {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.rocr-upload-btns .btn { flex: 1; }
+
+.rocr-preview {
+    width: 100%;
+    max-height: 280px;
+    object-fit: contain;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,.1);
+    margin-bottom: 10px;
+    background: #000;
+}
+
+.rocr-loading {
+    text-align: center;
+    color: #aab;
+    font-size: .85rem;
+    padding: 10px;
+}
+
+.rocr-error {
+    color: #ff9c9c;
+    background: rgba(255,80,80,.08);
+    border: 1px solid rgba(255,80,80,.3);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: .8rem;
+    margin-top: 10px;
+    white-space: pre-wrap;
+}
+
+/* ── Qatorlar ─────────────────────────────────────────────────────────── */
+.rocr-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.rocr-row {
+    border: 1px solid rgba(255,255,255,.09);
+    border-radius: 10px;
+    padding: 9px;
+    background: rgba(255,255,255,.02);
+}
+.rocr-row-warn {
+    border-color: rgba(255,171,0,.4);   /* mahsulot tanlanmagan — sariq */
+}
+
+.rocr-raw-line {
+    font-size: .7rem;
+    color: #667;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rocr-row-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 6px;
+}
+@media (min-width: 420px) {
+    .rocr-row-grid {
+        grid-template-columns: 1.6fr .7fr .8fr .9fr auto;
+        align-items: center;
+    }
+}
+
+.rocr-row-grid select,
+.rocr-row-grid input {
+    width: 100%;
+    background: #12121a;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 8px;
+    color: #fff;
+    font-size: .82rem;
+    padding: 7px 9px;
+    outline: none;
+}
+.rocr-row-grid select:focus,
+.rocr-row-grid input:focus {
+    border-color: rgba(0,188,212,.5);
+}
+
+.rocr-unit {
+    font-size: .75rem;
+    color: #889;
+    text-align: center;
+}
+
+.rocr-del {
+    background: none;
+    border: none;
+    color: #ff7b7b;
+    font-size: .9rem;
+    padding: 6px 9px;
+    cursor: pointer;
+    justify-self: center;
+}
+
+.rocr-total {
+    text-align: right;
+    font-weight: 700;
+    font-size: .95rem;
+    color: #00e676;
+    margin: 12px 0 4px;
+}
+
+.rocr-raw {
+    margin-top: 8px;
+    font-size: .75rem;
+    color: #667;
+}
+.rocr-raw pre {
+    max-height: 160px;
+    overflow: auto;
+    background: #0c0c12;
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 8px;
+    padding: 8px;
+    color: #889;
+    font-size: .68rem;
+    white-space: pre-wrap;
+}
+
+.rocr-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 14px;
+}
+.rocr-actions .btn { flex: 1; }
