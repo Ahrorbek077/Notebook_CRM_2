@@ -180,10 +180,12 @@
         product_id: r.product_id || '',
         quantity:   r.qty   || '1',
         cost_price: r.price || '',
-        mode:       'unit',
+        mode:       'unit',   // pastda defaultMode bilan to'g'rilanadi
         raw:        r.raw   || '',
         score:      r.score || 0,
       }));
+      // Moslashgan mahsulot karobkali bo'lsa — rejim avtomatik 'karobka'
+      ROWS.forEach(r => { r.mode = defaultMode(r.product_id); });
       if (!ROWS.length) ROWS.push(emptyRow());
 
       document.getElementById('rocrRawText').textContent = data.raw_text || '';
@@ -203,6 +205,13 @@
     ({ product_id: '', quantity: '1', cost_price: '', mode: 'unit', raw: '', score: 0 });
 
   const productById = id => PRODUCTS.find(p => String(p.id) === String(id));
+
+  // Karobkali mahsulot uchun DEFAULT rejim — 'box' (kompaniya cheki karobka
+  // hisobida keladi), oddiy mahsulot uchun 'unit' (dona/kg).
+  const defaultMode = productId => {
+    const p = productById(productId);
+    return (p && p.box_enabled) ? 'box' : 'unit';
+  };
 
   function renderRows() {
     const wrap = document.getElementById('rocrRows');
@@ -234,7 +243,8 @@
                  value="${escapeHtml(row.quantity)}" placeholder="Miqdor">
           ${modeSel}
           <input type="number" class="rocr-price" data-i="${idx}" min="0" step="any"
-                 value="${escapeHtml(row.cost_price)}" placeholder="Tan narx">
+                 value="${escapeHtml(row.cost_price)}"
+                 placeholder="${row.mode === 'box' ? 'Narx (1 karobka)' : 'Narx (1 ' + (prod ? prod.unit : 'dona') + ')'}">
           <button class="rocr-del" data-i="${idx}" title="O'chirish">
             <i class="fa fa-trash-can"></i>
           </button>
@@ -249,7 +259,7 @@
       // Narx bo'sh bo'lsa — mahsulotning oxirgi tan narxini taklif qilamiz
       const p = productById(e.target.value);
       if (p && !ROWS[i].cost_price && p.last_cost) ROWS[i].cost_price = p.last_cost;
-      ROWS[i].mode = 'unit';
+      ROWS[i].mode = defaultMode(e.target.value);
       renderRows();
     });
     wrap.querySelectorAll('.rocr-qty').forEach(el => el.oninput = e => {
@@ -259,7 +269,8 @@
       ROWS[+e.target.dataset.i].cost_price = e.target.value; updateTotal();
     });
     wrap.querySelectorAll('.rocr-mode').forEach(el => el.onchange = e => {
-      ROWS[+e.target.dataset.i].mode = e.target.value; updateTotal();
+      ROWS[+e.target.dataset.i].mode = e.target.value;
+      renderRows();   // placeholder ("1 karobka" / "1 dona") yangilansin
     });
     wrap.querySelectorAll('.rocr-del').forEach(el => el.onclick = e => {
       ROWS.splice(+e.currentTarget.dataset.i, 1);
@@ -273,11 +284,8 @@
   function rowTotal(row) {
     const qty   = parseFloat(row.quantity)   || 0;
     const price = parseFloat(row.cost_price) || 0;
-    if (row.mode === 'box') {
-      const p = productById(row.product_id);
-      const upb = p ? parseFloat(p.units_per_box) || 0 : 0;
-      return qty * upb * price;
-    }
+    // Karobka rejimida narx — 1 KAROBKA narxi (chekdagidek): jami = soni x narx.
+    // Unit rejimida narx — 1 dona/kg narxi: jami = miqdor x narx.
     return qty * price;
   }
 

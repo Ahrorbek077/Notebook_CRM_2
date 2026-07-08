@@ -131,3 +131,17 @@ class Product(models.Model):
         Batch yo'q bo'lsa default_cost_price ni qaytaradi."""
         batch = self.stock_batches.filter(is_active=True).order_by('-created_at').first()
         return batch.cost_price if batch else self.default_cost_price
+
+    @property
+    def stock_boxes(self):
+        """Stokdagi TO'LIQ karobkalar soni. Karobka o'chiq bo'lsa None."""
+        if self.is_box_enabled and self.units_per_box:
+            return int(self.stock // self.units_per_box)
+        return None
+
+    @property
+    def stock_box_remainder(self):
+        """Karobkalarga sig'may qolgan qoldiq (dona/kg)."""
+        if self.is_box_enabled and self.units_per_box:
+            return self.stock - (self.stock // self.units_per_box) * self.units_per_box
+        return None

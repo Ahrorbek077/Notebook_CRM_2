@@ -141,12 +141,19 @@ class ReceiptConfirmView(LoginRequiredMixin, BusinessRequiredMixin, View):
                     continue
                 units_per_box = product.units_per_box
                 quantity = Decimal(box_quantity) * units_per_box
+                # MUHIM: karobka rejimida frontenddan kelgan narx — 1 KAROBKA
+                # narxi (kompaniya chekida shunday yoziladi). FIFO esa DONA/KG
+                # tan narxi bilan ishlaydi — shuning uchun bo'lib olamiz:
+                box_price   = cost_price
+                cost_price  = (box_price / units_per_box).quantize(Decimal('0.01'))
+                line_total  = Decimal(box_quantity) * box_price
             else:
                 try:
                     quantity = Decimal(str(row.get('quantity', 0)))
                 except (InvalidOperation, ValueError, TypeError):
                     errors.append(f"{i}-qator ({product.name}): miqdor noto'g'ri.")
                     continue
+                line_total = quantity * cost_price
 
             if quantity <= 0 or cost_price <= 0:
                 errors.append(f"{i}-qator ({product.name}): miqdor/narx musbat bo'lsin.")
@@ -162,7 +169,6 @@ class ReceiptConfirmView(LoginRequiredMixin, BusinessRequiredMixin, View):
                 errors.append(f"{i}-qator ({product.name}): {e}")
                 continue
 
-            line_total   = quantity * cost_price
             grand_total += line_total
             created.append({
                 'product': product.name, 'batch_id': batch.id,

@@ -295,6 +295,16 @@
                                 {{ product.stock|floatformat:-2 }} {{ product.get_unit_type_display }}
                             </span>
                         </div>
+                        <div class="bp-meta-item">
+                            Stok: <span class="v {% if product.stock == 0 %}red{% elif product.stock < 5 %}amber{% else %}green{% endif %}">
+                                {{ product.stock|floatformat:-2 }} {{ product.get_unit_type_display }}
+                            </span>
+                            {% if product.stock_boxes is not None %}
+                            <span class="v" style="color:var(--t3,#889);font-size:.66rem">
+                                ({{ product.stock_boxes }} karobka{% if product.stock_box_remainder %} + {{ product.stock_box_remainder|floatformat:-2 }}{% endif %})
+                            </span>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
                 <div class="card-chevron" id="chev-{{ product.id }}">

@@ -37,16 +37,49 @@ def normalize(text: str) -> str:
     return re.sub(r'\s+', ' ', s).strip()
 
 
+# O'lchov/qadoq so'zlari — "yadro nom"ni ajratishda tashlab yuboriladi.
+# Misol: katalogda "BANAN 3.5 KG", chekda "banan" — raqam va "kg" olib
+# tashlansa ikkalasi ham "banan" bo'ladi va 100% mos keladi.
+_UNIT_WORDS_RE = re.compile(
+    r'\b(kg|kq|gr?|litr?|lt?|ml|sm|mm|dona|shtuk|sht|blok|pachka|karobka|'
+    r'quti|banka|butilka|upak|up)\b', re.IGNORECASE)
+
+
+def core_name(text: str) -> str:
+    """Nomning 'yadrosi': normalize + raqamlar va o'lchov so'zlarisiz."""
+    s = normalize(text)
+    s = re.sub(r'\d+', ' ', s)          # 3.5, 1500, №12 ...
+    s = _UNIT_WORDS_RE.sub(' ', s)      # kg, l, dona, karobka ...
+    return re.sub(r'\s+', ' ', s).strip()
+
+
 def similarity(a: str, b: str) -> float:
-    """0..1 o'xshashlik. Qisman moslik ham hisobga olinadi (nom ichida bo'lsa)."""
+    """
+    0..1 o'xshashlik. Uch usulning ENG YAXSHISI olinadi:
+      1) to'liq normalizatsiyalangan matnlar o'rtasida ratio
+      2) biri ikkinchisining ichida bo'lsa (qisman moslik)
+      3) "yadro nom" o'rtasida ratio — o'lcham/raqam qo'shimchalari
+         hisobga olinmaydi ("banan" == "BANAN 3.5 KG")
+    """
     na, nb = normalize(a), normalize(b)
     if not na or not nb:
         return 0.0
-    ratio = SequenceMatcher(None, na, nb).ratio()
-    # Biri ikkinchisining ichida bo'lsa — kuchli signal
+
+    score = SequenceMatcher(None, na, nb).ratio()
+
     if na in nb or nb in na:
-        ratio = max(ratio, 0.82)
-    return ratio
+        score = max(score, 0.82)
+
+    ca, cb = core_name(a), core_name(b)
+    if ca and cb:
+        core = SequenceMatcher(None, ca, cb).ratio()
+        if ca == cb:
+            core = 1.0
+        elif ca in cb or cb in ca:
+            core = max(core, 0.85)
+        score = max(score, core)
+
+    return score
 
 
 # ── Raqam yordamchilari ──────────────────────────────────────────────────────
@@ -175,7 +208,10 @@ def match_products(rows: list, products) -> list:
             score = similarity(row['name'], pname)
             if score > best_score:
                 best_id, best_name, best_score = pid, pname, score
-        if best_score >= 0.45:   # past chegara — baribir foydalanuvchi tasdiqlaydi
+        # 0.6 chegara: umumiy "3.5 KG" kabi qo'shimchalar tufayli boshqa
+        # mahsulot noto'g'ri taklif bo'lmasligi uchun. Yadro nomi mos kelsa
+        # baribir 0.85+ chiqadi, shuning uchun haqiqiy mosliklar yo'qolmaydi.
+        if best_score >= 0.6:
             row['product_id']   = best_id
             row['product_name'] = best_name
             row['score']        = round(best_score, 2)
