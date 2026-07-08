@@ -87,7 +87,11 @@
                             <span>{{ product.category.name }}</span>
                         </div>
                         <div class="product-meta-item">
-                            Stock: <span class="val stock-num {% if product.stock == 0 %}zero{% elif product.stock < 5 %}low{% endif %}">{{ product.stock|floatformat:-3 }}</span> {{ product.get_unit_type_display }}
+                            Soni: <span class="val stock-num {% if product.stock == 0 %}zero{% elif product.stock < 5 %}low{% endif %}">{{ product.stock|floatformat:-3 }}</span> {{ product.get_unit_type_display }}
+                            {% if product.stock_boxes is not None %} 
+                            <span style="display:inline-block;background:rgba(0,188,212,.14);border:1px solid rgba(0,188,212,.35);color:#4dd0e1;font-size:.8rem;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:4px;white-space:nowrap"><i class="fa fa-box" style="font-size:.7rem;margin-right:3px"></i>{{ product.stock_boxes }} karobka{% if product.stock_box_remainder %} +{{ product.stock_box_remainder|floatformat:-2 }}{% endif %}
+                            </span>
+                            {% endif %}
                         </div>
                         <div class="product-meta-item">
                             <span class="val" style="font-family:var(--mono);color:var(--green)">{{ product.price|floatformat:0 }} so'm</span>

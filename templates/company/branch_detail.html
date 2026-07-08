@@ -291,20 +291,18 @@
                             Tan: <span class="v amber bp-cost">{{ product.annotated_cost_price|floatformat:0 }} so'm</span>
                         </div>
                         <div class="bp-meta-item">
-                            Stok: <span class="v {% if product.stock == 0 %}red{% elif product.stock < 5 %}amber{% else %}green{% endif %}">
-                                {{ product.stock|floatformat:-2 }} {{ product.get_unit_type_display }}
-                            </span>
-                        </div>
-                        <div class="bp-meta-item">
-                            Stok: <span class="v {% if product.stock == 0 %}red{% elif product.stock < 5 %}amber{% else %}green{% endif %}">
+                            Soni: <span class="v {% if product.stock == 0 %}red{% elif product.stock < 5 %}amber{% else %}green{% endif %}">
                                 {{ product.stock|floatformat:-2 }} {{ product.get_unit_type_display }}
                             </span>
                             {% if product.stock_boxes is not None %}
-                            <span class="v" style="color:var(--t3,#889);font-size:.66rem">
-                                ({{ product.stock_boxes }} karobka{% if product.stock_box_remainder %} + {{ product.stock_box_remainder|floatformat:-2 }}{% endif %})
+                            <span style="display:inline-block;background:rgba(0,188,212,.14);
+                                         border:1px solid rgba(0,188,212,.35);color:#4dd0e1;
+                                         font-size:.78rem;font-weight:700;padding:2px 8px;
+                                         border-radius:10px;margin-left:4px;white-space:nowrap">
+                                <i class="fa fa-box" style="font-size:.7rem;margin-right:3px"></i>{{ product.stock_boxes }} karobka{% if product.stock_box_remainder %} +{{ product.stock_box_remainder|floatformat:-2 }}{% endif %}
                             </span>
                             {% endif %}
-                        </div>
+                        </div> 
                     </div>
                 </div>
                 <div class="card-chevron" id="chev-{{ product.id }}">
