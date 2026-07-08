@@ -135,7 +135,16 @@ def build_receipt_pdf(sale) -> bytes:
         text(LM, y, name, size=9)
         text(RM, y, price_str, size=9, align='right', color='#b8860b')
         y -= 4.2 * mm_unit
-        qty_line = f"  {_fmt_qty(item.quantity)} {item.product.get_unit_type_display()} x {_fmt_money(item.price_at_sale)}"
+        
+        # ===== KAROBKA QO'LLAB-QUVVATLASH (PDF) =====
+        box_part = ""
+        _p = item.product
+        if getattr(_p, 'is_box_enabled', False) and getattr(_p, 'units_per_box', None):
+            _b = int(item.quantity // _p.units_per_box)
+            _r = item.quantity - _b * _p.units_per_box
+            box_part = f" ({_b} kar." + (f"+{_fmt_qty(_r)}" if _r else "") + ")"
+        
+        qty_line = f"  {_fmt_qty(item.quantity)} {item.product.get_unit_type_display()}{box_part} x {_fmt_money(item.price_at_sale)}"
         text(LM, y, qty_line, size=7, color='#888888')
         y -= 4.8 * mm_unit
 
@@ -249,7 +258,16 @@ def _render_receipt_image(sale, dpi=300):
         text(LM, y, name, size=9)
         text(RM, y, price_str, size=9, bold=True, align='right')
         y += int(5.5 * MM2PX)
-        qty_line = f"  {_fmt_qty(item.quantity)} {item.product.get_unit_type_display()} x {_fmt_money(item.price_at_sale)}"
+        
+        # ===== KAROBKA QO'LLAB-QUVVATLASH (Rasm/PNG/ESC/POS) =====
+        box_part = ""
+        _p = item.product
+        if getattr(_p, 'is_box_enabled', False) and getattr(_p, 'units_per_box', None):
+            _b = int(item.quantity // _p.units_per_box)
+            _r = item.quantity - _b * _p.units_per_box
+            box_part = f" ({_b} kar." + (f"+{_fmt_qty(_r)}" if _r else "") + ")"
+        
+        qty_line = f"  {_fmt_qty(item.quantity)} {item.product.get_unit_type_display()}{box_part} x {_fmt_money(item.price_at_sale)}"
         text(LM, y, qty_line, size=7)
         y += int(5.5 * MM2PX)
 

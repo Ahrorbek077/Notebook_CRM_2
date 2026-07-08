@@ -69,6 +69,13 @@ const ReceiptManager = (() => {
     return groupDigits(val);
   }
 
+  // Karobka yorlig'i: serverdan item.boxes kelsa " (2 kar.)" yoki " (2 kar.+10)"
+  function boxLabel(item) {
+    if (item.boxes === null || item.boxes === undefined) return '';
+    const rem = parseFloat(item.box_rem) || 0;
+    return ` (${item.boxes} kar.${rem ? '+' + fmtQty(rem) : ''})`;
+  }
+
   // ── Miqdor formati: "1.000" -> "1", "2.500" -> "2.5" ───────────────────────
   function fmtQty(val) {
     const n = parseFloat(val);
@@ -172,7 +179,7 @@ const ReceiptManager = (() => {
       const name      = String(item.name);
       const nameLine  = name.length > COL_WIDTH ? name.substring(0, COL_WIDTH - 1) + '.' : name;
       push(nameLine + '\n');
-      const left      = `  ${fmtQty(item.qty)} x ${num(item.price)}`;
+      const left      = `  ${fmtQty(item.qty)}${boxLabel(item)} x ${num(item.price)}`;
       push(twoCol(left, num(item.subtotal)) + '\n');
     });
 
@@ -210,7 +217,7 @@ const ReceiptManager = (() => {
     const itemsHtml = receipt.items.map(item => `
       <tr>
         <td>${item.name}</td>
-        <td class="text-center">${fmtQty(item.qty)}</td>
+        <td class="text-center">${fmtQty(item.qty)}${boxLabel(item)}</td>
         <td class="text-end">${Number(item.price).toLocaleString('uz-UZ')}</td>
         <td class="text-end">${Number(item.subtotal).toLocaleString('uz-UZ')}</td>
       </tr>
@@ -253,7 +260,7 @@ const ReceiptManager = (() => {
           <div style="display:flex;justify-content:space-between;padding:5px 0;
                       font-size:.8rem;border-bottom:1px solid var(--b,rgba(255,255,255,.04))">
             <span style="flex:2;color:var(--t,#fff);padding-right:6px">${item.name}</span>
-            <span style="flex:1;text-align:center;color:var(--t2,#aaa)">${fmtQty(item.qty)}</span>
+            <span style="flex:1;text-align:center;color:var(--t2,#aaa)">${fmtQty(item.qty)}${boxLabel(item)}</span>
             <span style="flex:1;text-align:right;color:var(--t2,#aaa)">${Number(item.price).toLocaleString('uz-UZ')}</span>
             <span style="flex:1;text-align:right;color:var(--amber,#ffab00);font-weight:700">${Number(item.subtotal).toLocaleString('uz-UZ')}</span>
           </div>

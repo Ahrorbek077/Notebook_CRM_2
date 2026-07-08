@@ -635,7 +635,13 @@ function showMsg(el,text,type){
 }
 
 /* ── Add Product ── */
-document.getElementById('openAddProduct').addEventListener('click',()=>openModal('addProductModal'));
+document.getElementById('openAddProduct').addEventListener('click',()=>{
+    openModal('addProductModal');
+    // Oxirgi tanlangan kategoriyani eslab qolamiz — ketma-ket create tezlashadi.
+    // Har filial o'z kategoriyasini alohida eslaydi (kalitda BRANCH_ID bor).
+    const last=localStorage.getItem('lastCat_'+BRANCH_ID);
+    if(last)document.getElementById('apCategory').value=last;
+});
 document.getElementById('apImgWrap').addEventListener('click',()=>document.getElementById('apImage').click());
 document.getElementById('apImage').addEventListener('change',function(){
     if(!this.files[0])return;
@@ -680,6 +686,7 @@ document.getElementById('apSubmit').addEventListener('click',async()=>{
         const res=await fetch(`/company/api/branch/${BRANCH_ID}/product/add/`,{method:'POST',body:fd});
         const d=await res.json();
         if(d.status==='success'){
+            localStorage.setItem('lastCat_'+BRANCH_ID,cat);   // kategoriyani eslab qolamiz
             toast("Mahsulot qo'shildi",'success');
             closeModal('addProductModal');
             setTimeout(()=>location.reload(),700);

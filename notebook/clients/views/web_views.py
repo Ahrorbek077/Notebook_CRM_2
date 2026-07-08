@@ -382,12 +382,19 @@ class SaleReceiptView(BusinessRequiredMixin, View):
 
         items = []
         for item in sale.items.all():
+            p = item.product
+            boxes, box_rem = None, 0
+            if getattr(p, 'is_box_enabled', False) and getattr(p, 'units_per_box', None):
+                boxes   = int(item.quantity // p.units_per_box)
+                box_rem = item.quantity - boxes * p.units_per_box
             items.append({
-                'name':       item.product.name,
+                'name':       p.name,
                 'qty':        str(item.quantity),
-                'unit_label': item.product.get_unit_type_display(),
+                'unit_label': p.get_unit_type_display(),
                 'price':      float(item.price_at_sale),
                 'subtotal':   float(item.price_at_sale * item.quantity),
+                'boxes':      boxes,                      # karobkali bo'lmasa None
+                'box_rem':    float(box_rem) if box_rem else 0,
             })
 
         receipt_data = {
