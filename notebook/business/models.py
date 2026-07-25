@@ -30,6 +30,13 @@ class Business(models.Model):
     )
     phone      = models.CharField(max_length=20, blank=True)
     note       = models.TextField(blank=True)
+    payment_card_number = models.CharField(
+        max_length=25, blank=True, verbose_name="To'lov kartasi raqami",
+        help_text="SMS orqali qarz eslatmasida ko'rsatiladi (bo'sh bo'lsa chiqmaydi)"
+    )
+    payment_card_holder = models.CharField(
+        max_length=100, blank=True, verbose_name="Karta egasi F.I.SH."
+    )
     is_active  = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     webhook_token = models.CharField(

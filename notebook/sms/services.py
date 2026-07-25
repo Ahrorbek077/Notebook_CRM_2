@@ -122,25 +122,42 @@ class EskizClient:
 
 class SmsService:
 
-    DEBT_TEMPLATE     = ("Assalomu alaykum, {phone} raqami egasi! Sizning {business}dan "
-                         "{amount} so'm qarzingiz bor. Iltimos, tezroq to'lov qilib qo'ying!")
-    ADVANCE_TEMPLATE  = ("Assalomu alaykum, {phone} raqami egasi! Sizning {business}da "
-                         "{amount} so'm avansingiz bor. Keyingi xaridingizda hisobga olinadi. Rahmat!")
+    # MUHIM: Kirill matnida ЎЗБЕК-maxsus harflar (ў, қ, ғ, ҳ) ataylab
+    # ishlatiladi — bu standart, to'g'ri imlo. Agar SMS operator/telefon
+    # bu harflarni ko'rsata olmasa (juda kam uchraydi), oddiy у/к bilan
+    # soddalashtirilgan versiyaga o'tkazish mumkin.
+    DEBT_TEMPLATE     = ("Ассалому алайкум, {phone} рақами эгаси! Сизнинг {business}дан "
+                         "{amount} сўм қарзингиз бор. Илтимос, тезроқ тўлов қилиб қўйинг!")
+    ADVANCE_TEMPLATE  = ("Ассалому алайкум, {phone} рақами эгаси! Сизнинг {business}да "
+                         "{amount} сўм авансингиз бор. Кейинги харидингизда ҳисобга олинади. Раҳмат!")
 
     RATE_LIMIT_SECONDS = 120  # bitta mijozga ketma-ket SMS orasidagi minimal interval
 
     @classmethod
     def build_balance_message(cls, client) -> str:
-        business_name = client.business.name if client.business else "Biznes"
+        business = client.business
+        business_name = business.name if business else "Biznes"
+
         if client.total_debt > 0:
-            return cls.DEBT_TEMPLATE.format(
+            text = cls.DEBT_TEMPLATE.format(
                 phone=client.phone, business=business_name,
                 amount=f"{client.total_debt:,.0f}".replace(',', ' ')
             )
-        return cls.ADVANCE_TEMPLATE.format(
-            phone=client.phone, business=business_name,
-            amount=f"{client.advance_balance:,.0f}".replace(',', ' ')
-        )
+        else:
+            text = cls.ADVANCE_TEMPLATE.format(
+                phone=client.phone, business=business_name,
+                amount=f"{client.advance_balance:,.0f}".replace(',', ' ')
+            )
+
+        # ── To'lov kartasi — faqat qarz bo'lganda va biznesda karta
+        # to'ldirilgan bo'lsagina qo'shiladi (avans SMS'ida karta shart emas).
+        if client.total_debt > 0 and business:
+            card_num    = (business.payment_card_number or '').strip()
+            card_holder = (business.payment_card_holder or '').strip()
+            if card_num and card_holder:
+                text += f"\n\n{card_num}\n{card_holder}"
+
+        return text
 
     @classmethod
     def _rate_limit_key(cls, client) -> str:

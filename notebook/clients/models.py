@@ -86,6 +86,16 @@ class Client(models.Model):
             return f"https://www.google.com/maps?q={self.latitude},{self.longitude}"
         return None
 
+    @property
+    def sms_text(self):
+        """Qarz/avans haqida SMS matni (Kirill). Qo'lda va avto SMS
+        BITTA manbadan (SmsService) matn oladi — ikki joyda alohida
+        yozilmasin, matn o'zgarsa faqat bitta joyni tahrirlash kifoya."""
+        if self.total_debt <= 0 and self.advance_balance <= 0:
+            return ''
+        from notebook.sms.services import SmsService
+        return SmsService.build_balance_message(self)
+
     def recalculate_balances(self):
         total_sales    = self.sales.aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
         total_payments = self.payments.aggregate(t=Sum('amount'))['t']    or Decimal('0')
