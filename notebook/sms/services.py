@@ -126,9 +126,9 @@ class SmsService:
     # ishlatiladi — bu standart, to'g'ri imlo. Agar SMS operator/telefon
     # bu harflarni ko'rsata olmasa (juda kam uchraydi), oddiy у/к bilan
     # soddalashtirilgan versiyaga o'tkazish mumkin.
-    DEBT_TEMPLATE     = ("Ассалому алайкум, {phone} рақами эгаси! Сизнинг {business}дан "
+    DEBT_TEMPLATE     = ("Ассалому алайкум, {phone} рақами эгаси! Сизнинг {business} Мороженое дан "
                          "{amount} сўм қарзингиз бор. Илтимос, тезроқ тўлов қилиб қўйинг!")
-    ADVANCE_TEMPLATE  = ("Ассалому алайкум, {phone} рақами эгаси! Сизнинг {business}да "
+    ADVANCE_TEMPLATE  = ("Ассалому алайкум, {phone} рақами эгаси! Сизнинг {business} Мороженое да "
                          "{amount} сўм авансингиз бор. Кейинги харидингизда ҳисобга олинади. Раҳмат!")
 
     RATE_LIMIT_SECONDS = 120  # bitta mijozga ketma-ket SMS orasidagi minimal interval
