@@ -790,3 +790,39 @@ msgstr "Қўшиш"
 
 msgid "Nomi"
 msgstr "Номи"
+
+msgid "qarz"
+msgstr "қарз"
+
+msgid "avans"
+msgstr "аванс"
+
+msgid "toza"
+msgstr "тоза"
+
+msgid "Xaritada"
+msgstr "Харитада"
+
+msgid "Idishlar"
+msgstr "Идишлар"
+
+msgid "so'm"
+msgstr "сўм"
+
+msgid "Avto SMS"
+msgstr "Авто СМС"
+
+msgid "Avtomatik SMS yuborish (Eskiz.uz)"
+msgstr "Автоматик СМС юбориш (Eskiz.uz)"
+
+msgid "Aloqani uz"
+msgstr "Алоқани уз"
+
+msgid "Hech narsa topilmadi"
+msgstr "Ҳеч нарса топилмади"
+
+msgid "Qidiruv shartlarini o'zgartiring"
+msgstr "Қидирув шартларини ўзгартиринг"
+
+msgid "Sahifani yangilang"
+msgstr "Саҳифани янгиланг"

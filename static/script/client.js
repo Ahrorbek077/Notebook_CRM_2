@@ -78,10 +78,12 @@ class ClientManager {
             totalAdvance    += parseFloat(card.dataset.advance       || 0);
             totalContainers += parseInt(card.dataset.containerTotal  || 0);
         });
-        if (this.statTotalDebt)   this.statTotalDebt.textContent   = this.fmt(totalDebt)    + ' so\'m';
-        if (this.statAdvance)     this.statAdvance.textContent     = this.fmt(totalAdvance) + ' so\'m';
+        const som = (window.T && window.T.som_suffix) || "so'm";
+        const ta  = (window.T && window.T.pieces_suffix) || 'ta';
+        if (this.statTotalDebt)   this.statTotalDebt.textContent   = this.fmt(totalDebt)    + ' ' + som;
+        if (this.statAdvance)     this.statAdvance.textContent     = this.fmt(totalAdvance) + ' ' + som;
         if (this.statCount)       this.statCount.textContent       = cards.length;
-        if (this.totalContainers) this.totalContainers.textContent = totalContainers + ' ta';
+        if (this.totalContainers) this.totalContainers.textContent = totalContainers + ' ' + ta;
     }
 
     updateStats(clients, grandTotalDebt = null, grandTotalAdvance = null, grandTotalContainers = null) {
@@ -90,10 +92,12 @@ class ClientManager {
         const totalDebt       = grandTotalDebt       !== null ? grandTotalDebt       : clients.reduce((s, c) => s + (c.total_debt       || 0), 0);
         const totalAdvance    = grandTotalAdvance    !== null ? grandTotalAdvance    : clients.reduce((s, c) => s + (c.advance_balance  || 0), 0);
         const totalContainers = grandTotalContainers !== null ? grandTotalContainers : clients.reduce((s, c) => s + (c.container_total  || 0), 0);
-        if (this.statTotalDebt)  this.statTotalDebt.textContent  = this.fmt(totalDebt)    + ' so\'m';
-        if (this.statAdvance)    this.statAdvance.textContent    = this.fmt(totalAdvance) + ' so\'m';
+        const som = (window.T && window.T.som_suffix) || "so'm";
+        const ta  = (window.T && window.T.pieces_suffix) || 'ta';
+        if (this.statTotalDebt)  this.statTotalDebt.textContent  = this.fmt(totalDebt)    + ' ' + som;
+        if (this.statAdvance)    this.statAdvance.textContent    = this.fmt(totalAdvance) + ' ' + som;
         if (this.statCount)      this.statCount.textContent      = this.totalCount?.textContent || clients.length;
-        if (this.totalContainers) this.totalContainers.textContent = totalContainers + ' ta';
+        if (this.totalContainers) this.totalContainers.textContent = totalContainers + ' ' + ta;
     }
 
     // ==================== SEARCH CLEAR ====================
@@ -107,16 +111,18 @@ class ClientManager {
         const debt    = parseFloat(c.total_debt      || 0);
         const advance = parseFloat(c.advance_balance || 0);
 
+        const T = window.T || {};
+
         let badgeHtml, labelHtml;
         if (debt > 0) {
             badgeHtml = `<span class="balance-badge debt">-${this.fmt(debt)}</span>`;
-            labelHtml = 'qarz';
+            labelHtml = T.balance_debt || 'qarz';
         } else if (advance > 0) {
             badgeHtml = `<span class="balance-badge advance">+${this.fmt(advance)}</span>`;
-            labelHtml = 'avans';
+            labelHtml = T.balance_advance || 'avans';
         } else {
             badgeHtml = `<span class="balance-badge zero">0</span>`;
-            labelHtml = 'toza';
+            labelHtml = T.balance_clear || 'toza';
         }
 
         const regionTag = c.region_name
@@ -126,15 +132,15 @@ class ClientManager {
         // Xaritada belgilangan bo'lsa badge ko'rsatish
         const mapTag = c.has_location
             ? `<span class="region-tag" style="color: var(--success-color, #28a745);">
-                 <i class="fa fa-map-pin"></i> Xaritada
+                 <i class="fa fa-map-pin"></i> ${T.on_map || 'Xaritada'}
                </span>`
             : '';
 
         // Idishlar (container) badge — faqat 0 dan katta bo'lsa
         const containerTotal = parseInt(c.container_total || 0);
         const containerTag = containerTotal > 0
-            ? `<span class="region-tag" style="color:#a855f7" title="Idishlar">
-                 <i class="fa fa-box-open"></i> ${containerTotal} ta
+            ? `<span class="region-tag" style="color:#a855f7" title="${T.containers || 'Idishlar'}">
+                 <i class="fa fa-box-open"></i> ${containerTotal} ${T.pieces_suffix || 'ta'}
                </span>`
             : '';
 
@@ -172,22 +178,18 @@ class ClientManager {
 
             <div class="card-actions">
                 <button class="ca-btn view-btn" data-id="${c.id}">
-                    <i class="fa fa-eye"></i><span>Ko'rish</span>
+                    <i class="fa fa-eye"></i><span>${T.view || "Ko'rish"}</span>
                 </button>
                 ${(debt > 0 || advance > 0) ? `
                 <a class="ca-btn sms-btn"
-                   href="sms:${c.phone}?body=${encodeURIComponent(
-                        debt > 0
-                          ? `Assalomu alaykum, ${c.phone} raqami egasi! Sizning ${window.CURRENT_BUSINESS_NAME}dan ${this.fmt(debt)} so'm qarzingiz bor. Iltimos, tezroq to'lov qilib qo'ying!`
-                          : `Assalomu alaykum, ${c.phone} raqami egasi! Sizning ${window.CURRENT_BUSINESS_NAME}da ${this.fmt(advance)} so'm avansingiz bor. Keyingi xaridingizda hisobga olinadi. Rahmat!`
-                   )}"
+                   href="sms:${c.phone}?body=${encodeURIComponent(c.sms_text || '')}"
                    onclick="event.stopPropagation()">
                     <i class="fa fa-comment-sms"></i><span>SMS</span>
                 </a>
                 <button class="ca-btn auto-sms-btn" data-id="${c.id}"
-                        title="Avtomatik SMS yuborish (Eskiz.uz)"
+                        title="${T.auto_sms_title || 'Avtomatik SMS yuborish (Eskiz.uz)'}"
                         onclick="event.stopPropagation()">
-                    <i class="fa fa-paper-plane"></i><span>Avto SMS</span>
+                    <i class="fa fa-paper-plane"></i><span>${T.auto_sms || 'Avto SMS'}</span>
                 </button>` : ''}
                 <button class="ca-btn edit-btn"
                         data-id="${c.id}"
@@ -197,12 +199,12 @@ class ClientManager {
                         data-region-id="${c.region_id || ''}"
                         data-lat="${c.latitude  || ''}"
                         data-lng="${c.longitude || ''}">
-                    <i class="fa fa-edit"></i><span>Tahrirlash</span>
+                    <i class="fa fa-edit"></i><span>${T.edit || 'Tahrirlash'}</span>
                 </button>
                 <button class="ca-btn delete-btn"
                         data-id="${c.id}"
                         data-name="${c.name || ''}">
-                    <i class="fa fa-unlink"></i><span>Aloqani uz</span>
+                    <i class="fa fa-unlink"></i><span>${T.unlink || 'Aloqani uz'}</span>
                 </button>
             </div>
         </div>`;
@@ -236,16 +238,18 @@ class ClientManager {
             if (!resp.ok) throw new Error(`${resp.status}`);
             const data = await resp.json();
 
+            const T = window.T || {};
+
             if (this.totalCount) {
-                this.totalCount.textContent = data.total_count + ' ta';
+                this.totalCount.textContent = data.total_count + ' ' + (T.pieces_suffix || 'ta');
             }
 
             if (!data.clients || data.clients.length === 0) {
                 this.clientList.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-icon"><i class="fa fa-search"></i></div>
-                        <h3>Hech narsa topilmadi</h3>
-                        <p>Qidiruv shartlarini o'zgartiring</p>
+                        <h3>${T.nothing_found || 'Hech narsa topilmadi'}</h3>
+                        <p>${T.change_search || "Qidiruv shartlarini o'zgartiring"}</p>
                     </div>`;
                 this.updateStats([]);
                 return;
@@ -256,11 +260,12 @@ class ClientManager {
 
         } catch (err) {
             console.error('loadClients error:', err);
+            const T = window.T || {};
             this.clientList.innerHTML = `
                 <div class="empty-state">
                     <div class="empty-icon"><i class="fa fa-exclamation-triangle"></i></div>
-                    <h3>Xatolik yuz berdi</h3>
-                    <p>Sahifani yangilang</p>
+                    <h3>${T.error || 'Xatolik yuz berdi'}</h3>
+                    <p>${T.reload_page || 'Sahifani yangilang'}</p>
                 </div>`;
         }
     }
@@ -426,7 +431,8 @@ class ClientManager {
         const clientId   = btn.dataset.id;
         const originalHtml = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i><span>Yuborilmoqda...</span>';
+        const T = window.T || {};
+        btn.innerHTML = `<i class="fa fa-spinner fa-spin"></i><span>${T.sms_sending || 'Yuborilmoqda...'}</span>`;
 
         try {
             const url  = window.SMS_SEND_URL.replace('0', clientId);
@@ -436,15 +442,15 @@ class ClientManager {
             });
             const data = await resp.json();
             if (resp.ok && data.status === 'success') {
-                btn.innerHTML = '<i class="fa fa-check"></i><span>Yuborildi</span>';
+                btn.innerHTML = `<i class="fa fa-check"></i><span>${T.sms_sent || 'Yuborildi'}</span>`;
                 setTimeout(() => { btn.innerHTML = originalHtml; btn.disabled = false; }, 2500);
             } else {
-                alert(data.message || 'SMS yuborilmadi');
+                alert(data.message || T.sms_not_sent || 'SMS yuborilmadi');
                 btn.innerHTML = originalHtml;
                 btn.disabled = false;
             }
         } catch {
-            alert('Server bilan bog\'lanishda xatolik — SMS yuborilmadi');
+            alert(T.server_error || 'Server bilan bog\'lanishda xatolik — SMS yuborilmadi');
             btn.innerHTML = originalHtml;
             btn.disabled = false;
         }

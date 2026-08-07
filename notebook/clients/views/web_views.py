@@ -107,6 +107,10 @@ class ClientListView(LoginRequiredMixin, BusinessRequiredMixin, ListView):
                 "longitude": float(c.longitude) if c.longitude else None,
                 "has_location": c.has_location,
                 "container_total": c.container_total,
+                # ── SMS matni — bitta manbadan (Client.sms_text -> SmsService) ──
+                # Shu bilan qo'lda va AJAX orqali chiqadigan SMS matni doim bir xil
+                # (uz-Kiril) bo'ladi, JS ichida qayta yozilmaydi.
+                "sms_text": c.sms_text,
             }
             for c in page_obj
         ]
