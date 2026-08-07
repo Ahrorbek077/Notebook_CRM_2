@@ -66,6 +66,32 @@
 .cd-map-inline.open { display: block; }
 #inlineMap { height: 200px; width: 100%; }
 
+/* Balans davri filtri (Umumiy/Kun/Hafta/Oy) */
+.balance-period-filter {
+    display: flex;
+    gap: 6px;
+    padding: 0 12px 8px;
+    overflow-x: auto;
+}
+.bal-period-chip {
+    flex: 0 0 auto;
+    background: var(--bg-card);
+    border: 1px solid var(--b);
+    color: var(--t2);
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: .75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+}
+.bal-period-chip.active {
+    background: var(--accent, #6366f1);
+    border-color: var(--accent, #6366f1);
+    color: #fff;
+}
+.bal-period-chip:disabled { opacity: .6; cursor: default; }
+
 /* Balans kartalar */
 .balance-grid {
     display: grid;
@@ -223,6 +249,12 @@
     {% endif %}
 
     <!-- BALANS -->
+    <div class="balance-period-filter" id="balancePeriodFilter">
+        <button class="bal-period-chip {% if not selected_period %}active{% endif %}" data-period="">{% trans "Umumiy" %}</button>
+        <button class="bal-period-chip {% if selected_period == 'day' %}active{% endif %}" data-period="day">{% trans "Kun" %}</button>
+        <button class="bal-period-chip {% if selected_period == 'week' %}active{% endif %}" data-period="week">{% trans "Hafta" %}</button>
+        <button class="bal-period-chip {% if selected_period == 'month' %}active{% endif %}" data-period="month">{% trans "Oy" %}</button>
+    </div>
     <div class="balance-grid">
         <div class="bal-card">
             <div class="bal-label">{% trans "Jami sotilgan" %}</div>
@@ -244,6 +276,9 @@
                 {{ client.advance_balance|floatformat:0 }} <small style="font-size:.65rem;color:var(--t2)">so'm</small>
             </div>
         </div>
+    </div>
+    <div class="bal-period-note" id="balPeriodNote" style="{% if not selected_period %}display:none;{% endif %}font-size:.68rem;color:var(--t2);padding:2px 4px 0">
+        <i class="fa fa-circle-info fa-xs"></i> {% trans "Qoldiq qarz va avans — bu joriy umumiy balans, davr filtriga bog'liq emas" %}
     </div>
 
     <!-- ACTION ROW -->
@@ -788,6 +823,60 @@ function updateBalance(data) {
         el.className = 'bal-val ' + (parseFloat(data.advance_balance) > 0 ? 'green' : 'amber');
     }
 }
+
+/* ── Balans davri filtri (Umumiy/Kun/Hafta/Oy) ──────────────────────────
+   Faqat "Jami sotilgan" va "Jami to'langan" AJAX bilan yangilanadi —
+   backend faqat 2 ta aggregate so'rov bajaradi, butun sahifa qayta
+   yuklanmaydi (tarix, mahsulotlar va h.k. qayta so'ralmaydi). ────────── */
+(function initBalancePeriodFilter() {
+    const wrap = document.getElementById('balancePeriodFilter');
+    if (!wrap) return;
+    const chips = wrap.querySelectorAll('.bal-period-chip');
+    const soldEl = document.getElementById('balSold');
+    const paidEl = document.getElementById('balPaid');
+    const noteEl = document.getElementById('balPeriodNote');
+    let loading = false;
+
+    function fmtSom(n) {
+        return Math.round(n).toLocaleString() + ' <small style="font-size:.65rem;color:var(--t2)">so\'m</small>';
+    }
+
+    async function loadPeriod(period) {
+        if (loading) return;
+        loading = true;
+        chips.forEach(c => c.disabled = true);
+        try {
+            const params = new URLSearchParams({ period });
+            const resp = await fetch(`${window.location.pathname}?${params.toString()}`, {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!resp.ok) throw new Error(resp.status);
+            const data = await resp.json();
+            soldEl.innerHTML = fmtSom(data.total_sold);
+            paidEl.innerHTML = fmtSom(data.total_paid);
+            if (noteEl) noteEl.style.display = period ? '' : 'none';
+            // URL ni tarixga saqlab qo'yamiz — sahifa yangilansa filtr eslab qoladi
+            const url = new URL(window.location.href);
+            if (period) url.searchParams.set('period', period); else url.searchParams.delete('period');
+            history.replaceState(null, '', url);
+        } catch (err) {
+            console.error('Balans davri yuklashda xato:', err);
+            toast(T.server_error || "Server bilan bog'lanishda xatolik", 'error');
+        } finally {
+            loading = false;
+            chips.forEach(c => c.disabled = false);
+        }
+    }
+
+    chips.forEach(chip => {
+        chip.addEventListener('click', () => {
+            if (chip.classList.contains('active')) return;
+            chips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            loadPeriod(chip.dataset.period || '');
+        });
+    });
+})();
 
 /* ── Inline xarita toggle ── */
 {% if client.has_location %}

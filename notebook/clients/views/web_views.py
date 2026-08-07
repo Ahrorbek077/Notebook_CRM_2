@@ -19,6 +19,8 @@ from decimal import Decimal, InvalidOperation
 from django.db.models.functions import Coalesce
 from django.utils.decorators import method_decorator
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+import datetime
 from notebook.business.mixins import BusinessRequiredMixin
 
 
@@ -210,8 +212,73 @@ class ClientDetailView(LoginRequiredMixin, BusinessRequiredMixin, DetailView):
     template_name = "client_detail.html"
     context_object_name = "client"
 
+    # Frontenddagi filter chiplari bilan mos: umumiy | day | week | month
+    VALID_PERIODS = {'day', 'week', 'month'}
+
     def get_queryset(self):
         return Client.objects.filter(business=self.request.business).select_related('region')
+
+    # ── Davr oralig'ini hisoblash (faqat boshlanish sanasi kerak — oxiri doim "hozir") ──
+    def _period_start(self, period):
+        if period not in self.VALID_PERIODS:
+            return None  # umumiy — filtr yo'q
+        now = timezone.localtime()
+        if period == 'day':
+            return now.replace(hour=0, minute=0, second=0, microsecond=0)
+        if period == 'week':
+            monday = now - datetime.timedelta(days=now.weekday())
+            return monday.replace(hour=0, minute=0, second=0, microsecond=0)
+        if period == 'month':
+            return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+    # ── Jami sotilgan / jami to'langan — FAQAT 2 ta aggregate so'rov, N+1 yo'q ──
+    # Diqqat: qarz (calculated_debt) va avans (client.advance_balance) — bu joriy
+    # QOLDIQ balans, davriy emas — shuning uchun ular period bilan filtrlanmaydi,
+    # doim umumiy holatini ko'rsatadi.
+    def _compute_totals(self, client, period_start=None):
+        sale_items = SaleItem.objects.filter(
+            sale__client=client, sale__status=Sale.STATUS_ACTIVE
+        )
+        payments = client.payments.filter(is_cancelled=False)
+
+        if period_start is not None:
+            sale_items = sale_items.filter(sale__created_at__gte=period_start)
+            payments   = payments.filter(created_at__gte=period_start)
+
+        total_sold = sale_items.aggregate(
+            total=Coalesce(
+                Sum(ExpressionWrapper(
+                    (F('quantity') - F('returned_quantity')) * F('price_at_sale'),
+                    output_field=DecimalField()
+                )),
+                Decimal('0')
+            )
+        )['total']
+
+        total_paid = payments.aggregate(
+            total=Coalesce(
+                Sum(F('amount') - F('refunded_amount'), output_field=DecimalField()),
+                Decimal('0')
+            )
+        )['total']
+
+        return total_sold, total_paid
+
+    def get(self, request, *args, **kwargs):
+        # ── Faqat davr filtri o'zgarganda — YENGIL AJAX javob ──
+        # To'liq sahifa (tarix, mahsulotlar ro'yxati va h.k.) qayta yuklanmaydi,
+        # faqat 2 ta aggregate so'rov bilan yangi summalar qaytariladi.
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and 'period' in request.GET:
+            self.object = self.get_object()
+            period = request.GET.get('period', '').strip()
+            period_start = self._period_start(period)
+            total_sold, total_paid = self._compute_totals(self.object, period_start)
+            return JsonResponse({
+                'period': period if period in self.VALID_PERIODS else '',
+                'total_sold': float(total_sold),
+                'total_paid': float(total_paid),
+            })
+        return super().get(request, *args, **kwargs)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -236,24 +303,12 @@ class ClientDetailView(LoginRequiredMixin, BusinessRequiredMixin, DetailView):
             payment__client=client
         ).select_related('payment').order_by('-created_at')[:30]
 
-        total_sold = SaleItem.objects.filter(
-            sale__client=client, sale__status=Sale.STATUS_ACTIVE
-        ).aggregate(
-            total=Coalesce(
-                Sum(ExpressionWrapper(
-                    (F('quantity') - F('returned_quantity')) * F('price_at_sale'),
-                    output_field=DecimalField()
-                )),
-                Decimal('0')
-            )
-        )['total']
-
-        total_paid = payments_qs.aggregate(
-            total=Coalesce(
-                Sum(F('amount') - F('refunded_amount'), output_field=DecimalField()),
-                Decimal('0')
-            )
-        )['total']
+        # ── Balans kartochkalari — sahifa birinchi ochilganda joriy period bo'yicha ──
+        selected_period = self.request.GET.get('period', '').strip()
+        if selected_period not in self.VALID_PERIODS:
+            selected_period = ''  # umumiy
+        period_start = self._period_start(selected_period)
+        total_sold, total_paid = self._compute_totals(client, period_start)
 
         history = []
 
@@ -361,6 +416,7 @@ class ClientDetailView(LoginRequiredMixin, BusinessRequiredMixin, DetailView):
             'total_sold': total_sold,
             'total_paid': total_paid,
             'calculated_debt': client.total_debt,
+            'selected_period': selected_period,
             'products': Product.objects.filter(stock__gt=0, business=self.request.business).only('id', 'name', 'stock').order_by('name'),
             'categories': Category.objects.filter(is_active=True, business=self.request.business).only('id', 'name').order_by('name'),
             'branches': Branch.objects.filter(is_active=True, company__business=self.request.business).only('id', 'name').order_by('name'),
