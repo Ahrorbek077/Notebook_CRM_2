@@ -826,3 +826,42 @@ msgstr "Қидирув шартларини ўзгартиринг"
 
 msgid "Sahifani yangilang"
 msgstr "Саҳифани янгиланг"
+
+msgid "Bugungi kun"
+msgstr "Бугунги кун"
+
+msgid "Yanvar"
+msgstr "Январь"
+
+msgid "Fevral"
+msgstr "Феврал"
+
+msgid "Mart"
+msgstr "Март"
+
+msgid "Aprel"
+msgstr "Апрел"
+
+msgid "May"
+msgstr "Май"
+
+msgid "Iyun"
+msgstr "Июн"
+
+msgid "Iyul"
+msgstr "Июл"
+
+msgid "Avgust"
+msgstr "Август"
+
+msgid "Sentabr"
+msgstr "Сентябр"
+
+msgid "Oktabr"
+msgstr "Октябр"
+
+msgid "Noyabr"
+msgstr "Ноябр"
+
+msgid "Dekabr"
+msgstr "Декабр"

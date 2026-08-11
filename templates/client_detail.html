@@ -91,6 +91,17 @@
     color: #fff;
 }
 .bal-period-chip:disabled { opacity: .6; cursor: default; }
+.bal-period-select {
+    flex: 0 0 auto;
+    background: var(--bg-card);
+    border: 1px solid var(--b);
+    color: var(--t1, #fff);
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: .75rem;
+    font-weight: 600;
+}
+.bal-period-select:disabled { opacity: .6; }
 
 /* Balans kartalar */
 .balance-grid {
@@ -251,9 +262,28 @@
     <!-- BALANS -->
     <div class="balance-period-filter" id="balancePeriodFilter">
         <button class="bal-period-chip {% if not selected_period %}active{% endif %}" data-period="">{% trans "Umumiy" %}</button>
-        <button class="bal-period-chip {% if selected_period == 'day' %}active{% endif %}" data-period="day">{% trans "Kun" %}</button>
-        <button class="bal-period-chip {% if selected_period == 'week' %}active{% endif %}" data-period="week">{% trans "Hafta" %}</button>
+        <button class="bal-period-chip {% if selected_period == 'day' %}active{% endif %}" data-period="day" title="{% trans 'Bugungi kun' %}">{% trans "Kun" %}</button>
+        <button class="bal-period-chip {% if selected_period == 'week' %}active{% endif %}" data-period="week" title="{% trans 'So‘nggi 7 kun' %}">{% trans "Hafta" %}</button>
         <button class="bal-period-chip {% if selected_period == 'month' %}active{% endif %}" data-period="month">{% trans "Oy" %}</button>
+        <select id="balMonthSelect" class="bal-period-select" style="{% if selected_period != 'month' %}display:none;{% endif %}">
+            <option value="1"  {% if selected_month == 1 %}selected{% endif %}>{% trans "Yanvar" %}</option>
+            <option value="2"  {% if selected_month == 2 %}selected{% endif %}>{% trans "Fevral" %}</option>
+            <option value="3"  {% if selected_month == 3 %}selected{% endif %}>{% trans "Mart" %}</option>
+            <option value="4"  {% if selected_month == 4 %}selected{% endif %}>{% trans "Aprel" %}</option>
+            <option value="5"  {% if selected_month == 5 %}selected{% endif %}>{% trans "May" %}</option>
+            <option value="6"  {% if selected_month == 6 %}selected{% endif %}>{% trans "Iyun" %}</option>
+            <option value="7"  {% if selected_month == 7 %}selected{% endif %}>{% trans "Iyul" %}</option>
+            <option value="8"  {% if selected_month == 8 %}selected{% endif %}>{% trans "Avgust" %}</option>
+            <option value="9"  {% if selected_month == 9 %}selected{% endif %}>{% trans "Sentabr" %}</option>
+            <option value="10" {% if selected_month == 10 %}selected{% endif %}>{% trans "Oktabr" %}</option>
+            <option value="11" {% if selected_month == 11 %}selected{% endif %}>{% trans "Noyabr" %}</option>
+            <option value="12" {% if selected_month == 12 %}selected{% endif %}>{% trans "Dekabr" %}</option>
+        </select>
+        <select id="balYearSelect" class="bal-period-select" style="{% if selected_period != 'month' %}display:none;{% endif %}">
+            {% for y in year_choices %}
+            <option value="{{ y }}" {% if y == selected_year %}selected{% endif %}>{{ y }}</option>
+            {% endfor %}
+        </select>
     </div>
     <div class="balance-grid">
         <div class="bal-card">
@@ -280,6 +310,7 @@
     <div class="bal-period-note" id="balPeriodNote" style="{% if not selected_period %}display:none;{% endif %}font-size:.68rem;color:var(--t2);padding:2px 4px 0">
         <i class="fa fa-circle-info fa-xs"></i> {% trans "Qoldiq qarz va avans — bu joriy umumiy balans, davr filtriga bog'liq emas" %}
     </div>
+
 
     <!-- ACTION ROW -->
     <div class="action-row">
@@ -831,51 +862,87 @@ function updateBalance(data) {
 (function initBalancePeriodFilter() {
     const wrap = document.getElementById('balancePeriodFilter');
     if (!wrap) return;
-    const chips = wrap.querySelectorAll('.bal-period-chip');
-    const soldEl = document.getElementById('balSold');
-    const paidEl = document.getElementById('balPaid');
-    const noteEl = document.getElementById('balPeriodNote');
+    const chips     = wrap.querySelectorAll('.bal-period-chip');
+    const soldEl    = document.getElementById('balSold');
+    const paidEl    = document.getElementById('balPaid');
+    const noteEl    = document.getElementById('balPeriodNote');
+    const monthSel  = document.getElementById('balMonthSelect');
+    const yearSel   = document.getElementById('balYearSelect');
     let loading = false;
 
     function fmtSom(n) {
         return Math.round(n).toLocaleString() + ' <small style="font-size:.65rem;color:var(--t2)">so\'m</small>';
     }
 
-    async function loadPeriod(period) {
+    function allControls() {
+        return [...chips, monthSel, yearSel].filter(Boolean);
+    }
+
+    async function loadPeriod(period, extra) {
         if (loading) return;
         loading = true;
-        chips.forEach(c => c.disabled = true);
+        allControls().forEach(c => c.disabled = true);
         try {
-            const params = new URLSearchParams({ period });
+            // ajax=1 — X-Requested-With header ba'zi proxy/CDN tomonidan olib
+            // tashlanishi mumkin, shuning uchun query parametr orqali ham belgilaymiz
+            const paramsObj = { period, ajax: '1', ...(extra || {}) };
+            const params = new URLSearchParams(paramsObj);
             const resp = await fetch(`${window.location.pathname}?${params.toString()}`, {
                 headers: { 'X-Requested-With': 'XMLHttpRequest' }
             });
-            if (!resp.ok) throw new Error(resp.status);
+            if (!resp.ok) throw new Error('HTTP ' + resp.status);
+
+            const ctype = resp.headers.get('content-type') || '';
+            if (!ctype.includes('application/json')) {
+                // Backend JSON o'rniga to'liq HTML qaytardi — demak AJAX aniqlanmadi
+                throw new Error('JSON kutilgan edi, lekin ' + ctype + ' keldi (backend AJAXni tanimadi)');
+            }
+
             const data = await resp.json();
+            console.debug('[balance-period]', period, extra, data); // muammo bo'lsa shu qatorni brauzer konsolidan tekshiring
             soldEl.innerHTML = fmtSom(data.total_sold);
             paidEl.innerHTML = fmtSom(data.total_paid);
             if (noteEl) noteEl.style.display = period ? '' : 'none';
             // URL ni tarixga saqlab qo'yamiz — sahifa yangilansa filtr eslab qoladi
             const url = new URL(window.location.href);
-            if (period) url.searchParams.set('period', period); else url.searchParams.delete('period');
+            if (period) { url.searchParams.set('period', period); } else { url.searchParams.delete('period'); }
+            if (extra && extra.month) url.searchParams.set('month', extra.month); else url.searchParams.delete('month');
+            if (extra && extra.year)  url.searchParams.set('year', extra.year);   else url.searchParams.delete('year');
             history.replaceState(null, '', url);
         } catch (err) {
             console.error('Balans davri yuklashda xato:', err);
             toast(T.server_error || "Server bilan bog'lanishda xatolik", 'error');
         } finally {
             loading = false;
-            chips.forEach(c => c.disabled = false);
+            allControls().forEach(c => c.disabled = false);
         }
+    }
+
+    function loadMonth() {
+        loadPeriod('month', { month: monthSel.value, year: yearSel.value });
     }
 
     chips.forEach(chip => {
         chip.addEventListener('click', () => {
-            if (chip.classList.contains('active')) return;
+            const period = chip.dataset.period || '';
             chips.forEach(c => c.classList.remove('active'));
             chip.classList.add('active');
-            loadPeriod(chip.dataset.period || '');
+
+            // Faqat "Oy" tanlanganda oy/yil selectlarni ko'rsatamiz
+            const isMonth = period === 'month';
+            if (monthSel) monthSel.style.display = isMonth ? '' : 'none';
+            if (yearSel)  yearSel.style.display  = isMonth ? '' : 'none';
+
+            if (isMonth) {
+                loadMonth();
+            } else {
+                loadPeriod(period);
+            }
         });
     });
+
+    if (monthSel) monthSel.addEventListener('change', loadMonth);
+    if (yearSel)  yearSel.addEventListener('change', loadMonth);
 })();
 
 /* ── Inline xarita toggle ── */

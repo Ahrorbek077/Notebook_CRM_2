@@ -218,24 +218,49 @@ class ClientDetailView(LoginRequiredMixin, BusinessRequiredMixin, DetailView):
     def get_queryset(self):
         return Client.objects.filter(business=self.request.business).select_related('region')
 
-    # ── Davr oralig'ini hisoblash (faqat boshlanish sanasi kerak — oxiri doim "hozir") ──
-    def _period_start(self, period):
+    # ── Davr oralig'ini hisoblash — mijoz talabiga ko'ra: ────────────────────
+    #   Kun   → bugungi kalendar kuni (00:00 dan hoziргача)
+    #   Hafta → so'nggi 7 kun (aylanma oyna)
+    #   Oy    → foydalanuvchi TANLAGAN aniq oy (1-sanadan oxirgi sanagacha)
+    # Qaytaradi: (start, end) — end=None bo'lsa filtr yopiq chegarasiz (hozirgacha)
+    def _period_range(self, period, month=None, year=None):
         if period not in self.VALID_PERIODS:
-            return None  # umumiy — filtr yo'q
+            return None, None  # umumiy — filtr yo'q
+
         now = timezone.localtime()
+
         if period == 'day':
-            return now.replace(hour=0, minute=0, second=0, microsecond=0)
+            start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+            return start, None
+
         if period == 'week':
-            monday = now - datetime.timedelta(days=now.weekday())
-            return monday.replace(hour=0, minute=0, second=0, microsecond=0)
+            start = now - datetime.timedelta(days=7)
+            return start, None
+
         if period == 'month':
-            return now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+            try:
+                y = int(year) if year else now.year
+                m = int(month) if month else now.month
+                if not (1 <= m <= 12):
+                    raise ValueError
+            except (TypeError, ValueError):
+                y, m = now.year, now.month
+
+            tz = timezone.get_current_timezone()
+            start = timezone.make_aware(datetime.datetime(y, m, 1, 0, 0, 0), tz)
+            if m == 12:
+                end = timezone.make_aware(datetime.datetime(y + 1, 1, 1, 0, 0, 0), tz)
+            else:
+                end = timezone.make_aware(datetime.datetime(y, m + 1, 1, 0, 0, 0), tz)
+            return start, end
+
+        return None, None
 
     # ── Jami sotilgan / jami to'langan — FAQAT 2 ta aggregate so'rov, N+1 yo'q ──
     # Diqqat: qarz (calculated_debt) va avans (client.advance_balance) — bu joriy
     # QOLDIQ balans, davriy emas — shuning uchun ular period bilan filtrlanmaydi,
     # doim umumiy holatini ko'rsatadi.
-    def _compute_totals(self, client, period_start=None):
+    def _compute_totals(self, client, period_start=None, period_end=None):
         sale_items = SaleItem.objects.filter(
             sale__client=client, sale__status=Sale.STATUS_ACTIVE
         )
@@ -244,6 +269,9 @@ class ClientDetailView(LoginRequiredMixin, BusinessRequiredMixin, DetailView):
         if period_start is not None:
             sale_items = sale_items.filter(sale__created_at__gte=period_start)
             payments   = payments.filter(created_at__gte=period_start)
+        if period_end is not None:
+            sale_items = sale_items.filter(sale__created_at__lt=period_end)
+            payments   = payments.filter(created_at__lt=period_end)
 
         total_sold = sale_items.aggregate(
             total=Coalesce(
@@ -268,15 +296,31 @@ class ClientDetailView(LoginRequiredMixin, BusinessRequiredMixin, DetailView):
         # ── Faqat davr filtri o'zgarganda — YENGIL AJAX javob ──
         # To'liq sahifa (tarix, mahsulotlar ro'yxati va h.k.) qayta yuklanmaydi,
         # faqat 2 ta aggregate so'rov bilan yangi summalar qaytariladi.
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and 'period' in request.GET:
+        #
+        # DIQQAT: ba'zi Nginx/proxy sozlamalari "X-Requested-With" headerini olib
+        # tashlaydi — shuning uchun faqat headerga tayanmaymiz, "ajax=1" query
+        # parametri ham qo'shimcha (va asosiy) signal sifatida ishlatiladi.
+        is_ajax = (
+            request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+            or request.GET.get('ajax') == '1'
+        )
+        if is_ajax and 'period' in request.GET:
             self.object = self.get_object()
             period = request.GET.get('period', '').strip()
-            period_start = self._period_start(period)
-            total_sold, total_paid = self._compute_totals(self.object, period_start)
+            month  = request.GET.get('month')
+            year   = request.GET.get('year')
+            period_start, period_end = self._period_range(period, month, year)
+            total_sold, total_paid = self._compute_totals(self.object, period_start, period_end)
             return JsonResponse({
                 'period': period if period in self.VALID_PERIODS else '',
                 'total_sold': float(total_sold),
                 'total_paid': float(total_paid),
+                # ── Debug uchun — muammo davom etsa shu maydonlarga qarab tashxis qo'yamiz ──
+                'debug': {
+                    'period_start': period_start.isoformat() if period_start else None,
+                    'period_end':   period_end.isoformat() if period_end else None,
+                    'server_now':   timezone.localtime().isoformat(),
+                },
             })
         return super().get(request, *args, **kwargs)
 
@@ -307,8 +351,21 @@ class ClientDetailView(LoginRequiredMixin, BusinessRequiredMixin, DetailView):
         selected_period = self.request.GET.get('period', '').strip()
         if selected_period not in self.VALID_PERIODS:
             selected_period = ''  # umumiy
-        period_start = self._period_start(selected_period)
-        total_sold, total_paid = self._compute_totals(client, period_start)
+
+        now = timezone.localtime()
+        try:
+            selected_month = int(self.request.GET.get('month') or now.month)
+            if not (1 <= selected_month <= 12):
+                selected_month = now.month
+        except (TypeError, ValueError):
+            selected_month = now.month
+        try:
+            selected_year = int(self.request.GET.get('year') or now.year)
+        except (TypeError, ValueError):
+            selected_year = now.year
+
+        period_start, period_end = self._period_range(selected_period, selected_month, selected_year)
+        total_sold, total_paid = self._compute_totals(client, period_start, period_end)
 
         history = []
 
@@ -417,6 +474,9 @@ class ClientDetailView(LoginRequiredMixin, BusinessRequiredMixin, DetailView):
             'total_paid': total_paid,
             'calculated_debt': client.total_debt,
             'selected_period': selected_period,
+            'selected_month': selected_month,
+            'selected_year': selected_year,
+            'year_choices': list(range(now.year, now.year - 4, -1)),  # joriy yil + oldingi 3 yil
             'products': Product.objects.filter(stock__gt=0, business=self.request.business).only('id', 'name', 'stock').order_by('name'),
             'categories': Category.objects.filter(is_active=True, business=self.request.business).only('id', 'name').order_by('name'),
             'branches': Branch.objects.filter(is_active=True, company__business=self.request.business).only('id', 'name').order_by('name'),
