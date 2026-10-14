@@ -387,7 +387,7 @@ class BranchDailyPurchasesView(LoginRequiredMixin, BusinessRequiredMixin, View):
             bought_total += amount
             items.append({
                 'name':       b.product.name,
-                'qty':        str(b.quantity_received.normalize()),
+                'qty':        format(b.quantity_received.normalize(), 'f'),
                 'unit':       b.product.get_unit_type_display(),
                 'boxes':      b.box_quantity,
                 'cost_price': float(b.cost_price),
@@ -402,7 +402,7 @@ class BranchDailyPurchasesView(LoginRequiredMixin, BusinessRequiredMixin, View):
             returned_total += amount
             rets.append({
                 'name':       a.batch.product.name,
-                'qty':        str(qty.normalize()),
+                'qty':        format(qty.normalize(), 'f'),
                 'unit':       a.batch.product.get_unit_type_display(),
                 'cost_price': float(a.batch.cost_price),
                 'amount':     float(amount),
