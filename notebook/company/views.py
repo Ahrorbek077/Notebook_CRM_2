@@ -2,6 +2,7 @@
 Company views — Kompaniya, Filial va Filial mahsulotlari boshqaruvi.
 """
 import json
+import datetime
 from decimal import Decimal, InvalidOperation
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -11,13 +12,14 @@ from django.db.models.functions import Coalesce
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.views import View
+from django.utils import timezone
 
 from django.db.models import Sum, Q as dQ
 from .models import Company, Branch, BranchPayment
 from .services import CompanyService
 from notebook.catalog.models import Product, Category
 from notebook.catalog.forms import ProductForm
-from notebook.inventory.models import StockBatch
+from notebook.inventory.models import StockBatch, StockAdjustment
 from notebook.inventory.services import StockService
 from notebook.activity.models import ActivityLog
 from notebook.business.mixins import BusinessRequiredMixin
@@ -348,6 +350,75 @@ class BranchProductDeleteView(LoginRequiredMixin, BusinessRequiredMixin, View):
             return JsonResponse({'status': 'success'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+# ─── Kunlik xaridlar (faqat o'qish — yangi jadval/kesh yo'q) ──────────────────
+
+class BranchDailyPurchasesView(LoginRequiredMixin, BusinessRequiredMixin, View):
+    """
+    GET /company/api/branch/<pk>/daily/?date=YYYY-MM-DD
+    Shu kuni filialdan SOTIB OLINGAN mahsulotlar (StockBatch) va shu kuni
+    QAYTARILGAN xaridlar (StockAdjustment, quantity_change < 0).
+    Kunlik jami = xaridlar - qaytarishlar (qarz harakati bilan bir xil kunda).
+    """
+    def get(self, request, pk):
+        branch = get_object_or_404(Branch, pk=pk, is_active=True, company__business=request.business)
+        try:
+            day = datetime.date.fromisoformat(request.GET.get('date', ''))
+        except ValueError:
+            day = timezone.localdate()
+
+        start = timezone.make_aware(datetime.datetime.combine(day, datetime.time.min))
+        end   = start + datetime.timedelta(days=1)
+
+        batches = (StockBatch.objects
+                   .filter(branch=branch, business=request.business, is_active=True,
+                           created_at__gte=start, created_at__lt=end)
+                   .select_related('product').order_by('created_at'))
+        returns = (StockAdjustment.objects
+                   .filter(adjustment_type='return', quantity_change__lt=0,
+                           batch__branch=branch, batch__business=request.business,
+                           created_at__gte=start, created_at__lt=end)
+                   .select_related('batch__product').order_by('created_at'))
+
+        items, bought_total = [], Decimal('0')
+        for b in batches:
+            amount = b.quantity_received * b.cost_price
+            bought_total += amount
+            items.append({
+                'name':       b.product.name,
+                'qty':        str(b.quantity_received.normalize()),
+                'unit':       b.product.get_unit_type_display(),
+                'boxes':      b.box_quantity,
+                'cost_price': float(b.cost_price),
+                'amount':     float(amount),
+                'time':       timezone.localtime(b.created_at).strftime('%H:%M'),
+            })
+
+        rets, returned_total = [], Decimal('0')
+        for a in returns:
+            qty = -a.quantity_change
+            amount = qty * a.batch.cost_price
+            returned_total += amount
+            rets.append({
+                'name':       a.batch.product.name,
+                'qty':        str(qty.normalize()),
+                'unit':       a.batch.product.get_unit_type_display(),
+                'cost_price': float(a.batch.cost_price),
+                'amount':     float(amount),
+                'time':       timezone.localtime(a.created_at).strftime('%H:%M'),
+                'bought_on':  timezone.localtime(a.batch.created_at).strftime('%d.%m.%y'),
+            })
+
+        return JsonResponse({
+            'status':         'success',
+            'date':           day.isoformat(),
+            'items':          items,
+            'returns':        rets,
+            'bought_total':   float(bought_total),
+            'returned_total': float(returned_total),
+            'net_total':      float(bought_total - returned_total),
+        })
 
 
 # ─── Batch Return (xarid qaytarish) ──────────────────────────────────────────

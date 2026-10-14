@@ -214,6 +214,18 @@
         {% endif %}
     </div>
 
+    <!-- KUNLIK XARIDLAR (ochilganda yuklanadi) -->
+    <div class="section-hdr" style="margin-top:4px">
+        <span class="section-title">Kunlik xaridlar</span>
+        <button class="act-btn" id="toggleDaily" style="font-size:.75rem;padding:4px 10px">
+            <i class="fa fa-calendar-day"></i> Ko'rsatish
+        </button>
+    </div>
+    <div id="dailyBlock" style="display:none;padding:0 12px 8px">
+        <input type="date" class="form-control" id="dailyDate" style="margin-bottom:8px">
+        <div id="dailyList" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
     <!-- IDISHLAR (CONTAINERS) -->
     <div class="section-hdr" style="margin-top:4px">
         <span class="section-title">{% trans "Idishlar ombori" %}</span>
@@ -963,6 +975,49 @@ document.getElementById('pmSubmit').addEventListener('click',async()=>{
 let inStockCount=0;
 document.querySelectorAll('.bp-card').forEach(c=>{ if((parseFloat(c.dataset.stock)||0) > 0) inStockCount++; });
 document.getElementById('totalStock').textContent=inStockCount;
+
+/* Kunlik xaridlar */
+(function(){
+    const blk=document.getElementById('dailyBlock'), btn=document.getElementById('toggleDaily'),
+          inp=document.getElementById('dailyDate'), list=document.getElementById('dailyList');
+    const money=n=>Math.round(n).toLocaleString('uz-UZ').replace(/\u00a0/g,' ');
+    const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+    const row=(r,ret)=>`
+        <div style="background:var(--bg-card);border:1px solid ${ret?'rgba(239,68,68,.35)':'var(--b)'};border-radius:var(--r);padding:10px 14px;display:flex;justify-content:space-between;gap:10px;${ret?'color:#ef4444;text-decoration:line-through':''}">
+            <div style="min-width:0">
+                <div style="font-weight:600;font-size:.85rem">${esc(r.name)}</div>
+                <div style="font-size:.72rem;opacity:.8;margin-top:2px">${r.qty} ${esc(r.unit)}${r.boxes?` (${r.boxes} kar.)`:''} × ${money(r.cost_price)}${ret?` · xarid: ${r.bought_on}`:''}</div>
+            </div>
+            <div style="font-family:var(--mono);font-weight:700;font-size:.85rem;flex-shrink:0">${ret?'-':''}${money(r.amount)}</div>
+        </div>`;
+    async function load(){
+        list.innerHTML='<div class="loading-wrap"><div class="spinner"></div></div>';
+        try{
+            const res=await fetch(`/company/api/branch/${BRANCH_ID}/daily/?date=${inp.value}`);
+            const d=await res.json();
+            if(d.status!=='success') throw new Error();
+            if(!d.items.length && !d.returns.length){
+                list.innerHTML='<div style="text-align:center;padding:16px;color:var(--t3);font-size:.82rem">Bu kuni xarid yo\'q</div>';
+                return;
+            }
+            list.innerHTML=d.items.map(r=>row(r,false)).join('')+d.returns.map(r=>row(r,true)).join('')+`
+                <div style="display:flex;justify-content:space-between;padding:8px 14px;font-weight:800;font-size:.9rem">
+                    <span>JAMI</span><span style="font-family:var(--mono)">${money(d.net_total)} so'm</span>
+                </div>`;
+        }catch(e){
+            list.innerHTML='<div style="text-align:center;padding:16px;color:#ef4444;font-size:.82rem">Yuklanmadi</div>';
+        }
+    }
+    btn.addEventListener('click',()=>{
+        const open=blk.style.display==='none';
+        blk.style.display=open?'block':'none';
+        if(open){
+            if(!inp.value) inp.value=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,10);
+            load();
+        }
+    });
+    inp.addEventListener('change',load);
+})();
 
 /* To'lovlar tarixi toggle + load more */
 const PAYMENTS_URL = `/company/api/branch/${BRANCH_ID}/payments/`;
