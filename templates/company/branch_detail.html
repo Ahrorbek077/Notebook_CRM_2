@@ -982,14 +982,21 @@ document.getElementById('totalStock').textContent=inStockCount;
           inp=document.getElementById('dailyDate'), list=document.getElementById('dailyList');
     const money=n=>Math.round(n).toLocaleString('uz-UZ').replace(/\u00a0/g,' ');
     const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-    const row=(r,ret)=>`
-        <div style="background:var(--bg-card);border:1px solid ${ret?'rgba(239,68,68,.35)':'var(--b)'};border-radius:var(--r);padding:10px 14px;display:flex;justify-content:space-between;gap:10px;${ret?'color:#ef4444;text-decoration:line-through':''}">
+    const RED='color:#ef4444;text-decoration:line-through';
+    const row=(r,ret)=>{
+        const red = ret || r.full_return;
+        const sub = ret ? ` · xarid: ${r.bought_on}` : (r.full_return ? ' · qaytarildi' : '');
+        const part = r.returned_qty ? `<div style="font-size:.72rem;margin-top:2px;${RED}">${r.returned_qty} ${esc(r.unit)} qaytarildi</div>` : '';
+        return `
+        <div style="background:var(--bg-card);border:1px solid ${red?'rgba(239,68,68,.35)':'var(--b)'};border-radius:var(--r);padding:10px 14px;display:flex;justify-content:space-between;gap:10px;${red?RED:''}">
             <div style="min-width:0">
                 <div style="font-weight:600;font-size:.85rem">${esc(r.name)}</div>
-                <div style="font-size:.72rem;opacity:.8;margin-top:2px">${r.qty} ${esc(r.unit)}${r.boxes?` (${r.boxes} kar.)`:''} × ${money(r.cost_price)}${ret?` · xarid: ${r.bought_on}`:''}</div>
+                <div style="font-size:.72rem;opacity:.8;margin-top:2px">${r.qty} ${esc(r.unit)}${r.boxes?` (${r.boxes} kar.)`:''} × ${money(r.cost_price)}${sub}</div>
+                ${part}
             </div>
             <div style="font-family:var(--mono);font-weight:700;font-size:.85rem;flex-shrink:0">${ret?'-':''}${money(r.amount)}</div>
         </div>`;
+    };
     async function load(){
         list.innerHTML='<div class="loading-wrap"><div class="spinner"></div></div>';
         try{

@@ -381,34 +381,54 @@ class BranchDailyPurchasesView(LoginRequiredMixin, BusinessRequiredMixin, View):
                            created_at__gte=start, created_at__lt=end)
                    .select_related('batch__product').order_by('created_at'))
 
-        items, bought_total = [], Decimal('0')
+        fmt = lambda d: format(d.normalize(), 'f')
+
+        # Xaridlar (shu kuni kelgan batchlar). Shu kuni qaytarilgan qismi
+        # alohida qator emas, o'sha qatorning ichida ko'rsatiladi.
+        items, by_batch, bought_total = [], {}, Decimal('0')
         for b in batches:
-            amount = b.quantity_received * b.cost_price
-            bought_total += amount
-            items.append({
-                'name':       b.product.name,
-                'qty':        format(b.quantity_received.normalize(), 'f'),
-                'unit':       b.product.get_unit_type_display(),
-                'boxes':      b.box_quantity,
-                'cost_price': float(b.cost_price),
-                'amount':     float(amount),
-                'time':       timezone.localtime(b.created_at).strftime('%H:%M'),
-            })
+            bought_total += b.quantity_received * b.cost_price
+            it = {
+                'name': b.product.name, 'unit': b.product.get_unit_type_display(),
+                'cost_price': float(b.cost_price), 'received': b.quantity_received,
+                'boxes': b.box_quantity, 'ret': Decimal('0'),
+                'time': timezone.localtime(b.created_at).strftime('%H:%M'),
+            }
+            by_batch[b.id] = it
+            items.append(it)
 
         rets, returned_total = [], Decimal('0')
         for a in returns:
             qty = -a.quantity_change
-            amount = qty * a.batch.cost_price
-            returned_total += amount
-            rets.append({
-                'name':       a.batch.product.name,
-                'qty':        format(qty.normalize(), 'f'),
-                'unit':       a.batch.product.get_unit_type_display(),
-                'cost_price': float(a.batch.cost_price),
-                'amount':     float(amount),
-                'time':       timezone.localtime(a.created_at).strftime('%H:%M'),
-                'bought_on':  timezone.localtime(a.batch.created_at).strftime('%d.%m.%y'),
+            returned_total += qty * a.batch.cost_price
+            if a.batch_id in by_batch:                 # xarid ham shu kuni bo'lgan
+                by_batch[a.batch_id]['ret'] += qty
+            else:                                      # oldingi kundagi xarid qaytarildi
+                rets.append({
+                    'name':       a.batch.product.name,
+                    'qty':        fmt(qty),
+                    'unit':       a.batch.product.get_unit_type_display(),
+                    'cost_price': float(a.batch.cost_price),
+                    'amount':     float(qty * a.batch.cost_price),
+                    'time':       timezone.localtime(a.created_at).strftime('%H:%M'),
+                    'bought_on':  timezone.localtime(a.batch.created_at).strftime('%d.%m.%y'),
+                })
+
+        out_items = []
+        for it in items:
+            net = it['received'] - it['ret']
+            out_items.append({
+                'name':       it['name'],
+                'unit':       it['unit'],
+                'cost_price': it['cost_price'],
+                'time':       it['time'],
+                'full_return': it['ret'] > 0 and net <= 0,
+                'qty':        fmt(net if net > 0 else it['received']),
+                'amount':     float((net if net > 0 else it['received']) * Decimal(str(it['cost_price']))),
+                'returned_qty': fmt(it['ret']) if it['ret'] > 0 and net > 0 else None,
+                'boxes':      it['boxes'] if it['ret'] == 0 else None,
             })
+        items = out_items
 
         return JsonResponse({
             'status':         'success',
