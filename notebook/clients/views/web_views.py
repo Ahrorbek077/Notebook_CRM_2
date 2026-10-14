@@ -596,6 +596,38 @@ class SaleReceiptEscposView(BusinessRequiredMixin, View):
         return response
 
 
+# ====================== QARZDORLAR RO'YXATI (printer uchun) ======================
+# Faqat qarzi bor mijozlarni yengil JSON qilib qaytaradi (bazaga yozmaydi,
+# keshlamaydi). Frontend (receipt.js -> printDebtors) uni Bluetooth printerga
+# matn ko'rinishida yuboradi.
+class DebtorsPrintView(LoginRequiredMixin, BusinessRequiredMixin, View):
+    def get(self, request):
+        qs = Client.objects.filter(business=request.business, total_debt__gt=0)
+
+        region_name = ''
+        region_id = request.GET.get('region', '').strip()
+        if region_id.isdigit():
+            qs = qs.filter(region_id=int(region_id))
+            region_name = (Region.objects.filter(pk=int(region_id), business=request.business)
+                           .values_list('name', flat=True).first() or '')
+
+        rows = list(qs.order_by('-total_debt').values('name', 'phone', 'total_debt'))
+        total = sum((r['total_debt'] for r in rows), Decimal('0'))
+
+        return JsonResponse({
+            'status': 'success',
+            'business_name': request.business.name,
+            'region': region_name,
+            'date': timezone.localtime().strftime('%d.%m.%Y %H:%M'),
+            'count': len(rows),
+            'total': float(total),
+            'clients': [
+                {'name': r['name'], 'phone': r['phone'], 'debt': float(r['total_debt'])}
+                for r in rows
+            ],
+        })
+
+
 # ====================== REGION ======================
 class RegionSaveView(LoginRequiredMixin, BusinessRequiredMixin, View):
     def post(self, request):

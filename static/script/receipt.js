@@ -554,6 +554,83 @@ const ReceiptManager = (() => {
     }
   }
 
+  // ── Qarzdorlar ro'yxati — faqat qarzi bor mijozlar (ASCII/lotin matn) ──
+  function buildDebtorsEscPos(data) {
+    const chunks = [];
+    const push = (...cmds) => cmds.forEach(c => {
+      chunks.push(Array.isArray(c) ? new Uint8Array(c) : encodeAsciiSafe(c));
+    });
+
+    push(ESC_POS.INIT);
+    push(ESC_POS.ALIGN_CENTER, ESC_POS.BOLD_ON);
+    push(`${data.business_name || 'Biznes'}\n`);
+    push(ESC_POS.BOLD_OFF);
+    push(`Qarzdorlar royxati${data.region ? ' - ' + data.region : ''}\n`);
+    push(`${data.date}\n`);
+    push(DIVIDER + '\n');
+
+    push(ESC_POS.ALIGN_LEFT);
+    data.clients.forEach((c, i) => {
+      const name = `${i + 1}. ${c.name}`;
+      push((name.length > COL_WIDTH ? name.substring(0, COL_WIDTH - 1) + '.' : name) + '\n');
+      push(twoCol(`   ${c.phone || ''}`, num(c.debt)) + '\n');
+    });
+
+    push(DIVIDER + '\n');
+    push(ESC_POS.BOLD_ON);
+    push(twoCol(`JAMI (${data.count} ta):`, fmt(data.total)) + '\n');
+    push(ESC_POS.BOLD_OFF);
+    push('\n\n\n\n\n');
+
+    const totalLen = chunks.reduce((s, c) => s + c.length, 0);
+    const buffer = new Uint8Array(totalLen);
+    let offset = 0;
+    chunks.forEach(c => { buffer.set(c, offset); offset += c.length; });
+    return buffer;
+  }
+
+  async function printDebtors(regionId = '') {
+    if (!navigator.bluetooth) {
+      showToast(T.bluetooth_unsupported, 'warning');
+      return;
+    }
+    try {
+      showToast(T.printer_searching, 'info');
+      const device = await selectPrinterDevice();   // foydalanuvchi bosishi ichida, birinchi await
+
+      const url = '/clients/debtors/print/' + (regionId ? `?region=${encodeURIComponent(regionId)}` : '');
+      const resp = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!resp.ok) throw new Error("Ro'yxat yuklanmadi");
+      const data = await resp.json();
+      if (!data.clients.length) {
+        showToast("Qarzdor mijoz yo'q", 'info');
+        return;
+      }
+      const bytes = buildDebtorsEscPos(data);
+
+      const MAX_ATTEMPTS = 3;
+      let lastErr = null;
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        try {
+          const { server, char } = await establishGattConnection(device);
+          await writeBytesToPrinter(char, bytes, { lineAware: true });
+          await new Promise(r => setTimeout(r, 300));
+          try { await server.disconnect(); } catch (_) {}
+          showToast(T.receipt_printed, 'success');
+          lastErr = null;
+          break;
+        } catch (err) {
+          lastErr = err;
+          if (attempt < MAX_ATTEMPTS) await new Promise(r => setTimeout(r, 800));
+        }
+      }
+      if (lastErr) throw lastErr;
+    } catch (err) {
+      if (err.name === 'NotFoundError' || err.name === 'AbortError') return;
+      showToast(`Printer xatoligi: ${err.message}`, 'danger');
+    }
+  }
+
   // ── Script dinamik yuklash ────────────────────────────────────────────────
   function loadScript(src) {
     return new Promise((resolve, reject) => {
@@ -607,6 +684,7 @@ const ReceiptManager = (() => {
     },
 
     // Modal ichidagi tugmalar uchun
+    printDebtors,
     doPdf,
     doShare,
     async doBluetooth(saleId) { await doBluetooth(saleId); },

@@ -74,7 +74,12 @@
                     style="--chip-active-bg: rgba(100,181,246,.12); --chip-active-color: #64b5f6; --chip-active-border: rgba(100,181,246,.3)">
                 <i class="fa fa-check" style="font-size:.75rem"></i> Toza
             </button>
+            <button class="region-chip" id="printDebtorsBtn" style="margin-left:auto"
+                    onclick="ReceiptManager.printDebtors(document.querySelector('#regionFilter .region-chip.active')?.dataset.region || '')">
+                <i class="fa fa-print" style="font-size:.75rem"></i> Qarzdorlar
+            </button>
         </div>
+
     </div>
 
     <!-- STATS BAR -->
@@ -423,6 +428,7 @@
 window.SMS_SEND_URL = "{% url 'sms:send-balance-sms' 0 %}";
 window.CURRENT_BUSINESS_NAME = "{{ request.business.name|escapejs }}";
 </script>
+<script src="{% static 'script/receipt.js' %}"></script>
 <script src="{% static 'script/client.js' %}"></script>
 </body>
 </html>
